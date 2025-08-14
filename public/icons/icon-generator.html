@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+    <style>
+        .icon-canvas {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>宅建RPG Icon Generator</h1>
+    <p>右クリックして画像を保存してください</p>
+    
+    <div class="icon-canvas">
+        <h3>16x16</h3>
+        <canvas id="icon16" width="16" height="16"></canvas>
+    </div>
+    
+    <div class="icon-canvas">
+        <h3>32x32</h3>
+        <canvas id="icon32" width="32" height="32"></canvas>
+    </div>
+    
+    <div class="icon-canvas">
+        <h3>144x144</h3>
+        <canvas id="icon144" width="144" height="144"></canvas>
+    </div>
+    
+    <div class="icon-canvas">
+        <h3>192x192</h3>
+        <canvas id="icon192" width="192" height="192"></canvas>
+    </div>
+    
+    <div class="icon-canvas">
+        <h3>512x512</h3>
+        <canvas id="icon512" width="512" height="512"></canvas>
+    </div>
+
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#4F46E5';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('宅', size / 2, size / 2);
+        }
+        
+        drawIcon('icon16', 16);
+        drawIcon('icon32', 32);
+        drawIcon('icon144', 144);
+        drawIcon('icon192', 192);
+        drawIcon('icon512', 512);
+    </script>
+</body>
+</html>

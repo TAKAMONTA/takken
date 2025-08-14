@@ -1,0 +1,124 @@
+{
+  "name": "宅建合格ロード",
+  "short_name": "宅建RPG",
+  "description": "ペットと一緒に楽しく宅建試験に合格しよう！",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#9333ea",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "ja",
+  "categories": ["education", "games"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "過去問演習",
+      "short_name": "過去問",
+      "description": "過去問題に挑戦する",
+      "url": "/practice",
+      "icons": [
+        {
+          "src": "/icons/shortcut-practice.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "ミニテスト",
+      "short_name": "ミニテスト",
+      "description": "5分でできる短問題",
+      "url": "/quick-test",
+      "icons": [
+        {
+          "src": "/icons/shortcut-quick.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "ペット",
+      "short_name": "ペット",
+      "description": "ペットのお世話をする",
+      "url": "/pet",
+      "icons": [
+        {
+          "src": "/icons/shortcut-pet.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ダッシュボード画面"
+    },
+    {
+      "src": "/screenshots/quiz.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "問題演習画面"
+    },
+    {
+      "src": "/screenshots/pet.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ペット育成画面"
+    }
+  ]
+}

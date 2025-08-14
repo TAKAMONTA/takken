@@ -1,0 +1,440 @@
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+
+const practiceCategories = {
+  takkengyouhou: {
+    name: '宅建業法',
+    icon: '🏢',
+    subCategories: [
+      {
+        id: 'takken-license',
+        name: '免許制度',
+        description: '宅建業の免許、更新、廃業等',
+        questions: 45,
+        difficulty: { basic: 25, intermediate: 15, advanced: 5 },
+        icon: '📋'
+      },
+      {
+        id: 'takken-business',
+        name: '業務規制',
+        description: '広告規制、契約締結時期の制限等',
+        questions: 38,
+        difficulty: { basic: 20, intermediate: 12, advanced: 6 },
+        icon: '⚖️'
+      },
+      {
+        id: 'takken-supervision',
+        name: '監督処分',
+        description: '指示処分、業務停止、免許取消等',
+        questions: 28,
+        difficulty: { basic: 15, intermediate: 8, advanced: 5 },
+        icon: '⚠️'
+      },
+      {
+        id: 'takken-guarantee',
+        name: '営業保証金・保証協会',
+        description: '営業保証金の供託、保証協会制度',
+        questions: 25,
+        difficulty: { basic: 12, intermediate: 8, advanced: 5 },
+        icon: '💰'
+      },
+      {
+        id: 'takken-contract',
+        name: '契約・重要事項説明',
+        description: '37条書面、35条書面の作成・交付',
+        questions: 20,
+        difficulty: { basic: 8, intermediate: 7, advanced: 5 },
+        icon: '📄'
+      }
+    ]
+  },
+  minpou: {
+    name: '民法等',
+    icon: '⚖️',
+    subCategories: [
+      {
+        id: 'civil-property',
+        name: '物権法',
+        description: '所有権、抵当権、地上権等',
+        questions: 35,
+        difficulty: { basic: 15, intermediate: 12, advanced: 8 },
+        icon: '🏠'
+      },
+      {
+        id: 'civil-debt',
+        name: '債権法',
+        description: '契約、不法行為、保証等',
+        questions: 32,
+        difficulty: { basic: 12, intermediate: 12, advanced: 8 },
+        icon: '🤝'
+      },
+      {
+        id: 'civil-family',
+        name: '親族・相続法',
+        description: '相続、遺言、親族関係等',
+        questions: 25,
+        difficulty: { basic: 10, intermediate: 10, advanced: 5 },
+        icon: '👨‍👩‍👧‍👦'
+      },
+      {
+        id: 'civil-general',
+        name: '総則',
+        description: '意思表示、代理、時効等',
+        questions: 20,
+        difficulty: { basic: 8, intermediate: 8, advanced: 4 },
+        icon: '📚'
+      },
+      {
+        id: 'civil-other',
+        name: 'その他民法',
+        description: '借地借家法、区分所有法等',
+        questions: 12,
+        difficulty: { basic: 5, intermediate: 4, advanced: 3 },
+        icon: '🏘️'
+      }
+    ]
+  },
+  hourei: {
+    name: '法令上の制限',
+    icon: '📋',
+    subCategories: [
+      {
+        id: 'urban-planning',
+        name: '都市計画法',
+        description: '開発許可、用途地域等',
+        questions: 28,
+        difficulty: { basic: 15, intermediate: 8, advanced: 5 },
+        icon: '🏙️'
+      },
+      {
+        id: 'building-standards',
+        name: '建築基準法',
+        description: '建蔽率、容積率、高さ制限等',
+        questions: 25,
+        difficulty: { basic: 12, intermediate: 8, advanced: 5 },
+        icon: '🏗️'
+      },
+      {
+        id: 'agricultural-land',
+        name: '農地法',
+        description: '農地転用、売買許可等',
+        questions: 15,
+        difficulty: { basic: 8, intermediate: 4, advanced: 3 },
+        icon: '🌾'
+      },
+      {
+        id: 'land-use',
+        name: '国土利用計画法',
+        description: '土地取引の届出・許可制度',
+        questions: 12,
+        difficulty: { basic: 6, intermediate: 4, advanced: 2 },
+        icon: '🗾'
+      },
+      {
+        id: 'other-laws',
+        name: 'その他法令',
+        description: '宅地造成等規制法、土地区画整理法等',
+        questions: 18,
+        difficulty: { basic: 10, intermediate: 5, advanced: 3 },
+        icon: '📜'
+      }
+    ]
+  },
+  zeihou: {
+    name: '税・その他',
+    icon: '💰',
+    subCategories: [
+      {
+        id: 'tax-income',
+        name: '所得税',
+        description: '不動産所得、譲渡所得等',
+        questions: 18,
+        difficulty: { basic: 10, intermediate: 5, advanced: 3 },
+        icon: '💸'
+      },
+      {
+        id: 'tax-property',
+        name: '固定資産税・都市計画税',
+        description: '課税標準、軽減措置等',
+        questions: 15,
+        difficulty: { basic: 8, intermediate: 4, advanced: 3 },
+        icon: '🏘️'
+      },
+      {
+        id: 'tax-acquisition',
+        name: '不動産取得税・登録免許税',
+        description: '税率、軽減措置等',
+        questions: 12,
+        difficulty: { basic: 6, intermediate: 4, advanced: 2 },
+        icon: '📋'
+      },
+      {
+        id: 'appraisal',
+        name: '不動産鑑定評価',
+        description: '鑑定評価基準、価格形成要因等',
+        questions: 12,
+        difficulty: { basic: 6, intermediate: 4, advanced: 2 },
+        icon: '📊'
+      },
+      {
+        id: 'statistics',
+        name: '統計・その他',
+        description: '地価公示、建築着工統計等',
+        questions: 10,
+        difficulty: { basic: 5, intermediate: 3, advanced: 2 },
+        icon: '📈'
+      }
+    ]
+  }
+};
+
+function DetailContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get('category');
+  
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('');
+
+  const category = categoryId ? practiceCategories[categoryId as keyof typeof practiceCategories] : null;
+
+  const handleStartQuiz = () => {
+    if (!selectedSubCategory || !selectedDifficulty || !selectedFrequency) {
+      alert('すべての項目を選択してください');
+      return;
+    }
+    
+    router.push(`/practice/quiz?category=${categoryId}&subcategory=${selectedSubCategory}&difficulty=${selectedDifficulty}&frequency=${selectedFrequency}`);
+  };
+
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case 'basic': return '基本';
+      case 'intermediate': return '標準';
+      case 'advanced': return '応用';
+      default: return '';
+    }
+  };
+
+  const getFrequencyLabel = (frequency: string) => {
+    switch (frequency) {
+      case 'high': return '頻出';
+      case 'medium': return '標準';
+      case 'low': return '稀出';
+      default: return '';
+    }
+  };
+
+  if (!category) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">カテゴリが見つかりません</p>
+          <Link href="/practice">
+            <button className="button-minimal">戻る</button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header - TSDO inspired minimal navigation */}
+      <header className="nav-minimal sticky top-0 z-50">
+        <div className="container-minimal">
+          <div className="flex items-center justify-between h-16 px-4">
+            <div className="flex items-center space-x-4">
+              <Link href="/practice" className="button-ghost p-2">
+                <i className="ri-arrow-left-line text-lg"></i>
+              </Link>
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">{category.icon}</span>
+                <h1 className="text-lg font-medium">{category.name}</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container-minimal px-4 pb-24">
+        {/* Sub Category Selection */}
+        <section className="section-minimal">
+          <div className="mb-6">
+            <h3 className="text-lg font-medium">詳細分野を選択</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {category.subCategories.map((subCategory, index) => (
+              <button
+                key={subCategory.id}
+                onClick={() => setSelectedSubCategory(subCategory.id)}
+                className={`w-full card-minimal scale-hover fade-in text-left ${
+                  selectedSubCategory === subCategory.id
+                    ? 'border-foreground/20 bg-accent'
+                    : ''
+                }`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center text-2xl">
+                      {subCategory.icon}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium mb-1">{subCategory.name}</h4>
+                    <p className="text-minimal text-xs mb-2">{subCategory.description}</p>
+                    <div className="flex items-center space-x-3 text-xs text-muted-foreground">
+                      <span>{subCategory.questions}問</span>
+                      <div className="w-px h-3 bg-border"></div>
+                      <span>基本{subCategory.difficulty.basic}</span>
+                      <span>標準{subCategory.difficulty.intermediate}</span>
+                      <span>応用{subCategory.difficulty.advanced}</span>
+                    </div>
+                  </div>
+                  {selectedSubCategory === subCategory.id && (
+                    <div className="flex-shrink-0">
+                      <i className="ri-check-line text-lg text-foreground"></i>
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Difficulty Selection */}
+        <section className="section-minimal">
+          <div className="mb-6">
+            <h3 className="text-lg font-medium">難易度を選択</h3>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { id: 'basic', label: '基本', description: '基礎的な問題' },
+              { id: 'intermediate', label: '標準', description: '標準的な問題' },
+              { id: 'advanced', label: '応用', description: '応用・発展問題' }
+            ].map((difficulty, index) => (
+              <button
+                key={difficulty.id}
+                onClick={() => setSelectedDifficulty(difficulty.id)}
+                className={`card-minimal scale-hover fade-in text-center ${
+                  selectedDifficulty === difficulty.id
+                    ? 'border-foreground/20 bg-accent'
+                    : ''
+                }`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="font-medium mb-1">{difficulty.label}</div>
+                <div className="text-xs text-muted-foreground">{difficulty.description}</div>
+                {selectedDifficulty === difficulty.id && (
+                  <div className="mt-2">
+                    <i className="ri-check-line text-lg text-foreground"></i>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Frequency Selection */}
+        <section className="section-minimal">
+          <div className="mb-6">
+            <h3 className="text-lg font-medium">重要度を選択</h3>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { id: 'high', label: '頻出', description: '試験によく出る' },
+              { id: 'medium', label: '標準', description: '標準的な出題' },
+              { id: 'low', label: '稀出', description: 'たまに出題される' }
+            ].map((frequency, index) => (
+              <button
+                key={frequency.id}
+                onClick={() => setSelectedFrequency(frequency.id)}
+                className={`card-minimal scale-hover fade-in text-center ${
+                  selectedFrequency === frequency.id
+                    ? 'border-foreground/20 bg-accent'
+                    : ''
+                }`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="font-medium mb-1">{frequency.label}</div>
+                <div className="text-xs text-muted-foreground">{frequency.description}</div>
+                {selectedFrequency === frequency.id && (
+                  <div className="mt-2">
+                    <i className="ri-check-line text-lg text-foreground"></i>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Selection Summary */}
+        {(selectedSubCategory || selectedDifficulty || selectedFrequency) && (
+          <section className="section-minimal">
+            <div className="card-minimal">
+              <h3 className="text-lg font-medium mb-4">選択内容</h3>
+              <div className="space-y-3">
+                {selectedSubCategory && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">分野</span>
+                    <span className="font-medium">
+                      {category.subCategories.find(sub => sub.id === selectedSubCategory)?.name}
+                    </span>
+                  </div>
+                )}
+                {selectedDifficulty && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">難易度</span>
+                    <span className="font-medium">{getDifficultyLabel(selectedDifficulty)}</span>
+                  </div>
+                )}
+                {selectedFrequency && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">重要度</span>
+                    <span className="font-medium">{getFrequencyLabel(selectedFrequency)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Start Button */}
+        <section className="section-minimal">
+          <button
+            onClick={handleStartQuiz}
+            disabled={!selectedSubCategory || !selectedDifficulty || !selectedFrequency}
+            className="w-full button-minimal py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {selectedSubCategory && selectedDifficulty && selectedFrequency
+              ? '問題演習を開始する'
+              : 'すべての項目を選択してください'
+            }
+          </button>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default function PracticeDetail() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-muted-foreground">読み込み中...</div>
+        </div>
+      }
+    >
+      <DetailContent />
+    </Suspense>
+  );
+}
