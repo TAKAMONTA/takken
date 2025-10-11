@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(cmd /c \"rmdir /s /q .next\")",
+      "Bash(npx cap sync:*)",
+      "Read(/C:\\Users\\tnaka\\takken\\android/**)",
+      "Bash(cmd /c \"cd android && gradlew assembleRelease\")",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Read(/C:\\Users\\tnaka\\takken\\android/**)",
+      "Read(/C:\\Users\\tnaka\\takken\\android\\app/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

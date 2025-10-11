@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>オフライン - 宅建合格ロード</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+
+      .offline-container {
+        text-align: center;
+        max-width: 400px;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      }
+
+      .offline-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+
+      p {
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+      }
+
+      .offline-features {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        font-size: 0.9rem;
+      }
+
+      .feature-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .feature-icon {
+        margin-right: 0.8rem;
+        font-size: 1.2rem;
+      }
+
+      .retry-button {
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 0.8rem 2rem;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .retry-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        opacity: 0.8;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ff6b6b;
+        margin-right: 0.5rem;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        50% {
+          opacity: 1;
+        }
+        51%,
+        100% {
+          opacity: 0.3;
+        }
+      }
+
+      .cached-content {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <div class="offline-icon">📚</div>
+      <h1>オフライン学習モード</h1>
+      <p>
+        インターネット接続がありませんが、キャッシュされたコンテンツで学習を続けることができます。
+      </p>
+
+      <div class="offline-features">
+        <div class="feature-item">
+          <span class="feature-icon">✅</span>
+          <span>過去問演習（キャッシュ済み）</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✅</span>
+          <span>弱点克服機能</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">✅</span>
+          <span>学習進捗の記録</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">⏳</span>
+          <span>AI先生（オンライン時のみ）</span>
+        </div>
+      </div>
+
+      <a href="/practice" class="retry-button">学習を続ける</a>
+
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>オフライン</span>
+      </div>
+
+      <div class="cached-content">
+        <strong>💡 ヒント:</strong><br />
+        接続が復旧すると、学習データが自動的に同期されます。
+      </div>
+    </div>
+
+    <script>
+      // 接続状態の監視
+      function updateConnectionStatus() {
+        const statusDot = document.querySelector(".status-dot");
+        const statusText = document.querySelector(".status-indicator span");
+
+        if (navigator.onLine) {
+          statusDot.style.background = "#51cf66";
+          statusText.textContent = "オンライン";
+          // オンラインに戻ったら自動的にリダイレクト
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 2000);
+        } else {
+          statusDot.style.background = "#ff6b6b";
+          statusText.textContent = "オフライン";
+        }
+      }
+
+      // イベントリスナーの設定
+      window.addEventListener("online", updateConnectionStatus);
+      window.addEventListener("offline", updateConnectionStatus);
+
+      // 初期状態の確認
+      updateConnectionStatus();
+
+      // 定期的な接続チェック
+      setInterval(() => {
+        fetch("/", { method: "HEAD", cache: "no-cache" })
+          .then(() => {
+            if (!navigator.onLine) {
+              // 接続が復旧した場合
+              window.location.reload();
+            }
+          })
+          .catch(() => {
+            // まだオフライン
+          });
+      }, 5000);
+    </script>
+  </body>
+</html>

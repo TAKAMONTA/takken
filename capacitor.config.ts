@@ -1,9 +1,19 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.takken.rpg',
-  appName: 'takken-rpg',
-  webDir: 'out'
+  appId: "com.takkenroad.app",
+  appName: "宅建合格ロード",
+  webDir: "out",
+  ios: {
+    contentInset: "always",
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: "#9333ea",
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;

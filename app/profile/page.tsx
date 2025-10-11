@@ -141,15 +141,15 @@ export default function Profile() {
               <span className="text-muted-foreground">1.0.0</span>
             </div>
             <div className="w-full h-px bg-border"></div>
-            <div className="flex justify-between items-center py-2">
+            <Link href="/settings/terms" className="flex justify-between items-center py-2">
               <span className="font-medium">利用規約</span>
               <i className="ri-arrow-right-line text-muted-foreground"></i>
-            </div>
+            </Link>
             <div className="w-full h-px bg-border"></div>
-            <div className="flex justify-between items-center py-2">
+            <Link href="/settings/privacy" className="flex justify-between items-center py-2">
               <span className="font-medium">プライバシーポリシー</span>
               <i className="ri-arrow-right-line text-muted-foreground"></i>
-            </div>
+            </Link>
           </div>
         </section>
 

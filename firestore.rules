@@ -8,45 +8,128 @@ service cloud.firestore {
     
     // 自分のデータのみアクセス可能
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // 管理者権限の確認
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // 有料会員かどうかを確認
     function isPremiumUser() {
-      return exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid));
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid));
+    }
+
+    // データサイズ制限の確認
+    function isValidDataSize(data) {
+      return request.resource.size < 1048576; // 1MB制限
+    }
+
+    // 文字列の長さ制限
+    function isValidStringLength(str, maxLength) {
+      return str is string && str.size() <= maxLength;
+    }
+
+    // 日付の妥当性確認
+    function isValidTimestamp(ts) {
+      return ts is timestamp && 
+             ts > timestamp.date(2020, 1, 1) &&
+             ts < timestamp.date(2030, 12, 31);
     }
 
     // 問題データは認証済みユーザーのみ読み取り可能
     match /questions/{questionId} {
       allow read: if isAuthenticated();
-      allow write: if false;  // 問題データの書き込みは管理者のみ（Admin SDKで実行）
+      allow write: if isAdmin();  // 管理者のみ書き込み可能
     }
     
     // 学習進捗データは本人のみアクセス可能
     match /progress/{userId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read, write: if isAuthenticated() && isOwner(userId) && isValidDataSize(resource.data);
+      allow create: if isAuthenticated() && isOwner(userId) && 
+                       isValidDataSize(resource.data) &&
+                       isValidTimestamp(resource.data.createdAt);
+      allow update: if isAuthenticated() && isOwner(userId) && 
+                       isValidDataSize(resource.data) &&
+                       isValidTimestamp(resource.data.updatedAt);
+    }
+    
+    // 学習セッションデータ
+    match /studySessions/{sessionId} {
+      allow read, write: if isAuthenticated() && 
+                            resource.data.userId == request.auth.uid &&
+                            isValidDataSize(resource.data);
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       isValidDataSize(request.resource.data) &&
+                       isValidTimestamp(request.resource.data.createdAt);
     }
     
     // 学習スケジュールも本人のみアクセス可能
     match /schedules/{userId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read, write: if isAuthenticated() && isOwner(userId) && isValidDataSize(resource.data);
     }
 
     // プレミアム機能のデータは有料会員のみアクセス可能
     match /premium/{document=**} {
       allow read: if isAuthenticated() && isPremiumUser();
-      allow write: if false;  // プレミアムコンテンツの更新は管理者のみ
+      allow write: if isAdmin();  // 管理者のみ更新可能
     }
 
     // サブスクリプション状態の確認
     match /subscriptions/{userId} {
       allow read: if isAuthenticated() && isOwner(userId);
-      allow write: if false;  // サブスクリプションの更新はサーバーサイドで管理
+      allow write: if isAdmin();  // 管理者のみ更新可能
     }
 
     // ユーザープロファイル
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId) &&
+                       isValidStringLength(request.resource.data.name, 50) &&
+                       isValidStringLength(request.resource.data.email, 100) &&
+                       isValidTimestamp(request.resource.data.createdAt) &&
+                       isValidDataSize(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(userId) &&
+                       isValidStringLength(request.resource.data.name, 50) &&
+                       isValidTimestamp(request.resource.data.updatedAt) &&
+                       isValidDataSize(request.resource.data);
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // 管理者コレクション（管理者のみアクセス可能）
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // システム設定（管理者のみアクセス可能）
+    match /systemConfig/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 通知購読情報
+    match /pushSubscriptions/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId) && isValidDataSize(resource.data);
+    }
+
+    // 学習統計データ
+    match /analytics/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId) && isValidDataSize(resource.data);
+    }
+
+    // エラーログ（管理者のみアクセス可能）
+    match /errorLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // ログは自動生成のみ
+    }
+
+    // デフォルトルール：その他のコレクションへのアクセスを拒否
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

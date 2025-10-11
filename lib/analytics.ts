@@ -1,6 +1,6 @@
 // Learning Analytics and Progress Tracking
 
-import { UserProfile, StudyProgress, StudyStreak } from './types';
+import { UserProfile, StudyProgress, StudyStreak, StudySession } from './types';
 import { Question } from './types/quiz';
 
 export interface LearningPattern {
@@ -35,20 +35,6 @@ export interface PerformanceMetrics {
   timeEfficiency: number; // questions per minute
   consistencyScore: number; // 0-100
   improvementTrend: 'improving' | 'stable' | 'declining';
-}
-
-export interface StudySession {
-  id: string;
-  userId: string;
-  startTime: Date;
-  endTime: Date;
-  category: string;
-  mode: string;
-  questionsAnswered: number;
-  correctAnswers: number;
-  timeSpent: number; // minutes
-  difficulty: string;
-  xpEarned: number;
 }
 
 class LearningAnalytics {

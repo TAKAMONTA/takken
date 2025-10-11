@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 export default function Register() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
@@ -20,23 +20,23 @@ export default function Register() {
     const newErrors: any = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = 'ユーザー名は必須です';
+      newErrors.username = "ユーザー名は必須です";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'メールアドレスは必須です';
+      newErrors.email = "メールアドレスは必須です";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = '有効なメールアドレスを入力してください';
+      newErrors.email = "有効なメールアドレスを入力してください";
     }
 
     if (!formData.password) {
-      newErrors.password = 'パスワードは必須です';
+      newErrors.password = "パスワードは必須です";
     } else if (formData.password.length < 6) {
-      newErrors.password = 'パスワードは6文字以上で入力してください';
+      newErrors.password = "パスワードは6文字以上で入力してください";
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'パスワードが一致しません';
+      newErrors.confirmPassword = "パスワードが一致しません";
     }
 
     setErrors(newErrors);
@@ -45,24 +45,41 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
       // Dynamic import for client-side only
-      const { initializeFirebase } = await import('../../../lib/firebase-client');
-      const { firestoreService } = await import('../../../lib/firestore-service');
-      const { auth } = initializeFirebase();
+      const { initializeFirebaseWithFallback } = await import(
+        "../../../lib/firebase-client"
+      );
+      const { firestoreService } = await import(
+        "../../../lib/firestore-service"
+      );
+
+      const firebaseInstance = await initializeFirebaseWithFallback();
+
+      // フォールバックモードの場合はローカルストレージ認証を使用
+      if (firebaseInstance.fallback) {
+        await handleLocalStorageRegistration();
+        return;
+      }
+
+      const { auth } = firebaseInstance;
 
       // Firebase Authでユーザー作成
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
       const user = userCredential.user;
 
       // ユーザープロファイルを更新
       await updateProfile(user, {
-        displayName: formData.username
+        displayName: formData.username,
       });
 
       // Firestoreに初期ユーザーデータを保存
@@ -76,21 +93,16 @@ export default function Register() {
         streak: {
           currentStreak: 0,
           longestStreak: 0,
-          lastStudyDate: '',
-          studyDates: []
+          lastStudyDate: "",
+          studyDates: [],
         },
         progress: {
           totalQuestions: 0,
           correctAnswers: 0,
           studyTimeMinutes: 0,
-          categoryProgress: {}
+          categoryProgress: {},
         },
         badges: [],
-        pet: {
-          xp: 0,
-          level: 1,
-          stage: 1
-        }
       };
 
       await firestoreService.createUserProfile(user.uid, initialUserData);
@@ -100,52 +112,105 @@ export default function Register() {
         id: user.uid,
         username: formData.username,
         email: formData.email,
-        pet: {
-          type: 'dragon',
-          stage: 1,
-          level: 1,
-          happiness: 100,
-          hunger: 50,
-          xp: 0
-        }
       };
-      localStorage.setItem('takken_rpg_user', JSON.stringify(userData));
+      localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
 
       // ローカルストレージにもユーザーリストを保存（フォールバック用）
-      const existingUsers = JSON.parse(localStorage.getItem('takken_users') || '[]');
+      const { hashPassword } = await import("../../../lib/crypto-utils");
+      const existingUsers = JSON.parse(
+        localStorage.getItem("takken_users") || "[]"
+      );
       existingUsers.push({
         id: user.uid,
         username: formData.username,
         email: formData.email,
-        password: formData.password, // 注意: 本番環境では暗号化すべき
-        pet: userData.pet
+        passwordHash: hashPassword(formData.password), // 暗号化されたパスワード
       });
-      localStorage.setItem('takken_users', JSON.stringify(existingUsers));
+      localStorage.setItem("takken_users", JSON.stringify(existingUsers));
 
-      // 性格診断画面に遷移
-      router.push('/personality-test');
+      // ダッシュボードに遷移
+      router.push("/dashboard");
     } catch (error: any) {
-      console.error('Registration error:', error);
-      let errorMessage = '登録に失敗しました';
-      
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'このメールアドレスは既に使用されています';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'パスワードが弱すぎます';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = '無効なメールアドレスです';
+      console.error("Registration error:", error);
+
+      // Firebaseが利用できない場合は、ローカルストレージのみで動作
+      if (
+        error.code === "auth/configuration-not-found" ||
+        error.code === "auth/network-request-failed" ||
+        error.message?.includes("Firebase configuration")
+      ) {
+        try {
+          await handleLocalStorageRegistration();
+          return;
+        } catch (localStorageError) {
+          console.error("LocalStorage registration error:", localStorageError);
+        }
       }
-      
+
+      let errorMessage = "登録に失敗しました";
+
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "このメールアドレスは既に使用されています";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "パスワードが弱すぎます";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "無効なメールアドレスです";
+      }
+
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
+  // ローカルストレージ登録の処理
+  const handleLocalStorageRegistration = async () => {
+    try {
+      // 既存ユーザーの確認
+      const existingUsers = JSON.parse(
+        localStorage.getItem("takken_users") || "[]"
+      );
+      const existingUser = existingUsers.find(
+        (u: any) => u.email === formData.email.trim()
+      );
+
+      if (existingUser) {
+        throw new Error("このメールアドレスは既に使用されています");
+      }
+
+      // 新しいユーザーを作成
+      const { hashPassword } = await import("../../../lib/crypto-utils");
+      const newUser = {
+        id: "user-" + Date.now(),
+        username: formData.username,
+        email: formData.email.trim(),
+        passwordHash: hashPassword(formData.password), // 暗号化されたパスワード
+      };
+
+      // ユーザーリストに追加
+      existingUsers.push(newUser);
+      localStorage.setItem("takken_users", JSON.stringify(existingUsers));
+
+      // 現在のユーザーとして設定
+      const userData = {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+      };
+      localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+
+      // ダッシュボードに遷移
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("LocalStorage registration error:", error);
+      throw error;
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // リアルタイムバリデーション
     if (errors[name]) {
       const newErrors = { ...errors };
@@ -202,7 +267,9 @@ export default function Register() {
                     placeholder="好きな名前を入力"
                   />
                   {errors.username && (
-                    <p className="text-destructive text-xs mt-1">{errors.username}</p>
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.username}
+                    </p>
                   )}
                 </div>
 
@@ -220,7 +287,9 @@ export default function Register() {
                     placeholder="メールアドレス"
                   />
                   {errors.email && (
-                    <p className="text-destructive text-xs mt-1">{errors.email}</p>
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.email}
+                    </p>
                   )}
                 </div>
 
@@ -238,7 +307,9 @@ export default function Register() {
                     placeholder="6文字以上で入力"
                   />
                   {errors.password && (
-                    <p className="text-destructive text-xs mt-1">{errors.password}</p>
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.password}
+                    </p>
                   )}
                 </div>
 
@@ -256,7 +327,9 @@ export default function Register() {
                     placeholder="パスワードを再入力"
                   />
                   {errors.confirmPassword && (
-                    <p className="text-destructive text-xs mt-1">{errors.confirmPassword}</p>
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.confirmPassword}
+                    </p>
                   )}
                 </div>
 
@@ -266,14 +339,17 @@ export default function Register() {
                   disabled={loading}
                   className="w-full button-minimal py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? '登録中...' : '登録して性格診断へ'}
+                  {loading ? "登録中..." : "登録してダッシュボードへ"}
                 </button>
               </form>
 
               <div className="mt-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  すでにアカウントをお持ちですか？{' '}
-                  <Link href="/auth/login" className="text-foreground font-medium hover:underline">
+                  すでにアカウントをお持ちですか？{" "}
+                  <Link
+                    href="/auth/login"
+                    className="text-foreground font-medium hover:underline"
+                  >
                     ログイン
                   </Link>
                 </p>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { learningAnalytics } from '@/lib/analytics';
 
 const menuItems = [
   { id: 'progress', title: '学習進捗', description: '分野別の進捗を確認', icon: 'ri-line-chart-line', link: '/stats/progress' },
@@ -15,11 +16,48 @@ export default function Stats() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [studyStats, setStudyStats] = useState<any>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('takken_rpg_user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      
+      // 学習統計を取得
+      try {
+        const analytics = learningAnalytics.getAnalyticsSummary(userData.id);
+        setStudyStats(analytics);
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+        // フォールバック: ユーザーデータから直接統計を計算
+        const totalStats = userData.totalStats || { totalQuestions: 0, totalCorrect: 0, totalStudyTime: 0 };
+        const categoryStats = userData.categoryStats || {};
+        
+        // 分野別統計を集計
+        let totalCategoryQuestions = 0;
+        let totalCategoryCorrect = 0;
+        Object.keys(categoryStats).forEach(category => {
+          const stats = categoryStats[category];
+          if (stats) {
+            totalCategoryQuestions += stats.totalQuestions || 0;
+            totalCategoryCorrect += stats.correctAnswers || 0;
+          }
+        });
+        
+        // より正確な統計を使用（分野別データがある場合はそれを優先）
+        const finalTotalQuestions = totalCategoryQuestions > 0 ? totalCategoryQuestions : totalStats.totalQuestions;
+        const finalTotalCorrect = totalCategoryCorrect > 0 ? totalCategoryCorrect : totalStats.totalCorrect;
+        const accuracy = finalTotalQuestions > 0 ? Math.round((finalTotalCorrect / finalTotalQuestions) * 100) : 0;
+        
+        setStudyStats({
+          totalQuestions: finalTotalQuestions,
+          accuracy: accuracy,
+          studyTime: Math.round(totalStats.totalStudyTime / 60), // 時間に変換
+          streak: userData.streak?.currentStreak || 0,
+          categoryBreakdown: categoryStats
+        });
+      }
     } else {
       router.push('/');
     }
@@ -63,19 +101,19 @@ export default function Stats() {
         <section className="section-minimal">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             <div className="card-minimal text-center">
-              <div className="text-2xl font-medium mb-1">{user.streak?.currentStreak || 0}</div>
+              <div className="text-2xl font-medium mb-1">{studyStats?.streak || user.streak?.currentStreak || 0}</div>
               <div className="text-xs text-muted-foreground">連続学習日数</div>
             </div>
             <div className="card-minimal text-center">
-              <div className="text-2xl font-medium mb-1">0</div>
+              <div className="text-2xl font-medium mb-1">{studyStats?.totalQuestions || 0}</div>
               <div className="text-xs text-muted-foreground">総問題数</div>
             </div>
             <div className="card-minimal text-center">
-              <div className="text-2xl font-medium mb-1">0%</div>
+              <div className="text-2xl font-medium mb-1">{studyStats?.accuracy || 0}%</div>
               <div className="text-xs text-muted-foreground">正答率</div>
             </div>
             <div className="card-minimal text-center">
-              <div className="text-2xl font-medium mb-1">0</div>
+              <div className="text-2xl font-medium mb-1">{studyStats?.studyTime || 0}h</div>
               <div className="text-xs text-muted-foreground">学習時間</div>
             </div>
           </div>
@@ -121,11 +159,39 @@ export default function Stats() {
           </div>
           
           <div className="card-minimal">
-            <div className="text-center py-8">
-              <i className="ri-history-line text-4xl text-muted-foreground mb-4"></i>
-              <p className="text-minimal">まだ学習データがありません</p>
-              <p className="text-xs text-muted-foreground mt-2">問題を解いて学習を始めましょう</p>
-            </div>
+            {user.studyHistory && user.studyHistory.length > 0 ? (
+              <div className="space-y-3">
+                {user.studyHistory.slice(-5).reverse().map((record: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i className="ri-book-open-line text-purple-600"></i>
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{new Date(record.date).toLocaleDateString('ja-JP')}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {record.questionsAnswered}問解答 • {record.sessions}セッション
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-green-600">
+                        {Math.round((record.correctAnswers / record.questionsAnswered) * 100)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {record.studyTimeMinutes}分
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <i className="ri-history-line text-4xl text-muted-foreground mb-4"></i>
+                <p className="text-minimal">まだ学習データがありません</p>
+                <p className="text-xs text-muted-foreground mt-2">問題を解いて学習を始めましょう</p>
+              </div>
+            )}
           </div>
         </section>
       </main>

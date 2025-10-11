@@ -1,7 +1,7 @@
 {
   "name": "宅建合格ロード",
   "short_name": "宅建RPG",
-  "description": "ペットと一緒に楽しく宅建試験に合格しよう！",
+  "description": "AI先生と一緒に楽しく宅建試験に合格しよう！",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -86,13 +86,13 @@
       ]
     },
     {
-      "name": "ペット",
-      "short_name": "ペット",
-      "description": "ペットのお世話をする",
-      "url": "/pet",
+      "name": "弱点克服",
+      "short_name": "弱点",
+      "description": "苦手分野を集中的に学習",
+      "url": "/weak-points",
       "icons": [
         {
-          "src": "/icons/shortcut-pet.png",
+          "src": "/icons/shortcut-weak.png",
           "sizes": "96x96"
         }
       ]
@@ -114,11 +114,11 @@
       "label": "問題演習画面"
     },
     {
-      "src": "/screenshots/pet.png",
+      "src": "/screenshots/weak-points.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "ペット育成画面"
+      "label": "弱点克服画面"
     }
   ]
 }

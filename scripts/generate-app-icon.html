@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>宅建合格ロード - アイコン生成</title>
+  </head>
+  <body>
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+    <button onclick="downloadIcon()">アイコンをダウンロード</button>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // 背景グラデーション（紫）
+      const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+      gradient.addColorStop(0, "#a855f7");
+      gradient.addColorStop(1, "#7c3aed");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // 白い円形の背景
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.beginPath();
+      ctx.arc(512, 512, 380, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 建物のアイコン（シンプルな家）
+      ctx.fillStyle = "#ffffff";
+
+      // 屋根
+      ctx.beginPath();
+      ctx.moveTo(312, 380);
+      ctx.lineTo(512, 250);
+      ctx.lineTo(712, 380);
+      ctx.closePath();
+      ctx.fill();
+
+      // 建物本体
+      ctx.fillRect(362, 380, 300, 280);
+
+      // ドア
+      ctx.fillStyle = "#9333ea";
+      ctx.fillRect(437, 520, 150, 140);
+
+      // 窓（左）
+      ctx.fillStyle = "#e0e7ff";
+      ctx.fillRect(382, 420, 80, 80);
+
+      // 窓（右）
+      ctx.fillRect(562, 420, 80, 80);
+
+      // テキスト「宅建」
+      ctx.fillStyle = "#ffffff";
+      ctx.font = 'bold 120px "Hiragino Sans", "MS Gothic", sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("宅建", 512, 750);
+
+      function downloadIcon() {
+        canvas.toBlob(function (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "app-icon-1024.png";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }
+
+      // 自動ダウンロード
+      setTimeout(() => {
+        downloadIcon();
+      }, 500);
+    </script>
+  </body>
+</html>

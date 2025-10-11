@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
+// 分野情報を定義
 const categories = [
-  { id: 'takkengyouhou', name: '宅建業法', icon: '🏢', target: 18, total: 20 },
-  { id: 'minpou', name: '民法等', icon: '⚖️', target: 9, total: 14 },
-  { id: 'hourei', name: '法令上の制限', icon: '📋', target: 5, total: 8 },
-  { id: 'zeihou', name: '税・その他', icon: '💰', target: 5, total: 8 }
+  { id: 'takkengyouhou', name: '宅建業法', icon: '🏢', target: 18, total: 0 },
+  { id: 'minpou', name: '民法等', icon: '⚖️', target: 9, total: 0 },
+  { id: 'hourei', name: '法令上の制限', icon: '📋', target: 5, total: 0 },
+  { id: 'zeihou', name: '税・その他', icon: '💰', target: 5, total: 0 }
 ];
 
 export default function Progress() {
@@ -28,23 +28,76 @@ export default function Progress() {
   }, [router]);
 
   const getProgressData = () => {
-    // 新規ユーザーはゼロから開始
+    if (!user) {
+      return {
+        overall: {
+          totalQuestions: 0,
+          correctAnswers: 0,
+          studyHours: 0,
+          studyDays: 0,
+          streak: 0,
+          targetDate: '2025年10月19日'
+        },
+        categories: {
+          takkengyouhou: { solved: 0, correct: 0, rate: 0, time: 0 },
+          minpou: { solved: 0, correct: 0, rate: 0, time: 0 },
+          hourei: { solved: 0, correct: 0, rate: 0, time: 0 },
+          zeihou: { solved: 0, correct: 0, rate: 0, time: 0 }
+        },
+        recentProgress: []
+      };
+    }
+
+    // 実際のユーザーデータから統計を計算
+    const totalStats = user.totalStats || { totalQuestions: 0, totalCorrect: 0, totalStudyTime: 0 };
+    const studyHistory = user.studyHistory || [];
+    const categoryStats = user.categoryStats || {};
+    
+    // 分野別統計を実際のデータから計算
+    const calculatedCategoryStats = {
+      takkengyouhou: {
+        solved: categoryStats.takkengyouhou?.totalQuestions || 0,
+        correct: categoryStats.takkengyouhou?.correctAnswers || 0,
+        rate: 0,
+        time: categoryStats.takkengyouhou?.studyTime || 0
+      },
+      minpou: {
+        solved: categoryStats.minpou?.totalQuestions || 0,
+        correct: categoryStats.minpou?.correctAnswers || 0,
+        rate: 0,
+        time: categoryStats.minpou?.studyTime || 0
+      },
+      hourei: {
+        solved: categoryStats.hourei?.totalQuestions || 0,
+        correct: categoryStats.hourei?.correctAnswers || 0,
+        rate: 0,
+        time: categoryStats.hourei?.studyTime || 0
+      },
+      zeihou: {
+        solved: categoryStats.zeihou?.totalQuestions || 0,
+        correct: categoryStats.zeihou?.correctAnswers || 0,
+        rate: 0,
+        time: categoryStats.zeihou?.studyTime || 0
+      }
+    };
+
+    // 正答率を計算
+    Object.keys(calculatedCategoryStats).forEach(key => {
+      const category = calculatedCategoryStats[key as keyof typeof calculatedCategoryStats];
+      category.rate = category.solved > 0 ? Math.round((category.correct / category.solved) * 100) : 0;
+    });
+
     return {
       overall: {
-        totalQuestions: 0,
-        correctAnswers: 0,
-        studyHours: 0,
-        studyDays: 0,
-        streak: 0,
+        totalQuestions: totalStats.totalQuestions,
+        correctAnswers: totalStats.totalCorrect,
+        studyHours: Math.round(totalStats.totalStudyTime / 60),
+        studyDays: studyHistory.length,
+        streak: user.streak?.currentStreak || 0,
         targetDate: '2025年10月19日'
       },
-      categories: {
-        takkengyouhou: { solved: 0, correct: 0, rate: 0, time: 0 },
-        minpou: { solved: 0, correct: 0, rate: 0, time: 0 },
-        hourei: { solved: 0, correct: 0, rate: 0, time: 0 },
-        zeihou: { solved: 0, correct: 0, rate: 0, time: 0 }
-      },
-      recentProgress: []
+      categories: calculatedCategoryStats,
+      recentProgress: studyHistory.slice(-7).reverse()
     };
   };
 
@@ -85,7 +138,7 @@ export default function Progress() {
               <div className="text-xs opacity-80">総問題数</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{Math.round((progress.overall.correctAnswers / progress.overall.totalQuestions) * 100)}%</div>
+              <div className="text-2xl font-bold">{progress.overall.totalQuestions > 0 ? Math.round((progress.overall.correctAnswers / progress.overall.totalQuestions) * 100) : 0}%</div>
               <div className="text-xs opacity-80">正答率</div>
             </div>
             <div className="text-center">
@@ -143,11 +196,37 @@ export default function Progress() {
         <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-6 shadow-lg border border-gray-100">
           <h3 className="font-extrabold text-lg text-indigo-800 tracking-tight mb-4">📈 最近の学習成果</h3>
           <div className="space-y-3">
-            <div className="text-center py-8 text-gray-500">
-              <div className="text-4xl mb-2">📚</div>
-              <p className="text-sm">まだ学習成果がありません</p>
-              <p className="text-xs mt-1">学習を始めて成果を記録しましょう！</p>
-            </div>
+            {progress.recentProgress.length > 0 ? (
+              progress.recentProgress.map((record: any, index: number) => (
+                <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <i className="ri-trophy-line text-indigo-600"></i>
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{new Date(record.date).toLocaleDateString('ja-JP')}</div>
+                      <div className="text-xs text-gray-500">
+                        {record.questionsAnswered}問解答 • {record.sessions}セッション
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-indigo-600">
+                      {Math.round((record.correctAnswers / record.questionsAnswered) * 100)}%
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {record.studyTimeMinutes}分
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-4xl mb-2">📚</div>
+                <p className="text-sm">まだ学習成果がありません</p>
+                <p className="text-xs mt-1">学習を始めて成果を記録しましょう！</p>
+              </div>
+            )}
           </div>
         </div>
 

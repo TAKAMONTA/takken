@@ -55,12 +55,6 @@ export interface Badge {
 }
 
 // ユーザープロファイル拡張
-export interface Pet {
-  xp: number;
-  level: number;
-  stage: number;
-}
-
 export interface UserProfile {
   id: string;
   name: string;
@@ -71,7 +65,26 @@ export interface UserProfile {
   level: number;
   xp: number;
   joinedAt: string;
-  pet: Pet;
+  plantState?: string; // JSON serialized PlantState
   studyHistory?: StudyHistoryRecord[];
   totalStats?: TotalStats;
+}
+
+// 学習セッション
+export interface StudySession {
+  id: string;
+  userId: string;
+  startTime: Date;
+  endTime: Date;
+  category: string;
+  mode: string;
+  questionsAnswered: number;
+  correctAnswers: number;
+  timeSpent: number; // minutes
+  difficulty: string;
+  xpEarned: number;
+  type?: string;
+  score?: number;
+  rank?: string;
+  totalQuestions?: number;
 }

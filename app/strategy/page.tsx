@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { studyStrategy2025 } from '@/lib/data/study-strategy';
 
 const subjects = [
   {
@@ -108,16 +109,84 @@ export default function Strategy() {
       </div>
 
       <div className="max-w-md mx-auto px-6 py-8 space-y-6">
-        {/* 分野選択 */}
+        {/* 学習の優先順位（2025年版） */}
+        <div className="bg-white/90 rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-extrabold text-lg text-indigo-800 tracking-tight">学習の優先順位</h3>
+            <span className="text-xs text-gray-500">改訂 {studyStrategy2025.revisionYear}</span>
+          </div>
+          <p className="text-xs text-gray-600 mb-4">{studyStrategy2025.recommendedOrderNote}</p>
+          <div className="space-y-2">
+            {studyStrategy2025.priorities
+              .slice()
+              .sort((a, b) => a.priority - b.priority)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-start gap-3 bg-indigo-50 border border-indigo-100 rounded-xl p-3"
+                >
+                  <div className="flex-none w-7 h-7 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center">
+                    {p.priority}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-gray-800">{p.name}</div>
+                      <div className="text-xs font-semibold text-indigo-700">{p.targetScoreLabel}</div>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">{p.rationale}</div>
+                    <div className="mt-2">
+                      <Link href={`/practice/detail?category=${p.id}`}>
+                        <button className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-md font-bold hover:bg-indigo-700 transition-colors">
+                          この分野を学習する →
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* 2025年 重要法改正まとめ */}
+        <div className="bg-white/90 rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-extrabold text-lg text-indigo-800 tracking-tight">2025年 重要法改正まとめ</h3>
+            <span className="text-xs text-gray-500">最新</span>
+          </div>
+          <div className="space-y-3">
+            {studyStrategy2025.revisions.map((rev, idx) => (
+              <div key={idx} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                <div className="text-sm font-bold text-gray-800">• {rev.title}</div>
+                <div className="text-xs text-gray-700 mt-1">{rev.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 迷った時の対処法 */}
+        <div className="bg-white/90 rounded-2xl p-6 shadow-lg border border-gray-100">
+          <h3 className="font-extrabold text-lg text-indigo-800 tracking-tight mb-3">迷った時の対処法</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {studyStrategy2025.unknownQuestionTactics.map((t, idx) => (
+              <div key={idx} className="flex items-start gap-3 bg-purple-50 border border-purple-100 rounded-lg p-3">
+                <div className="text-lg">{t.icon || '📝'}</div>
+                <div>
+                  <div className="text-sm font-bold text-gray-800">{t.title}</div>
+                  <div className="text-xs text-gray-700 mt-1">{t.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 分野選択（詳細アコーディオン） */}
         <div className="space-y-4">
           {subjects.map((subject) => (
             <div
               key={subject.id}
               onClick={() => setSelectedSubject(subject.id === selectedSubject ? null : subject.id)}
               className={`${subject.bgColor} rounded-2xl p-6 border transition-all cursor-pointer shadow-md ${
-                selectedSubject === subject.id
-                  ? `${subject.borderColor} border-2 shadow-lg`
-                  : 'border-gray-100'
+                selectedSubject === subject.id ? `${subject.borderColor} border-2 shadow-lg` : 'border-gray-100'
               }`}
             >
               <div className="flex items-center justify-between mb-4">

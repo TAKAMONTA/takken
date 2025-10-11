@@ -111,6 +111,13 @@ workbox-*.js
 *.apk
 *.aab
 
+# Android signing keys (SECURITY: Never commit these!)
+keystore/
+*.jks
+*.keystore
+android/gradle.properties.local
+android/local.properties
+
 # iOS build files
 *.ipa
 
@@ -118,6 +125,14 @@ workbox-*.js
 test-results/
 playwright-report/
 test-results.xml
+test-results.json
+
+# Temporary analysis files
+scraped-data/
+r1_analysis.txt
+extracted_answers.txt
+*-report.md
+*-report-*.md
 
 # Backup files
 *.backup

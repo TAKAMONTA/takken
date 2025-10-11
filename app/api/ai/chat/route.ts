@@ -1,104 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { aiClient } from '@/lib/ai-client';
-import { getPrimaryAIProvider, validateAIConfiguration } from '@/lib/ai-config';
+import { NextRequest, NextResponse } from "next/server";
+import { aiClient, ChatMessage } from "@/lib/ai-client";
+
+/**
+ * AI Chat API Route
+ * 
+ * ⚠️ 注意: このAPIは現在の設定（output: "export"）では動作しません
+ * 
+ * 使用するには:
+ * 1. next.config.mjs から "output: export" を削除
+ * 2. Vercel/Node.js サーバーにデプロイ
+ * または
+ * 3. このロジックをFirebase Functionsに移行
+ */
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, context, userId } = await request.json();
-
-    if (!message) {
+    // 認証チェック（Firebase Authのトークン検証）
+    const authHeader = request.headers.get("authorization");
+    
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: 'メッセージが必要です' },
+        { error: "認証が必要です" },
+        { status: 401 }
+      );
+    }
+
+    // TODO: Firebase Admin SDKでトークンを検証
+    // const token = authHeader.split("Bearer ")[1];
+    // const decodedToken = await admin.auth().verifyIdToken(token);
+    // const userId = decodedToken.uid;
+
+    // リクエストボディの取得
+    const body = await request.json();
+    const { messages, options } = body;
+
+    // バリデーション
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json(
+        { error: "メッセージが必要です" },
         { status: 400 }
       );
     }
 
-    // AI設定を検証
-    const validation = validateAIConfiguration();
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: 'AI機能が正しく設定されていません', details: validation.errors },
-        { status: 503 }
-      );
-    }
-
-    // プライマリAIプロバイダーを取得
-    const primaryProvider = getPrimaryAIProvider();
-    if (!primaryProvider) {
-      return NextResponse.json(
-        { error: 'AI プロバイダーが設定されていません' },
-        { status: 503 }
-      );
-    }
-
-    // 学習コンテキストを構築
-    const systemMessage = {
-      role: 'system' as const,
-      content: `あなたは宅地建物取引士試験の学習をサポートするAIアシスタントです。
-以下の役割を担います：
-
-1. 宅建試験の問題解説と詳細な説明
-2. 学習方法のアドバイス
-3. 弱点分野の特定と改善提案
-4. モチベーション維持のサポート
-5. 法改正情報の提供
-
-回答は以下の点に注意してください：
-- 正確で分かりやすい説明を心がける
-- 具体例を交えて説明する
-- 学習者のレベルに合わせた内容にする
-- 励ましの言葉を含める
-- 必要に応じて関連する条文や判例を引用する
-
-現在の学習コンテキスト：
-${context ? JSON.stringify(context, null, 2) : '初回相談'}`
-    };
-
-    const userMessage = {
-      role: 'user' as const,
-      content: `ユーザーID: ${userId || 'anonymous'}
-質問: ${message}`
-    };
-
-    // AI応答を生成
-    const response = await aiClient.chat(
-      [systemMessage, userMessage],
-      {
-        provider: primaryProvider.name as 'OpenAI' | 'Anthropic' | 'Google AI',
-        maxTokens: 1000,
-        temperature: 0.7,
-      }
+    // メッセージの型チェック
+    const validMessages: ChatMessage[] = messages.filter(
+      (msg: any) =>
+        msg &&
+        typeof msg === "object" &&
+        ["system", "user", "assistant"].includes(msg.role) &&
+        typeof msg.content === "string"
     );
 
-    return NextResponse.json({
-      response: response.content,
-      provider: response.provider,
-      usage: response.usage,
-      timestamp: new Date().toISOString(),
-    });
+    if (validMessages.length === 0) {
+      return NextResponse.json(
+        { error: "有効なメッセージが含まれていません" },
+        { status: 400 }
+      );
+    }
 
-  } catch (error) {
-    console.error('AI Chat API Error:', error);
-    
+    // AI APIを呼び出し（サーバー側でのみ実行）
+    const response = await aiClient.chat(validMessages, options);
+
+    // TODO: 使用量をFirestoreに記録
+    // await recordAIUsage(userId, response.usage);
+
+    return NextResponse.json({
+      success: true,
+      data: response,
+    });
+  } catch (error: any) {
+    console.error("AI Chat API error:", error);
+
+    // エラーの種類に応じたレスポンス
+    if (error.message?.includes("API key not configured")) {
+      return NextResponse.json(
+        { error: "AI APIが設定されていません" },
+        { status: 503 }
+      );
+    }
+
+    if (error.message?.includes("rate limit")) {
+      return NextResponse.json(
+        { error: "リクエスト数が上限に達しました。しばらくしてから再試行してください" },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      { 
-        error: 'AI応答の生成中にエラーが発生しました',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: "AI処理中にエラーが発生しました" },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
-  // AI機能の状態を確認
-  const validation = validateAIConfiguration();
-  const primaryProvider = getPrimaryAIProvider();
-  
-  return NextResponse.json({
-    enabled: validation.isValid,
-    validation,
-    primaryProvider: primaryProvider?.name || null,
-    timestamp: new Date().toISOString(),
-  });
+// レート制限のヘルパー関数（簡易実装例）
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(userId: string, maxRequests = 10, windowMs = 60000): boolean {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+
+  if (!userLimit || now > userLimit.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  if (userLimit.count >= maxRequests) {
+    return false;
+  }
+
+  userLimit.count++;
+  return true;
 }
+
