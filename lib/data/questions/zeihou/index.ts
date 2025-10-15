@@ -7,12 +7,16 @@ import { zeihouR3Questions } from "./r3";
 import { zeihouNewQuestions } from "./new";
 import { zeihouNewQuestions as zeihouNew2Questions } from "./new2";
 import { zeihouNewQuestions as zeihouFixedAssetTaxQuestions } from "./fixed-asset-tax";
+import { zeihouNewQuestions as zeihouAIGenerated1 } from "./ai-generated-1";
+import { zeihouNewQuestions as zeihouAIGenerated2 } from "./ai-generated-2";
 
 // 税・その他の問題データ（本番環境用）
 export const zeihouQuestions: Question[] = [
   ...zeihouFixedAssetTaxQuestions,
   ...zeihouNew2Questions,
   ...zeihouNewQuestions,
+  ...zeihouAIGenerated1,
+  ...zeihouAIGenerated2,
   ...zeihouR7Questions,
   ...zeihouR6Questions,
   ...zeihouR5Questions,

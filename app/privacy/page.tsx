@@ -149,7 +149,12 @@ export default function PrivacyPage() {
               </p>
               <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                 <p className="font-medium">宅建合格ロード サポート</p>
-                <p>Email: support@takken-study.com</p>
+                <p>Email: admin@takaapps.com</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  住所: 〒900-0015 沖縄県那覇市久茂地3丁目26-32 YSCビル202
+                  <br />
+                  ※バーチャルオフィス契約による連絡先
+                </p>
               </div>
             </section>
 

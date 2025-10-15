@@ -80,12 +80,17 @@ async function generateQuestions(
 【各問題の形式】
 - 問題文: 「〜に関する次の記述のうち、正しいものはどれか」形式
 - 選択肢: 4つ
-- 解説: 各選択肢の正誤理由を含む詳細な解説
+- 解説: 各選択肢の正誤理由を含む簡潔な解説（各選択肢50文字程度）
+
+【重要】
+- 解説は簡潔に（冗長にしない）
+- JSONの文字列内で改行は使わない（\\nを使用）
+- 引用符は必ずエスケープする
 
 【${difficulty}レベルの特徴】
 ${
   difficulty === "基礎"
-    ? "- 条文の基本的な理解を問う\n- 用語の定義や基本原則を確認\n- キーターム、関連条文、ヒント、学習のコツを含める"
+    ? "- 条文の基本的な理解を問う\n- 用語の定義や基本原則を確認"
     : difficulty === "標準"
     ? "- 過去問の典型的なパターン\n- 複数の条文知識を組み合わせる\n- 実務的な事例を含む"
     : "- 複雑な事例や複数知識の統合\n- 法改正や最新判例を反映\n- 思考力と応用力を試す"
@@ -127,17 +132,41 @@ ${
       ],
       {
         temperature: 0.7,
-        maxTokens: 4000,
+        maxTokens: 8000, // トークン数を増やす
       }
     );
 
     // JSONのみを抽出（コードブロックを除去）
     let content = response.content.trim();
+
+    // コードブロックを除去
     if (content.startsWith("```")) {
-      content = content.replace(/^```json?\n/, "").replace(/\n```$/, "");
+      content = content
+        .replace(/^```json?\s*\n?/, "")
+        .replace(/\n?```\s*$/, "");
     }
 
-    const parsed = JSON.parse(content);
+    // デバッグ用：生成されたJSONを一時保存
+    const debugPath = path.join(process.cwd(), "debug-ai-response.json");
+    fs.writeFileSync(debugPath, content, "utf-8");
+    console.log(`📝 デバッグ用: AI応答を ${debugPath} に保存しました`);
+
+    // JSONパースを試行（エラーハンドリング強化）
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (parseError: any) {
+      console.error("❌ JSONパースエラー:");
+      console.error("エラー位置:", parseError.message);
+      console.error("生成されたコンテンツの最初の500文字:");
+      console.error(content.substring(0, 500));
+      console.error("\n生成されたコンテンツの最後の500文字:");
+      console.error(content.substring(Math.max(0, content.length - 500)));
+      throw new Error(
+        `JSONパースに失敗しました: ${parseError.message}\nデバッグファイルを確認してください: ${debugPath}`
+      );
+    }
+
     const questions: Question[] = parsed.questions;
 
     console.log(`✅ ${questions.length}問の生成に成功しました！\n`);

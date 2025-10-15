@@ -10,12 +10,16 @@ import { minpouR3Questions } from "./r3"; // 互換性のため残す（将来�
 import { minpouNewQuestions } from "./new";
 import { minpouNewQuestions as minpouNew2Questions } from "./new2";
 import { minpouNewQuestions as minpouMortgageQuestions } from "./mortgage";
+import { minpouNewQuestions as minpouAIGenerated1 } from "./ai-generated-1";
+import { minpouNewQuestions as minpouAIGenerated2 } from "./ai-generated-2";
 
 // 民法等の問題データ（本番環境用）
 export const minpouQuestions: Question[] = [
   ...minpouMortgageQuestions,
   ...minpouNew2Questions,
   ...minpouNewQuestions,
+  ...minpouAIGenerated1,
+  ...minpouAIGenerated2,
   ...minpouR7Questions,
   ...minpouR6Questions,
   ...minpouR5Questions,

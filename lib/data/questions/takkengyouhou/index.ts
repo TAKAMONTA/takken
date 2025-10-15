@@ -8,11 +8,15 @@ import { takkengyouhouR4Questions } from "./r4";
 import { takkengyouhouR3Questions } from "./r3";
 import { takkengyouhouNewQuestions } from "./new";
 import { takkengyouhouNewQuestions as takkengyouhou35_37Questions } from "./35-37-articles";
+import { takkengyouhouNewQuestions as takkengyouhouAIGenerated1 } from "./ai-generated-1";
+import { takkengyouhouNewQuestions as takkengyouhouAIGenerated2 } from "./ai-generated-2";
 
 // 宅建業法の問題データ（本番環境用）
 export const takkengyouhouQuestions: Question[] = [
   ...takkengyouhou35_37Questions,
   ...takkengyouhouNewQuestions,
+  ...takkengyouhouAIGenerated1,
+  ...takkengyouhouAIGenerated2,
   ...takkengyouhouR8Questions,
   ...takkengyouhouR7Questions,
   ...takkengyouhouR6Questions,

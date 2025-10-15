@@ -6,11 +6,15 @@ import { houreiR5Questions } from "./r5";
 import { houreiR3Questions } from "./r3";
 import { houreiNewQuestions } from "./new";
 import { houreiNewQuestions as houreiNew2Questions } from "./new2";
+import { houreiNewQuestions as houreiAIGenerated1 } from "./ai-generated-1";
+import { houreiNewQuestions as houreiAIGenerated2 } from "./ai-generated-2";
 
 // 法令上の制限の問題データ（本番環境用）
 export const houreiQuestions: Question[] = [
   ...houreiNew2Questions,
   ...houreiNewQuestions,
+  ...houreiAIGenerated1,
+  ...houreiAIGenerated2,
   ...houreiR7Questions,
   ...houreiR6Questions,
   ...houreiR5Questions,

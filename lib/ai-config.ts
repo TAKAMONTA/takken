@@ -19,20 +19,20 @@ export interface AIResponse {
 export const getConfiguredAIProviders = (): AIProvider[] => {
   const providers: AIProvider[] = [
     {
-      name: 'OpenAI',
+      name: "OpenAI",
       apiKey: process.env.OPENAI_API_KEY,
-      isConfigured: !!process.env.OPENAI_API_KEY
+      isConfigured: !!process.env.OPENAI_API_KEY,
     },
     {
-      name: 'Anthropic',
+      name: "Anthropic",
       apiKey: process.env.ANTHROPIC_API_KEY,
-      isConfigured: !!process.env.ANTHROPIC_API_KEY
+      isConfigured: !!process.env.ANTHROPIC_API_KEY,
     },
     {
-      name: 'Google AI',
+      name: "Google AI",
       apiKey: process.env.GOOGLE_AI_API_KEY,
-      isConfigured: !!process.env.GOOGLE_AI_API_KEY
-    }
+      isConfigured: !!process.env.GOOGLE_AI_API_KEY,
+    },
   ];
 
   return providers;
@@ -41,7 +41,7 @@ export const getConfiguredAIProviders = (): AIProvider[] => {
 // Get the primary AI provider (first configured one)
 export const getPrimaryAIProvider = (): AIProvider | null => {
   const providers = getConfiguredAIProviders();
-  return providers.find(provider => provider.isConfigured) || null;
+  return providers.find((provider) => provider.isConfigured) || null;
 };
 
 // Validate AI configuration
@@ -53,20 +53,24 @@ export const validateAIConfiguration = (): {
   const errors: string[] = [];
   const warnings: string[] = [];
   const providers = getConfiguredAIProviders();
-  const configuredProviders = providers.filter(p => p.isConfigured);
+  const configuredProviders = providers.filter((p) => p.isConfigured);
 
   if (configuredProviders.length === 0) {
-    errors.push('No AI providers are configured. Please set at least one API key.');
+    errors.push(
+      "No AI providers are configured. Please set at least one API key."
+    );
   }
 
   if (configuredProviders.length === 1) {
-    warnings.push('Only one AI provider is configured. Consider adding backup providers for redundancy.');
+    warnings.push(
+      "Only one AI provider is configured. Consider adding backup providers for redundancy."
+    );
   }
 
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 };
 
@@ -74,29 +78,29 @@ export const validateAIConfiguration = (): {
 export const AI_RATE_LIMITS = {
   OpenAI: {
     requestsPerMinute: 60,
-    tokensPerMinute: 90000
+    tokensPerMinute: 90000,
   },
   Anthropic: {
     requestsPerMinute: 50,
-    tokensPerMinute: 40000
+    tokensPerMinute: 40000,
   },
-  'Google AI': {
+  "Google AI": {
     requestsPerMinute: 60,
-    tokensPerMinute: 32000
-  }
+    tokensPerMinute: 32000,
+  },
 } as const;
 
 // AI model configurations
 export const AI_MODELS = {
   OpenAI: {
-    chat: 'gpt-4-turbo-preview',
-    embedding: 'text-embedding-3-small'
+    chat: "gpt-4o", // 最新モデルに変更
+    embedding: "text-embedding-3-small",
   },
   Anthropic: {
-    chat: 'claude-3-sonnet-20240229'
+    chat: "claude-3-sonnet-20240229",
   },
-  'Google AI': {
-    chat: 'gemini-pro',
-    embedding: 'embedding-001'
-  }
+  "Google AI": {
+    chat: "gemini-pro",
+    embedding: "embedding-001",
+  },
 } as const;
