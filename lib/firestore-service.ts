@@ -440,7 +440,7 @@ class FirestoreService {
   // LocalStorage fallback methods
   private getLocalUserProfile(userId: string): UserProfile | null {
     try {
-      const userData = localStorage.getItem("takken_rpg_user");
+      const userData = localStorage.getItem("takken_user");
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error("Error getting local user profile:", error);
@@ -453,11 +453,11 @@ class FirestoreService {
     updates: Partial<UserProfile>
   ): void {
     try {
-      const userData = localStorage.getItem("takken_rpg_user");
+      const userData = localStorage.getItem("takken_user");
       if (userData) {
         const profile = JSON.parse(userData);
         const updatedProfile = { ...profile, ...updates };
-        localStorage.setItem("takken_rpg_user", JSON.stringify(updatedProfile));
+        localStorage.setItem("takken_user", JSON.stringify(updatedProfile));
       }
     } catch (error) {
       console.error("Error updating local user profile:", error);

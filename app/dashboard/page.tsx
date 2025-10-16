@@ -19,14 +19,14 @@ const quickActions = [
   {
     id: "practice",
     title: "学習開始",
-    icon: "📚",
+    icon: "ri-book-open-line",
     description: "分野別に問題を解く",
     route: "/practice",
   },
   {
     id: "weak-points",
     title: "弱点克服",
-    icon: "💪",
+    icon: "ri-target-line",
     description: "苦手な問題を再挑戦",
     route: "/weak-points",
   },
@@ -94,7 +94,7 @@ export default function Dashboard() {
 
                 // 植物機能は削除。ユーザーのみ保存
                 localStorage.setItem(
-                  "takken_rpg_user",
+                  "takken_user",
                   JSON.stringify(userProfile)
                 );
               } else {
@@ -126,7 +126,7 @@ export default function Dashboard() {
                 );
                 setUser(initialUserData as any);
                 localStorage.setItem(
-                  "takken_rpg_user",
+                  "takken_user",
                   JSON.stringify(initialUserData)
                 );
               }
@@ -236,7 +236,9 @@ export default function Dashboard() {
                   whileTap={{ scale: 0.99 }}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="text-2xl">{action.icon}</div>
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <i className={`${action.icon} text-primary text-lg`}></i>
+                    </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900 mb-1">
                         {action.title}

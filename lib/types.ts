@@ -39,19 +39,14 @@ export interface StudyProgress {
   }
 }
 
-// 達成バッジ
-export interface Badge {
+// 学習記録（バッジ機能は削除）
+export interface LearningRecord {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  icon: string;
   category: string;
-  condition: {
-    type: 'questions' | 'streak' | 'time' | 'accuracy';
-    threshold: number;
-  };
-  acquired: boolean;
-  acquiredAt?: string;
+  completedAt?: string;
+  isCompleted: boolean;
 }
 
 // ユーザープロファイル拡張
@@ -61,11 +56,8 @@ export interface UserProfile {
   email: string;
   streak: StudyStreak;
   progress: StudyProgress;
-  badges: Badge[];
-  level: number;
-  xp: number;
+  learningRecords: LearningRecord[];
   joinedAt: string;
-  plantState?: string; // JSON serialized PlantState
   studyHistory?: StudyHistoryRecord[];
   totalStats?: TotalStats;
 }

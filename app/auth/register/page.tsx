@@ -87,8 +87,6 @@ export default function Register() {
         id: user.uid,
         name: formData.username,
         email: formData.email,
-        level: 1,
-        xp: 0,
         joinedAt: new Date().toISOString(),
         streak: {
           currentStreak: 0,
@@ -102,7 +100,7 @@ export default function Register() {
           studyTimeMinutes: 0,
           categoryProgress: {},
         },
-        badges: [],
+        learningRecords: [],
       };
 
       await firestoreService.createUserProfile(user.uid, initialUserData);
@@ -113,7 +111,7 @@ export default function Register() {
         username: formData.username,
         email: formData.email,
       };
-      localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+      localStorage.setItem("takken_user", JSON.stringify(userData));
 
       // ローカルストレージにもユーザーリストを保存（フォールバック用）
       const { hashPassword } = await import("../../../lib/crypto-utils");
@@ -197,7 +195,7 @@ export default function Register() {
         username: newUser.username,
         email: newUser.email,
       };
-      localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+      localStorage.setItem("takken_user", JSON.stringify(userData));
 
       // ダッシュボードに遷移
       router.push("/dashboard");
@@ -241,10 +239,12 @@ export default function Register() {
             <div className="card-minimal fade-in">
               <div className="text-center mb-8">
                 <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                  <i className="ri-gamepad-line text-2xl text-primary"></i>
+                  <i className="ri-book-open-line text-2xl text-primary"></i>
                 </div>
                 <h2 className="text-xl font-medium mb-2">アカウント作成</h2>
-                <p className="text-muted-foreground">宅建合格ロードへようこそ</p>
+                <p className="text-muted-foreground">
+                  宅建合格ロードへようこそ
+                </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
