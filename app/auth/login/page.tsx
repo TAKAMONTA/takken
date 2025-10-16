@@ -110,11 +110,11 @@ export default function Login() {
           // ローカルストレージエラーでもログインは続行
         }
 
-        // ダッシュボードへ遷移
-        router.push("/dashboard");
+        // ホームページへ遷移
+        router.push("/");
       } else {
-        // 初回ログインの場合もダッシュボードへ
-        router.push("/dashboard");
+        // 初回ログインの場合もホームページへ
+        router.push("/");
       }
     } catch (firebaseError: any) {
       console.error("Firebase login error:", firebaseError);
@@ -196,7 +196,7 @@ export default function Login() {
           email: foundUser.email,
         };
         localStorage.setItem("takken_user", JSON.stringify(userData));
-        router.push("/dashboard");
+        router.push("/");
       } else {
         // テスト用アカウントを作成（Stripe審査用）
         const testUser = {
@@ -215,7 +215,7 @@ export default function Login() {
         });
         localStorage.setItem("takken_users", JSON.stringify(existingUsers));
 
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch (error) {
       console.error("LocalStorage login error:", error);
@@ -309,9 +309,9 @@ export default function Login() {
             email: user.email,
           } as any;
           localStorage.setItem("takken_user", JSON.stringify(userData));
-          router.push("/dashboard");
+          router.push("/");
         } else {
-          router.push("/dashboard");
+          router.push("/");
         }
       } catch (e) {
         // 無視（未リダイレクト時を含む）
