@@ -110,11 +110,11 @@ export default function Login() {
           // ローカルストレージエラーでもログインは続行
         }
 
-        // ユーザープロファイルが存在する場合はダッシュボードへ
+        // ダッシュボードへ遷移
         router.push("/dashboard");
       } else {
-        // 初回ログインの場合は性格診断へ
-        router.push("/personality-test");
+        // 初回ログインの場合もダッシュボードへ
+        router.push("/dashboard");
       }
     } catch (firebaseError: any) {
       console.error("Firebase login error:", firebaseError);
@@ -311,7 +311,7 @@ export default function Login() {
           localStorage.setItem("takken_user", JSON.stringify(userData));
           router.push("/dashboard");
         } else {
-          router.push("/personality-test");
+          router.push("/dashboard");
         }
       } catch (e) {
         // 無視（未リダイレクト時を含む）
