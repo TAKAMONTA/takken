@@ -1,10 +1,11 @@
 // 問題データの統合管理ファイル
 import { Question } from "@/lib/types/quiz";
-import {
-  assignFrequencyGrades,
-  sortByGradeABC,
-  getGradeStats,
-} from "@/lib/study-utils";
+// 一時的にコメントアウト
+// import {
+//   assignFrequencyGrades,
+//   sortByGradeABC,
+//   getGradeStats,
+// } from "@/lib/study-utils";
 import { frequency10y } from "@/lib/data/past-exams/frequency";
 
 // 各カテゴリの問題データをインポート
@@ -111,7 +112,7 @@ export const getAllQuestionsWithGrades = (options?: {
   percentiles?: { A: number; B: number };
   method?: "threshold" | "percentile";
 }): Question[] => {
-  return assignFrequencyGrades(allQuestions, frequency10y, options);
+  return allQuestions; // 一時的に無効化
 };
 
 /**
@@ -129,7 +130,7 @@ export const getCategoryQuestionsWithGrades = (
   }
 ): Question[] => {
   const categoryQuestions = questionsByCategory[category] || [];
-  return assignFrequencyGrades(categoryQuestions, frequency10y, options);
+  return categoryQuestions; // 一時的に無効化
 };
 
 /**
@@ -150,7 +151,7 @@ export const getQuestionsSortedByGrade = (
     ? getCategoryQuestionsWithGrades(category, options)
     : getAllQuestionsWithGrades(options);
 
-  return sortByGradeABC(questions);
+  return questions; // 一時的に無効化
 };
 
 /**
@@ -171,7 +172,7 @@ export const getQuestionGradeStats = (
     ? getCategoryQuestionsWithGrades(category, options)
     : getAllQuestionsWithGrades(options);
 
-  return getGradeStats(questions);
+  return { A: 0, B: 0, C: 0, total: 0 }; // 一時的に無効化
 };
 
 /**

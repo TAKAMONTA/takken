@@ -20,7 +20,7 @@ export default function TestPage() {
         console.log("getQuickTestQuestions loaded");
 
         // ミニテスト関数を実行
-        const questions = getQuickTestQuestions("mixed", 5);
+        const questions = getQuickTestQuestions(5);
         console.log("Quick test questions:", questions.length);
 
         setStatus(

@@ -7,7 +7,7 @@ import { UserProfile } from "@/lib/types";
 import {
   updateStudyStreak,
   updateStudyProgress,
-  checkNewBadges,
+  checkNewLearningRecords,
   calculateXPAndLevel,
   saveStudyData,
 } from "@/lib/study-utils";

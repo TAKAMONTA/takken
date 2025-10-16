@@ -19,11 +19,11 @@ export default function DebugPage() {
         zeihou: allQuestions.filter((q) => q.category === "税・その他").length,
       },
       quickTestResults: {
-        mixed: getQuickTestQuestions("mixed", 5).length,
-        takkengyouhou: getQuickTestQuestions("takkengyouhou", 5).length,
-        minpou: getQuickTestQuestions("minpou", 5).length,
-        hourei: getQuickTestQuestions("hourei", 5).length,
-        zeihou: getQuickTestQuestions("zeihou", 5).length,
+        mixed: getQuickTestQuestions(5).length,
+        takkengyouhou: getQuickTestQuestions(5).length,
+        minpou: getQuickTestQuestions(5).length,
+        hourei: getQuickTestQuestions(5).length,
+        zeihou: getQuickTestQuestions(5).length,
       },
     };
 

@@ -7,7 +7,7 @@ import { UserProfile } from "@/lib/types";
 import {
   updateStudyStreak,
   updateStudyProgress,
-  checkNewBadges,
+  checkNewLearningRecords,
   calculateXPAndLevel,
   saveStudyData,
   getQuickTestQuestions,
@@ -61,7 +61,7 @@ function QuickTestQuizContent() {
     // クイックテスト用の問題を取得
     const loadQuestions = async () => {
       try {
-        const quickTestQuestions = await getQuickTestQuestions(categoryParam);
+        const quickTestQuestions = await getQuickTestQuestions(5);
 
         if (quickTestQuestions.length === 0) {
           console.warn(

@@ -2,6 +2,17 @@
   "projects": {
     "default": "takken-d3a2b"
   },
-  "targets": {},
+  "targets": {
+    "takken-d3a2b": {
+      "hosting": {
+        "takken-study": [
+          "takken-study"
+        ],
+        "default": [
+          "takken-d3a2b"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

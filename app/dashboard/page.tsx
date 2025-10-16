@@ -103,8 +103,6 @@ export default function Dashboard() {
                   id: firebaseUser.uid,
                   name: firebaseUser.displayName || "ユーザー",
                   email: firebaseUser.email || "",
-                  level: 1,
-                  xp: 0,
                   joinedAt: new Date().toISOString(),
                   streak: {
                     currentStreak: 0,
@@ -118,7 +116,7 @@ export default function Dashboard() {
                     studyTimeMinutes: 0,
                     categoryProgress: {},
                   },
-                  badges: [],
+                  learningRecords: [],
                 };
                 await firestoreService.createUserProfile(
                   firebaseUser.uid,

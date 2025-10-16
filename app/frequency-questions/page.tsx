@@ -92,9 +92,7 @@ export default function FrequencyQuestions() {
         studyTimeMinutes: 0,
         categoryProgress: {},
       },
-      badges: [],
-      level: 1,
-      xp: 0,
+      learningRecords: [],
       joinedAt: new Date().toISOString(),
     });
     setLoading(false);

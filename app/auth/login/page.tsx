@@ -104,7 +104,7 @@ export default function Login() {
         };
 
         try {
-          localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+          localStorage.setItem("takken_user", JSON.stringify(userData));
         } catch (storageError) {
           console.error("LocalStorage error:", storageError);
           // ローカルストレージエラーでもログインは続行
@@ -195,7 +195,7 @@ export default function Login() {
           username: (foundUser.username || "ユーザー").substring(0, 50),
           email: foundUser.email,
         };
-        localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+        localStorage.setItem("takken_user", JSON.stringify(userData));
         router.push("/dashboard");
       } else {
         // テスト用アカウントを作成（Stripe審査用）
@@ -204,7 +204,7 @@ export default function Login() {
           username: "テストユーザー",
           email: formData.email.trim(),
         };
-        localStorage.setItem("takken_rpg_user", JSON.stringify(testUser));
+        localStorage.setItem("takken_user", JSON.stringify(testUser));
 
         // テストユーザーを保存
         existingUsers.push({
@@ -308,7 +308,7 @@ export default function Login() {
             ).substring(0, 50),
             email: user.email,
           } as any;
-          localStorage.setItem("takken_rpg_user", JSON.stringify(userData));
+          localStorage.setItem("takken_user", JSON.stringify(userData));
           router.push("/dashboard");
         } else {
           router.push("/personality-test");
