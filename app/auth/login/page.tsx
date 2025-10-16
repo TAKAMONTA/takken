@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   signInWithEmailAndPassword,
-  signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
 
@@ -198,20 +197,20 @@ export default function Login() {
         localStorage.setItem("takken_user", JSON.stringify(userData));
         router.push("/");
       } else {
-        // テスト用アカウントを作成（Stripe審査用）
-        const testUser = {
-          id: "test-user-" + Date.now(),
-          username: "テストユーザー",
+        // 新規ユーザーを作成
+        const newUser = {
+          id: "user-" + Date.now(),
+          username: "ユーザー",
           email: formData.email.trim(),
         };
-        localStorage.setItem("takken_user", JSON.stringify(testUser));
+        localStorage.setItem("takken_user", JSON.stringify(newUser));
 
-        // テストユーザーを保存
+        // ユーザーを保存
         existingUsers.push({
-          id: testUser.id,
+          id: newUser.id,
           email: formData.email.trim(),
           password: formData.password,
-          username: testUser.username,
+          username: newUser.username,
         });
         localStorage.setItem("takken_users", JSON.stringify(existingUsers));
 
@@ -231,9 +230,6 @@ export default function Login() {
       const { initializeFirebaseWithFallback } = await import(
         "../../../lib/firebase-client"
       );
-      const { firestoreService } = await import(
-        "../../../lib/firestore-service"
-      );
 
       const firebaseInstance = await initializeFirebaseWithFallback();
 
@@ -250,7 +246,7 @@ export default function Login() {
 
       const provider = new GoogleAuthProvider();
       // モバイル（Capacitor/Cordova/Chrome Custom Tabs 等）では redirect のみ安定
-      const { signInWithRedirect, getRedirectResult } = await import(
+      const { signInWithRedirect } = await import(
         "firebase/auth"
       );
       await signInWithRedirect(auth as any, provider);

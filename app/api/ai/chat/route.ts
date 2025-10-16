@@ -93,23 +93,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// レート制限のヘルパー関数（簡易実装例）
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(userId: string, maxRequests = 10, windowMs = 60000): boolean {
-  const now = Date.now();
-  const userLimit = rateLimitMap.get(userId);
-
-  if (!userLimit || now > userLimit.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-
-  if (userLimit.count >= maxRequests) {
-    return false;
-  }
-
-  userLimit.count++;
-  return true;
-}
+// 注記: レート制限ロジックは使用されていません
+// Firebase Functionsに移行時に実装してください
 

@@ -1,4 +1,5 @@
 // テキスト処理ユーティリティ
+import DOMPurify from 'dompurify';
 
 /**
  * 解説文を読みやすく改行処理する関数
@@ -115,4 +116,33 @@ export function highlightKeywords(text: string): string {
   });
 
   return highlighted;
+}
+
+/**
+ * HTMLコンテンツをサニタイズする関数（XSS対策）
+ * @param html - サニタイズ対象のHTML文字列
+ * @returns サニタイズされたHTML文字列
+ */
+export function sanitizeHtml(html: string): string {
+  if (!html) return '';
+
+  // DOMPurifyを使用してXSS攻撃を防ぐ
+  // 許可するタグと属性を指定
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['strong', 'em', 'br', 'p', 'span', 'div'],
+    ALLOWED_ATTR: ['class'],
+    KEEP_CONTENT: true,
+  });
+}
+
+/**
+ * キーワードをハイライトし、安全にサニタイズする関数
+ * @param text - 処理対象のテキスト
+ * @returns サニタイズされたマークアップテキスト
+ */
+export function highlightAndSanitize(text: string): string {
+  if (!text) return '';
+
+  const highlighted = highlightKeywords(text);
+  return sanitizeHtml(highlighted);
 }

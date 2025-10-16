@@ -15,8 +15,8 @@ export function FeatureLimitGuard({
   fallback,
   showWarning = true,
 }: FeatureLimitGuardProps) {
-  // Stripe審査用の簡素化された実装
-  // すべての機能を許可
+  // iOS In-App Purchase対応予定
+  // 現在はすべての機能を許可（2025年10月Stripe削除）
   return <>{children}</>;
 }
 
@@ -33,8 +33,8 @@ export function UsageLimitGuard({
   fallback,
   showWarning = true,
 }: UsageLimitGuardProps) {
-  // Stripe審査用の簡素化された実装
-  // 制限なしで使用可能
+  // iOS In-App Purchase対応予定
+  // 現在は制限なしで使用可能（2025年10月Stripe削除）
   return <>{children}</>;
 }
 

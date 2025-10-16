@@ -10,7 +10,15 @@
       "Bash(powershell:*)",
       "Bash(dir:*)",
       "Read(/C:\\Users\\tnaka\\takken\\android/**)",
-      "Read(/C:\\Users\\tnaka\\takken\\android\\app/**)"
+      "Read(/C:\\Users\\tnaka\\takken\\android\\app/**)",
+      "Bash(npm install dompurify)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gh pr list:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm outdated:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

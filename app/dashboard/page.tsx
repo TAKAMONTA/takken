@@ -326,40 +326,5 @@ export default function Dashboard() {
   );
 }
 
-// 植物部位の進捗表示コンポーネント
-function PlantPartProgress({
-  label,
-  level,
-  experience,
-  nextLevelExp,
-  color,
-}: {
-  label: string;
-  level: number;
-  experience: number;
-  nextLevelExp: number;
-  color: string;
-}) {
-  const progress = nextLevelExp > 0 ? (experience / nextLevelExp) * 100 : 0;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="font-medium text-gray-800">{label}</span>
-        <span className="text-sm font-bold text-gray-600">Lv.{level}</span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-        <motion.div
-          className={`h-2 ${color} rounded-full`}
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        />
-      </div>
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>EXP: {experience}</span>
-        <span>次のレベルまで: {Math.max(0, nextLevelExp - experience)}</span>
-      </div>
-    </div>
-  );
-}
+// 植物部位の進捗表示コンポーネント（削除予定 - v1.1で削除）
+// 現在は未使用 - gamification機能削除に伴い存続していたコンポーネント

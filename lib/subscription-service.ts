@@ -1,12 +1,17 @@
 import { firestoreService } from './firestore-service';
 import InAppPurchase, { Product, Transaction, Subscription } from '../src/plugins/InAppPurchase';
 
+/**
+ * iOS In-App Purchase対応のサブスクリプション管理サービス
+ * - iOSアプリでのみ利用可能
+ * - Stripeは使用しない（2025年10月削除）
+ */
 export interface SubscriptionPlan {
   id: string;
   name: string;
   price: number;
   features: string[];
-  productId: string;
+  productId: string; // iOS In-App Purchase Product ID
 }
 
 export interface UserSubscription {

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { splitIntoParagraphs, highlightKeywords } from '@/lib/text-utils';
+import { splitIntoParagraphs, highlightAndSanitize } from '@/lib/text-utils';
 
 interface ExplanationDisplayProps {
   explanation: string;
@@ -59,17 +59,17 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
     if (headingMatch) {
       const heading = headingMatch[1];
       const content = paragraph.replace(/【[^】]+】\n?/, '').trim();
-      
+
       return (
         <div>
           <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
             {getHeadingIcon(heading)}
             <span>{heading}</span>
           </h4>
-          <div 
+          <div
             className="explanation-text text-gray-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ 
-              __html: highlightKeywords(content).replace(/\n/g, '<br />') 
+            dangerouslySetInnerHTML={{
+              __html: highlightAndSanitize(content).replace(/\n/g, '<br />')
             }}
           />
         </div>
@@ -77,10 +77,10 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
     }
 
     return (
-      <div 
+      <div
         className="explanation-text text-gray-700 leading-relaxed"
-        dangerouslySetInnerHTML={{ 
-          __html: highlightKeywords(paragraph).replace(/\n/g, '<br />') 
+        dangerouslySetInnerHTML={{
+          __html: highlightAndSanitize(paragraph).replace(/\n/g, '<br />')
         }}
       />
     );

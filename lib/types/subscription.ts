@@ -33,8 +33,8 @@ export interface PlanConfig {
   price: number; // 月額料金（円）
   yearlyPrice?: number; // 年額料金（円）
   features: SubscriptionFeatures;
-  stripePriceId?: string;
-  stripeYearlyPriceId?: string;
+  applePriceId?: string; // iOS In-App Purchase商品ID
+  appleYearlyPriceId?: string; // iOS In-App Purchase年額商品ID
   popular?: boolean;
 }
 
@@ -42,8 +42,8 @@ export interface UserSubscription {
   userId: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  appleTransactionId?: string; // iOS In-App Purchase Transaction ID
+  appleBundleId?: string; // iOS Bundle ID
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;

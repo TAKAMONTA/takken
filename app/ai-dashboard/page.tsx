@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { aiMasterSystem, ComprehensiveAnalysis, AISystemStatus } from '@/lib/ai-master-system';
 import { aiMemoryRetention } from '@/lib/ai-memory-retention';
 import { aiVoiceAssistant } from '@/lib/ai-voice-assistant';
-import { aiEnhancementSystem } from '@/lib/ai-enhancement-system';
-import AIRealTimeFeedback from '@/components/AIRealTimeFeedback';
 import AIEnhancementDashboard from '@/components/AIEnhancementDashboard';
 
 export default function AIDashboardPage() {
