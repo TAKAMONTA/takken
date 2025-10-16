@@ -240,9 +240,11 @@ export default function Register() {
           <div className="max-w-md mx-auto">
             <div className="card-minimal fade-in">
               <div className="text-center mb-8">
-                <div className="text-5xl mb-4">🎮</div>
+                <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                  <i className="ri-gamepad-line text-2xl text-primary"></i>
+                </div>
                 <h2 className="text-xl font-medium mb-2">アカウント作成</h2>
-                <p className="text-minimal">宅建合格RPGへようこそ</p>
+                <p className="text-muted-foreground">宅建合格ロードへようこそ</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -358,6 +360,13 @@ export default function Register() {
           </div>
         </section>
       </main>
+
+      {/* Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-background border-t border-border py-2">
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">takkenroad.app</p>
+        </div>
+      </footer>
     </div>
   );
 }
