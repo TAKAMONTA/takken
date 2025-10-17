@@ -28,11 +28,11 @@ export default function Schedule() {
   const [schedule, setSchedule] = useState(defaultSchedule);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_rpg_user');
+    const savedUser = localStorage.getItem('takken_user');
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);
-      
+
       // ローカルストレージからスケジュールを読み込む
       const savedSchedule = localStorage.getItem('takken_schedule');
       if (savedSchedule) {

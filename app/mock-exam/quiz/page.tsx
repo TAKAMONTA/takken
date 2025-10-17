@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getMockExamQuestions } from "@/lib/data/mock-exam-questions";
 // 植物機能は削除
-import { getStudyTipsByDomain } from "@/lib/data/study-strategy";
-import StudyTipDisplay from "@/components/StudyTipDisplay";
 
 function MockExamQuizContent() {
   const router = useRouter();
@@ -24,10 +22,9 @@ function MockExamQuizContent() {
   const [totalTime, setTotalTime] = useState(0);
   const [showResults, setShowResults] = useState(false);
   // 植物機能は削除
-  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_rpg_user");
+    const savedUser = localStorage.getItem("takken_user");
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);
@@ -37,20 +34,16 @@ function MockExamQuizContent() {
     }
 
     // モードに応じて問題を設定
-    let questionCount = 50;
     let timeLimit = 120; // 分
 
     switch (mode) {
       case "speed_exam":
-        questionCount = 40;
         timeLimit = 90;
         break;
       case "review_exam":
-        questionCount = 30;
         timeLimit = 0; // 無制限
         break;
       default: // full_exam
-        questionCount = 50;
         timeLimit = 120;
         break;
     }
@@ -70,13 +63,14 @@ function MockExamQuizContent() {
   }, [mode, router]);
 
   useEffect(() => {
-    if (timeLeft > 0 && !isComplete && !isPaused && totalTime > 0) {
+    if (timeLeft > 0 && !isComplete && totalTime > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && totalTime > 0 && !isComplete) {
       handleTimeUp();
     }
-  }, [timeLeft, isComplete, isPaused, totalTime]);
+    return undefined;
+  }, [timeLeft, isComplete, totalTime]);
 
   const handleTimeUp = () => {
     setIsComplete(true);
@@ -93,7 +87,7 @@ function MockExamQuizContent() {
 
   const handleQuestionJump = (questionIndex: number) => {
     setCurrentQuestionIndex(questionIndex);
-    setSelectedAnswer(answers[questionIndex]);
+    setSelectedAnswer(answers[questionIndex] ?? null);
   };
 
   const handleSubmitExam = () => {
@@ -113,8 +107,6 @@ function MockExamQuizContent() {
       (answer, index) => answer === questions[index]?.correctAnswer
     );
     const correctCount = correctAnswers.filter((correct) => correct).length;
-    const score = Math.round((correctCount / questions.length) * 100);
-    const xpEarned = correctCount * 15; // 模試は高めのXP
     const studyTimeMinutes = startTime
       ? Math.round((new Date().getTime() - startTime.getTime()) / 1000 / 60)
       : 0;
@@ -199,7 +191,7 @@ function MockExamQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_rpg_user", JSON.stringify(updatedUser));
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
     console.log("模擬試験学習履歴を保存しました:", {
@@ -312,7 +304,7 @@ function MockExamQuizContent() {
               const categoryQuestions = questions.filter(
                 (q) => q.category === key
               );
-              const categoryCorrect = categoryQuestions.filter((q, i) => {
+              const categoryCorrect = categoryQuestions.filter((q) => {
                 const originalIndex = questions.findIndex(
                   (qq) => qq.id === q.id
                 );

@@ -340,7 +340,7 @@ class PWAManager {
   // Get current user ID from localStorage
   private getCurrentUserId(): string | null {
     try {
-      const userData = localStorage.getItem("takken_rpg_user");
+      const userData = localStorage.getItem("takken_user");
       if (userData) {
         const user = JSON.parse(userData);
         return user.id;

@@ -19,7 +19,7 @@ export default function Stats() {
   const [studyStats, setStudyStats] = useState<any>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_rpg_user');
+    const savedUser = localStorage.getItem('takken_user');
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);

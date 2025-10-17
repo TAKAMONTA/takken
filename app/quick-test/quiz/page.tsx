@@ -4,31 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserProfile } from "@/lib/types";
-import {
-  updateStudyStreak,
-  updateStudyProgress,
-  checkNewLearningRecords,
-  calculateXPAndLevel,
-  saveStudyData,
-  getQuickTestQuestions,
-} from "@/lib/study-utils";
+import { getQuickTestQuestions } from "@/lib/study-utils";
 // 植物機能は削除
-import LearningSessionRecorder from "@/components/LearningSessionRecorder";
-import {
-  Question,
-  QuizProps,
-  QuizState,
-  QuizResults,
-  StudySession,
-} from "@/lib/types/quiz";
+import { Question } from "@/lib/types/quiz";
 import { learningAnalytics } from "@/lib/analytics";
-import KeyTermHighlight from "@/components/KeyTermHighlight";
-import ArticleReference from "@/components/ArticleReference";
-import HintSystem from "@/components/HintSystem";
-import StudyTipDisplay from "@/components/StudyTipDisplay";
 import ExplanationDisplay from "@/components/ExplanationDisplay";
 import QuestionDisplay from "@/components/QuestionDisplay";
-import { getStudyTipsByDomain } from "@/lib/data/study-strategy";
 
 function QuickTestQuizContent() {
   const router = useRouter();
@@ -47,7 +28,7 @@ function QuickTestQuizContent() {
   // 植物機能は削除
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_rpg_user");
+    const savedUser = localStorage.getItem("takken_user");
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);
@@ -89,6 +70,7 @@ function QuickTestQuizContent() {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [timeLeft, isComplete]);
 
   const handleAnswerSelect = (answerIndex: number) => {
@@ -99,8 +81,10 @@ function QuickTestQuizContent() {
   const handleAnswerSubmit = () => {
     if (selectedAnswer === null) return;
 
-    const isCorrect =
-      selectedAnswer === questions[currentQuestionIndex].correctAnswer;
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return;
+
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
     const newAnswers = [...answers, isCorrect];
     setAnswers(newAnswers);
     setShowExplanation(true);
@@ -109,12 +93,12 @@ function QuickTestQuizContent() {
     saveProgressAfterAnswer(isCorrect);
   };
 
-  const saveProgressAfterAnswer = (isCorrect: boolean) => {
+  const saveProgressAfterAnswer = (_isCorrect: boolean) => {
     if (!user) return;
 
     const updatedUser = { ...user };
     setUser(updatedUser);
-    localStorage.setItem("takken_rpg_user", JSON.stringify(updatedUser));
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
   };
 
   const handleNextQuestion = () => {
@@ -132,7 +116,6 @@ function QuickTestQuizContent() {
     if (!user) return;
 
     const correctCount = answers.filter((answer) => answer).length;
-    const score = Math.round((correctCount / questions.length) * 100);
     const xpEarned = correctCount * 5; // クイックテスト用のボーナスXP
     const studyTimeMinutes = startTime
       ? Math.round((new Date().getTime() - startTime.getTime()) / 1000 / 60)
@@ -147,7 +130,7 @@ function QuickTestQuizContent() {
       updatedUser.studyHistory = [];
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0] || "";
     const todayRecord = updatedUser.studyHistory.find(
       (record: any) => record.date === today
     );
@@ -168,7 +151,7 @@ function QuickTestQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_rpg_user", JSON.stringify(updatedUser));
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
 
     // Analytics システムにも学習セッションを保存
     try {
@@ -249,7 +232,7 @@ function QuickTestQuizContent() {
               📊 詳細結果
             </h3>
             <div className="space-y-3">
-              {questions.map((question, index) => (
+              {questions.map((_, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between py-2 border-b border-gray-100"

@@ -382,7 +382,7 @@ class LearningAnalytics {
 
   private getUserProfile(userId: string): UserProfile {
     try {
-      const userData = localStorage.getItem('takken_rpg_user');
+      const userData = localStorage.getItem('takken_user');
       if (!userData) {
         throw new Error('User profile not found');
       }

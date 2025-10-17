@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { firestoreService } from '@/lib/firestore-service';
-import { StudySession } from '@/lib/types';
-import { getR7QuestionStats } from '@/lib/data/mock-exam-questions';
 
 const examModes = [
   {
@@ -78,7 +76,7 @@ export default function MockExam() {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_rpg_user');
+    const savedUser = localStorage.getItem('takken_user');
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);

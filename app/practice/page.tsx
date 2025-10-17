@@ -17,7 +17,7 @@ export default function Practice() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_rpg_user");
+    const savedUser = localStorage.getItem("takken_user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {

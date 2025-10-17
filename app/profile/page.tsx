@@ -10,7 +10,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_rpg_user');
+    const savedUser = localStorage.getItem('takken_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {
@@ -20,7 +20,7 @@ export default function Profile() {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('takken_rpg_user');
+    localStorage.removeItem('takken_user');
     router.push('/');
   };
 

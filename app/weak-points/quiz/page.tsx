@@ -129,7 +129,7 @@ function WeakPointsQuizContent() {
   // 植物機能は削除
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_rpg_user");
+    const savedUser = localStorage.getItem("takken_user");
     if (savedUser) {
       const userData = JSON.parse(savedUser);
       setUser(userData);
@@ -275,7 +275,7 @@ function WeakPointsQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_rpg_user", JSON.stringify(updatedUser));
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
     console.log("弱点克服1問解答後の学習履歴を保存しました:", {
@@ -388,7 +388,7 @@ function WeakPointsQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_rpg_user", JSON.stringify(updatedUser));
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
     console.log("弱点克服学習履歴を保存しました:", {
