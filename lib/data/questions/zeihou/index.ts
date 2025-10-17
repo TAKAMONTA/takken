@@ -1,26 +1,14 @@
-// 税・その他の問題データ
+/**
+ * 税・その他 - AI生成問題のみ使用
+ * 著作権問題を解決するため、過去問ベースの問題を削除
+ */
 import { Question } from "@/lib/types/quiz";
-import { zeihouR7Questions } from "./r7";
-import { zeihouR6Questions } from "./r6";
-import { zeihouR5Questions } from "./r5";
-import { zeihouR3Questions } from "./r3";
-import { zeihouNewQuestions } from "./new";
-import { zeihouNewQuestions as zeihouNew2Questions } from "./new2";
-import { zeihouNewQuestions as zeihouFixedAssetTaxQuestions } from "./fixed-asset-tax";
 import { zeihouNewQuestions as zeihouAIGenerated1 } from "./ai-generated-1";
 import { zeihouNewQuestions as zeihouAIGenerated2 } from "./ai-generated-2";
 
-// 税・その他の問題データ（本番環境用）
 export const zeihouQuestions: Question[] = [
-  ...zeihouFixedAssetTaxQuestions,
-  ...zeihouNew2Questions,
-  ...zeihouNewQuestions,
   ...zeihouAIGenerated1,
   ...zeihouAIGenerated2,
-  ...zeihouR7Questions,
-  ...zeihouR6Questions,
-  ...zeihouR5Questions,
-  ...zeihouR3Questions,
 ];
 
 // 難易度別の問題数統計

@@ -1,24 +1,14 @@
-// 法令上の制限の問題データ
+/**
+ * 法令上の制限 - AI生成問題のみ使用
+ * 著作権問題を解決するため、過去問ベースの問題を削除
+ */
 import { Question } from "@/lib/types/quiz";
-import { houreiR7Questions } from "./r7";
-import { houreiR6Questions } from "./r6";
-import { houreiR5Questions } from "./r5";
-import { houreiR3Questions } from "./r3";
-import { houreiNewQuestions } from "./new";
-import { houreiNewQuestions as houreiNew2Questions } from "./new2";
 import { houreiNewQuestions as houreiAIGenerated1 } from "./ai-generated-1";
 import { houreiNewQuestions as houreiAIGenerated2 } from "./ai-generated-2";
 
-// 法令上の制限の問題データ（本番環境用）
 export const houreiQuestions: Question[] = [
-  ...houreiNew2Questions,
-  ...houreiNewQuestions,
   ...houreiAIGenerated1,
   ...houreiAIGenerated2,
-  ...houreiR7Questions,
-  ...houreiR6Questions,
-  ...houreiR5Questions,
-  ...houreiR3Questions,
 ];
 
 // 難易度別の問題数統計

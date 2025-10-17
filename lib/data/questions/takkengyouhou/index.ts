@@ -1,38 +1,30 @@
-// 宅建業法の問題データ
+/**
+ * 宅建業法 - AI生成問題のみ使用
+ * 著作権問題を解決するため、過去問ベースの問題を削除
+ *
+ * 変更履歴:
+ * - 2025-10-17: 著作権リスクのある過去問ファイルを削除
+ * - AI生成問題のみを使用するように変更
+ */
+
 import { Question } from "@/lib/types/quiz";
-import { takkengyouhouR8Questions } from "./r8";
-import { takkengyouhouR7Questions } from "./r7";
-import { takkengyouhouR6Questions } from "./r6";
-import { takkengyouhouR5Questions } from "./r5";
-import { takkengyouhouR4Questions } from "./r4";
-import { takkengyouhouR3Questions } from "./r3";
-import { takkengyouhouNewQuestions } from "./new";
-import { takkengyouhouNewQuestions as takkengyouhou35_37Questions } from "./35-37-articles";
+
+// AI生成問題をインポート
 import { takkengyouhouNewQuestions as takkengyouhouAIGenerated1 } from "./ai-generated-1";
 import { takkengyouhouNewQuestions as takkengyouhouAIGenerated2 } from "./ai-generated-2";
 
-// 宅建業法の問題データ（本番環境用）
+// AI生成問題のみを使用（著作権フリー）
 export const takkengyouhouQuestions: Question[] = [
-  ...takkengyouhou35_37Questions,
-  ...takkengyouhouNewQuestions,
   ...takkengyouhouAIGenerated1,
   ...takkengyouhouAIGenerated2,
-  ...takkengyouhouR8Questions,
-  ...takkengyouhouR7Questions,
-  ...takkengyouhouR6Questions,
-  ...takkengyouhouR5Questions,
-  ...takkengyouhouR4Questions,
-  ...takkengyouhouR3Questions,
 ];
 
 // 難易度別の問題数統計
 export const takkengyouhouStats = {
   total: takkengyouhouQuestions.length,
   basic: takkengyouhouQuestions.filter((q) => q.difficulty === "基礎").length,
-  standard: takkengyouhouQuestions.filter((q) => q.difficulty === "標準")
-    .length,
-  advanced: takkengyouhouQuestions.filter((q) => q.difficulty === "応用")
-    .length,
+  standard: takkengyouhouQuestions.filter((q) => q.difficulty === "標準").length,
+  advanced: takkengyouhouQuestions.filter((q) => q.difficulty === "応用").length,
 };
 
 // 年度別の問題数統計
@@ -43,3 +35,6 @@ export const takkengyouhouByYear = takkengyouhouQuestions.reduce(
   },
   {} as Record<string, number>
 );
+
+// デフォルトエクスポート
+export default takkengyouhouQuestions;
