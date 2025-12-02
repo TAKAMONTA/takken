@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiClient } from "@/lib/ai-client";
+import {
+  verifyRequestAuth,
+  createAuthErrorResponse,
+} from "@/lib/firebase-admin-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * AI Study Recommendations API Route
- * 
+ *
  * 学習の推奨事項を生成するAPI
- * 
+ *
  * ⚠️ 注意: このAPIは現在の設定（output: "export"）では動作しません
  */
 
 export async function POST(request: NextRequest) {
+  let userId: string | undefined;
   try {
-    // 認証チェック
-    const authHeader = request.headers.get("authorization");
-    
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "認証が必要です" },
-        { status: 401 }
-      );
-    }
+    // Firebase Admin SDKでトークンを検証
+    userId = await verifyRequestAuth(request);
 
     const body = await request.json();
     const { userProgress, weakAreas } = body;
@@ -42,8 +41,17 @@ export async function POST(request: NextRequest) {
       success: true,
       recommendations,
     });
-  } catch (error: any) {
-    console.error("AI Recommendations API error:", error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error("AI Recommendations API error", err, { userId });
+
+    // 認証エラーの場合
+    if (
+      err.message?.includes("認証が必要です") ||
+      err.message?.includes("Invalid")
+    ) {
+      return createAuthErrorResponse();
+    }
 
     return NextResponse.json(
       { error: "推奨事項の生成中にエラーが発生しました" },
@@ -51,4 +59,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

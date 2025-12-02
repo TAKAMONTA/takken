@@ -6,6 +6,7 @@ import { TrueFalseItem, TrueFalseQuizState, TrueFalseQuizResults } from '@/lib/t
 import { getTFQuizSet, getLawDisplayName } from '@/lib/utils/generate-truefalse-items';
 import { TrueFalseQuestionCard } from '@/components/TrueFalseQuestionCard';
 import { learningAnalytics } from '@/lib/analytics';
+import { logger } from '@/lib/logger';
 
 function TrueFalseQuizContent() {
   const router = useRouter();
@@ -62,7 +63,8 @@ function TrueFalseQuizContent() {
           startTime: new Date()
         }));
       } catch (err) {
-        console.error('Quiz initialization error:', err);
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error('Quiz initialization error', error, { law, count });
         setError('問題の読み込み中にエラーが発生しました。ページを再読み込みしてください。');
       } finally {
         setIsLoading(false);
@@ -78,7 +80,7 @@ function TrueFalseQuizContent() {
     const isCorrect = answer === currentItem.answer;
 
     // 分析イベント送信（簡易版）
-    console.log('TrueFalse Answer:', {
+    logger.debug('TrueFalse Answer', {
       law,
       itemId: currentItem.id,
       correct: isCorrect,
@@ -119,7 +121,7 @@ function TrueFalseQuizContent() {
       };
 
       // 完了イベント送信（簡易版）
-      console.log('TrueFalse Completed:', {
+      logger.debug('TrueFalse Completed', {
         law,
         correctCount,
         totalQuestions,

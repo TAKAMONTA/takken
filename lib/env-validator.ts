@@ -5,6 +5,8 @@
  * 設定不足の場合は明確なエラーメッセージを表示します。
  */
 
+import { logger } from './logger';
+
 interface EnvConfig {
   key: string;
   description: string;
@@ -174,12 +176,12 @@ export function validateEnvironment(): void {
 
   // 警告がある場合は表示
   if (warnings.length > 0 && process.env.NODE_ENV === 'development') {
-    console.warn('\n' + warnings.join('\n') + '\n');
+    logger.warn('環境変数の警告', { warnings });
   }
 
   // 成功メッセージ（開発環境のみ）
   if (process.env.NODE_ENV === 'development') {
-    console.log('✅ 環境変数の検証が完了しました\n');
+    logger.info('環境変数の検証が完了しました');
   }
 }
 
@@ -191,15 +193,15 @@ export function displayEnvironmentStatus(): void {
     return;
   }
 
-  console.log('\n📋 環境変数の設定状況:\n');
+  logger.debug('環境変数の設定状況を表示中');
 
+  const statusList: Array<{ status: string; key: string; required: string }> = [];
   for (const config of ENV_CONFIGS) {
     const value = process.env[config.key];
     const status = value ? '✅ 設定済み' : '❌ 未設定';
     const required = config.required ? '（必須）' : '（オプション）';
-
-    console.log(`${status} ${config.key} ${required}`);
+    statusList.push({ status, key: config.key, required });
   }
-
-  console.log('');
+  
+  logger.debug('環境変数設定状況', { statusList });
 }

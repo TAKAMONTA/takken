@@ -1,5 +1,7 @@
 // Firebase設定のデバッグ用ユーティリティ
 
+import { logger } from './logger';
+
 export const debugFirebaseConfig = () => {
   const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,18 +14,17 @@ export const debugFirebaseConfig = () => {
     useEmulators: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS
   };
 
-  console.log('🔍 Firebase設定のデバッグ情報:');
-  console.log('環境変数:', config);
+  logger.debug('Firebase設定のデバッグ情報', { config });
   
   const missingVars = Object.entries(config)
     .filter(([key, value]) => !value && key !== 'useEmulators')
     .map(([key]) => key);
 
   if (missingVars.length > 0) {
-    console.warn('⚠️ 不足している環境変数:', missingVars);
-    console.log('💡 .env.localファイルを作成して、Firebaseプロジェクトの設定を追加してください');
+    logger.warn('不足している環境変数', { missingVars });
+    logger.info('.env.localファイルを作成して、Firebaseプロジェクトの設定を追加してください');
   } else {
-    console.log('✅ すべての環境変数が設定されています');
+    logger.info('すべての環境変数が設定されています');
   }
 
   return config;

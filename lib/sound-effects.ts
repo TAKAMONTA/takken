@@ -3,6 +3,8 @@
  * Web Audio API を使用してシンプルな効果音を生成
  */
 
+import { logger } from './logger';
+
 class SoundEffects {
   private audioContext: AudioContext | null = null;
   private enabled: boolean = true;
@@ -12,9 +14,14 @@ class SoundEffects {
     if (typeof window !== "undefined") {
       try {
         this.audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
+          (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       } catch (error) {
-        console.warn("Web Audio API not supported");
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.warn("Web Audio API not supported", {
+          errorName: err.name,
+          errorMessage: err.message,
+          errorStack: err.stack,
+        });
         this.enabled = false;
       }
     }

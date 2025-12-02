@@ -5,6 +5,7 @@ import { aiClient } from './ai-client';
 import { aiMasterSystem } from './ai-master-system';
 import { aiMemoryRetention } from './ai-memory-retention';
 import { aiVoiceAssistant } from './ai-voice-assistant';
+import { logger } from './logger';
 
 export interface AIPersonalityProfile {
   learningStyle: 'visual' | 'auditory' | 'kinesthetic' | 'reading';
@@ -122,7 +123,8 @@ JSON形式で返してください：
       return profile;
 
     } catch (error) {
-      console.error('パーソナリティ分析エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('パーソナリティ分析エラー', err, { userId });
       
       // デフォルトプロファイル
       const defaultProfile: AIPersonalityProfile = {
@@ -210,7 +212,8 @@ JSON形式で返してください：
       return emotionalState;
 
     } catch (error) {
-      console.error('感情状態検出エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('感情状態検出エラー', err, { userId });
       
       const defaultState: EmotionalState = {
         motivation: 5,
@@ -295,7 +298,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('学習環境最適化エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('学習環境最適化エラー', err, { userId });
       
       return {
         environmentAdjustments: ['適切な照明と静かな環境を確保'],
@@ -367,7 +371,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('感情サポート生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('感情サポート生成エラー', err, { userId });
       
       return {
         supportMessage: '学習お疲れ様です。あなたのペースで着実に進歩しています。',
@@ -462,7 +467,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('学習効率最適化エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('学習効率最適化エラー', err, { userId });
       
       return {
         efficiencyScore: 70,
@@ -556,7 +562,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('予測学習パス生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('予測学習パス生成エラー', err, { userId });
       
       return {
         learningPath: [
@@ -661,7 +668,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('メンターシップ提供エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('メンターシップ提供エラー', err, { userId });
       
       return {
         mentorAdvice: '継続的な学習と適切な復習が合格への道です。',
@@ -755,7 +763,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('高度分析エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('高度分析エラー', err, { userId });
       
       return {
         learningVelocity: 75,
@@ -864,7 +873,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('ゲーミフィケーション強化エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('ゲーミフィケーション強化エラー', err, { userId });
       
       return {
         newChallenges: [
@@ -987,7 +997,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('最適化レポート生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('最適化レポート生成エラー', err, { userId });
       
       return {
         overallAssessment: 'AI機能の基盤は整っており、継続的な改善により学習効果の向上が期待できます。',

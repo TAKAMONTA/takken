@@ -37,18 +37,37 @@ import { takkengyouhouAdvancedQuestions_businessRegulation } from "./generated-5
 import { takkengyouhouAdvancedQuestions_supervision_penalty } from "./generated-50/advanced-7";
 import { takkengyouhouAdvancedQuestions_RewardLimit } from "./generated-50/advanced-8";
 
+// 追加問題
+import { takkengyouhouAdditionalQuestions_20241026 } from "./additional-20241026";
+import { takkengyouhouAdditionalQuestions_20241219 } from "./additional-20241219";
+import { takkengyouhouAdditionalQuestions_20251101 } from "./additional-2025-11-01";
+import { takkengyouhouAdditionalQuestions_20251101_batch1 } from "./additional-2025-11-01-batch1";
+import { takkengyouhouAdditionalQuestions_20251101_batch2 } from "./additional-2025-11-01-batch2";
+import { takkengyouhouAdditionalQuestions_20251101_batch3 } from "./additional-2025-11-01-batch3";
+import { takkengyouhouAdditionalQuestions_20251101_batch4 } from "./additional-2025-11-01-batch4";
+import { takkengyouhouAdditionalQuestions_20251101_batch5 } from "./additional-2025-11-01-batch5";
+
 // 基礎問題（肢別形式）を多肢選択形式に変換する関数
-function convertTrueFalseToQuestion(item: TrueFalseItem, index: number): Question {
+function convertTrueFalseToQuestion(
+  item: TrueFalseItem,
+  index: number
+): Question {
+  // 防御的チェックを追加
+  const statement = item?.statement || "";
+  const explanation = item?.explanation || "";
+  const year = item?.source?.year || "2024";
+  const topic = item?.source?.topic || "";
+  
   return {
     id: index + 1000,
-    question: `次の記述について、宅建業法の規定によれば、正しいか誤っているか判断しなさい。\n\n「${item.statement}」`,
+    question: `次の記述について、宅建業法の規定によれば、正しいか誤っているか判断しなさい。\n\n「${statement}」`,
     options: ["正しい", "誤っている"],
-    correctAnswer: item.answer ? 0 : 1,
-    explanation: item.explanation || "",
+    correctAnswer: item?.answer ? 0 : 1,
+    explanation: explanation,
     category: "takkengyouhou",
     difficulty: "基礎",
-    year: item.source.year || "2024",
-    topic: item.source.topic
+    year: year,
+    topic: topic,
   };
 }
 
@@ -85,18 +104,30 @@ export const takkengyouhouQuestions: Question[] = [
   ...takkengyouhouAdvancedQuestions_businessRegulation,
   ...takkengyouhouAdvancedQuestions_supervision_penalty,
   ...takkengyouhouAdvancedQuestions_RewardLimit,
+  // 追加問題
+  ...takkengyouhouAdditionalQuestions_20241026,
+  ...takkengyouhouAdditionalQuestions_20241219,
+  ...takkengyouhouAdditionalQuestions_20251101,
+  ...takkengyouhouAdditionalQuestions_20251101_batch1,
+  ...takkengyouhouAdditionalQuestions_20251101_batch2,
+  ...takkengyouhouAdditionalQuestions_20251101_batch3,
+  ...takkengyouhouAdditionalQuestions_20251101_batch4,
+  ...takkengyouhouAdditionalQuestions_20251101_batch5,
 ];
 
 // 難易度別の問題数統計
 export const takkengyouhouStats = {
   total: takkengyouhouQuestions.length,
-  basic: takkengyouhouQuestions.filter((q) => q.difficulty === "基礎").length,
-  standard: takkengyouhouQuestions.filter((q) => q.difficulty === "標準").length,
-  advanced: takkengyouhouQuestions.filter((q) => q.difficulty === "応用").length,
+  basic: takkengyouhouQuestions.filter(q => q.difficulty === "基礎").length,
+  standard: takkengyouhouQuestions.filter(q => q.difficulty === "標準").length,
+  advanced: takkengyouhouQuestions.filter(q => q.difficulty === "応用").length,
 };
 
 // 年度別の問題数統計
-export const takkengyouhouByYear = takkengyouhouQuestions.reduce((acc, question) => {
-  acc[question.year] = (acc[question.year] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
+export const takkengyouhouByYear = takkengyouhouQuestions.reduce(
+  (acc, question) => {
+    acc[question.year] = (acc[question.year] || 0) + 1;
+    return acc;
+  },
+  {} as Record<string, number>
+);

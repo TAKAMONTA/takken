@@ -2,6 +2,7 @@
 
 import { UserProfile, StudyProgress, StudyStreak, StudySession } from './types';
 import { Question } from './types/quiz';
+import { logger } from './logger';
 
 export interface LearningPattern {
   preferredStudyTime: string[];
@@ -352,7 +353,8 @@ class LearningAnalytics {
       const sessions = localStorage.getItem(`study_sessions_${userId}`);
       return sessions ? JSON.parse(sessions) : [];
     } catch (error) {
-      console.error('Failed to load study sessions:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to load study sessions', err, { userId });
       return [];
     }
   }
@@ -388,7 +390,8 @@ class LearningAnalytics {
       }
       return JSON.parse(userData);
     } catch (error) {
-      console.error('Failed to load user profile:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to load user profile', err, { userId });
       throw new Error('User profile not found');
     }
   }

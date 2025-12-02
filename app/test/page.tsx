@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 
 export default function TestPage() {
   const [status, setStatus] = useState<string>("Loading...");
@@ -13,22 +14,23 @@ export default function TestPage() {
 
         // 問題データのインポートをテスト
         const { allQuestions } = await import("@/lib/data/questions/index");
-        console.log("allQuestions loaded:", allQuestions.length);
+        logger.debug("allQuestions loaded", { count: allQuestions.length });
 
         // ミニテスト関数のインポートをテスト
         const { getQuickTestQuestions } = await import("@/lib/study-utils");
-        console.log("getQuickTestQuestions loaded");
+        logger.debug("getQuickTestQuestions loaded");
 
         // ミニテスト関数を実行
         const questions = getQuickTestQuestions(5);
-        console.log("Quick test questions:", questions.length);
+        logger.debug("Quick test questions", { count: questions.length });
 
         setStatus(
           `Success! Loaded ${allQuestions.length} questions, got ${questions.length} for quick test`
         );
-      } catch (err: any) {
-        console.error("Test failed:", err);
-        setError(err.message);
+      } catch (err: unknown) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error("Test failed", error);
+        setError(error.message);
         setStatus("Failed");
       }
     };

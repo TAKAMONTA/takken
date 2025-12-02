@@ -1,4 +1,5 @@
 import { aiClient } from "./ai-client";
+import { logger } from "./logger";
 
 export interface UserContext {
   name?: string;
@@ -14,7 +15,7 @@ export interface UserContext {
 }
 
 export interface AITeacherMessage {
-  type: "greeting" | "encouragement" | "advice" | "garden" | "reminder";
+  type: "greeting" | "encouragement" | "advice" | "reminder";
   message: string;
   actionText?: string;
   actionRoute?: string;
@@ -105,34 +106,6 @@ export class AITeacherService {
     }
   }
 
-  // 庭園（植物育成）に関するメッセージ
-  private generateGardenMessage(context: UserContext): AITeacherMessage {
-    const { petLevel } = context; // 精霊レベルを表示
-
-    if (petLevel < 5) {
-      return {
-        type: "garden",
-        message: `庭園の植物が芽吹きました！学習を続けてしっかり育てよう🌱`,
-        actionText: "庭園を見る",
-        actionRoute: "/plant-garden",
-      };
-    } else if (petLevel < 10) {
-      return {
-        type: "garden",
-        message: `植物が順調に成長中！幹と根が強くなってきたよ🌿`,
-        actionText: "庭園を見る",
-        actionRoute: "/plant-garden",
-      };
-    } else {
-      return {
-        type: "garden",
-        message: `美しい花が咲き始めたよ！この調子で合格へ🌸`,
-        actionText: "庭園を見る",
-        actionRoute: "/plant-garden",
-      };
-    }
-  }
-
   // 弱点分野に基づくアドバイス
   private generateAdviceMessage(context: UserContext): AITeacherMessage {
     const { weakAreas, recentPerformance } = context;
@@ -200,13 +173,7 @@ export class AITeacherService {
   // メインのメッセージ生成メソッド
   async generateMessage(context: UserContext): Promise<AITeacherMessage> {
     // 基本的なルールベースメッセージを生成
-    const messageTypes = [
-      "greeting",
-      "encouragement",
-      "garden",
-      "advice",
-      "reminder",
-    ];
+    const messageTypes = ["greeting", "encouragement", "advice", "reminder"];
     const randomType =
       messageTypes[Math.floor(Math.random() * messageTypes.length)];
 
@@ -215,8 +182,6 @@ export class AITeacherService {
         return this.generateGreetingMessage(context);
       case "encouragement":
         return this.generateEncouragementMessage(context);
-      case "garden":
-        return this.generateGardenMessage(context);
       case "advice":
         return this.generateAdviceMessage(context);
       case "reminder":
@@ -232,7 +197,6 @@ export class AITeacherService {
       const prompt = `
 ユーザーの学習状況：
 - 連続学習日数: ${context.streak}日
-- 庭園/精霊: 精霊Lv.${context.petLevel} (段階${context.petStage})
 - 最近の正答率: ${context.recentPerformance || "データなし"}%
 - 苦手分野: ${context.weakAreas?.join(", ") || "なし"}
 - 総学習日数: ${context.totalStudyDays || 0}日
@@ -253,7 +217,8 @@ export class AITeacherService {
         actionRoute: "/practice",
       };
     } catch (error) {
-      console.error("AI message generation failed:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("AI message generation failed", err, { context });
       // フォールバックとして基本メッセージを返す
       return this.generateGreetingMessage(context);
     }

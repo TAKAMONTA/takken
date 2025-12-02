@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { aiEnhancementSystem, AIPersonalityProfile, EmotionalState } from '@/lib/ai-enhancement-system';
+import { logger } from '@/lib/logger';
 
 interface AIEnhancementDashboardProps {
   userId: string;
@@ -29,7 +30,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
       setEmotionalState(emotion || null);
 
     } catch (error) {
-      console.error('拡張データ読み込みエラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('拡張データ読み込みエラー', err, { userId });
     }
   };
 
@@ -57,7 +59,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
 
       setPersonalityProfile(profile);
     } catch (error) {
-      console.error('パーソナリティ分析エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('パーソナリティ分析エラー', err, { userId });
       alert('パーソナリティ分析でエラーが発生しました。');
     } finally {
       setIsAnalyzing(false);
@@ -85,7 +88,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
 
       setEmotionalState(emotion);
     } catch (error) {
-      console.error('感情状態検出エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('感情状態検出エラー', err, { userId });
       alert('感情状態検出でエラーが発生しました。');
     } finally {
       setIsAnalyzing(false);
@@ -98,7 +102,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
       const report = await aiEnhancementSystem.generateOptimizationReport(userId);
       setOptimizationReport(report);
     } catch (error) {
-      console.error('最適化レポート生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('最適化レポート生成エラー', err, { userId });
       alert('最適化レポート生成でエラーが発生しました。');
     } finally {
       setIsAnalyzing(false);
@@ -303,7 +308,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
                           );
                           alert(`${support.moodBooster}\n\n${support.supportMessage}\n\n推奨アクション:\n${support.actionSuggestions.join('\n')}`);
                         } catch (error) {
-                          console.error('感情サポート生成エラー:', error);
+                          const err = error instanceof Error ? error : new Error(String(error));
+                          logger.error('感情サポート生成エラー', err, { userId });
                         }
                       }}
                       className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
@@ -354,7 +360,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
                       
                       alert(`効率スコア: ${efficiency.efficiencyScore}/100\n\n最適化戦略:\n${efficiency.optimizationStrategies.join('\n')}`);
                     } catch (error) {
-                      console.error('効率最適化エラー:', error);
+                      const err = error instanceof Error ? error : new Error(String(error));
+                      logger.error('効率最適化エラー', err, { userId });
                     } finally {
                       setIsAnalyzing(false);
                     }
@@ -427,7 +434,8 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
                       
                       alert(`メンターアドバイス:\n${mentorship.mentorAdvice}\n\n次のステップ:\n${mentorship.nextSteps.join('\n')}`);
                     } catch (error) {
-                      console.error('メンターシップエラー:', error);
+                      const err = error instanceof Error ? error : new Error(String(error));
+                      logger.error('メンターシップエラー', err, { userId });
                     } finally {
                       setIsAnalyzing(false);
                     }

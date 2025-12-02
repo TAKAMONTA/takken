@@ -19,6 +19,8 @@ import AIHintChat from "@/components/AIHintChat";
 import AnswerFeedback from "@/components/AnswerFeedback";
 import { soundEffects } from "@/lib/sound-effects";
 import AdSense from "@/components/AdSense";
+import { logger } from "@/lib/logger";
+import StudyInfoSection from "@/components/StudyInfoSection";
 
 function QuizContent() {
   const router = useRouter();
@@ -60,7 +62,7 @@ function QuizContent() {
 
         if (categoryQuestions.length === 0) {
           // 問題が取得できない場合は、ダッシュボードに戻る
-          console.warn("No questions available for category:", categoryParam);
+          logger.warn("No questions available for category", { category: categoryParam });
           router.push("/dashboard");
           return;
         }
@@ -77,7 +79,8 @@ function QuizContent() {
         setTimeLeft(selectedQuestions.length * 120); // 1問2分
         setStartTime(new Date());
       } catch (error) {
-        console.error("Error loading questions:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Error loading questions", err, { category: categoryParam });
         router.push("/dashboard");
       }
     };
@@ -227,10 +230,11 @@ function QuizContent() {
         xpEarned: isCorrect ? 10 : 0,
       });
     } catch (error) {
-      console.error("Analytics session save failed:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Analytics session save failed", err);
     }
 
-    console.log("1問解答後の学習履歴を保存しました:", {
+    logger.debug("1問解答後の学習履歴を保存しました", {
       questionIndex: currentQuestionIndex + 1,
       isCorrect: isCorrect,
       totalQuestions: updatedUser.totalStats.totalQuestions,
@@ -357,10 +361,11 @@ function QuizContent() {
         xpEarned: correctCount * 10,
       });
     } catch (error) {
-      console.error("Analytics session save failed:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Analytics session save failed", err);
     }
 
-    console.log("学習履歴を保存しました:", {
+    logger.debug("学習履歴を保存しました", {
       questionsAnswered: questions.length,
       correctAnswers: correctCount,
       studyTimeMinutes: studyTimeMinutes,
@@ -555,7 +560,10 @@ function QuizContent() {
                 <HintSystem
                   hints={currentQuestion.hints}
                   onHintUsed={(hintIndex) => {
-                    console.log(`ヒント${hintIndex + 1}を使用しました`);
+                    logger.debug(`ヒント${hintIndex + 1}を使用しました`, { 
+                      hintIndex, 
+                      questionId: currentQuestion.id 
+                    });
                   }}
                 />
               )}
@@ -653,17 +661,10 @@ function QuizContent() {
             />
           )}
 
-          {/* AdSense Advertisement - 学習完了後 */}
+          {/* 学習情報セクション - 問題解答後 */}
           {showExplanation && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600 mb-3 text-center">
-                🎉 お疲れ様！宅建関連の情報もチェックしてみませんか？
-              </p>
-              <AdSense
-                adSlot="0987654321"
-                adFormat="rectangle"
-                className="rounded-lg"
-              />
+            <div className="mb-6">
+              <StudyInfoSection user={user} />
             </div>
           )}
 

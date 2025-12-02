@@ -7,10 +7,15 @@ import DOMPurify from 'dompurify';
  * @returns 改行処理されたテキスト
  */
 export function formatExplanationText(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
 
   // 既存の改行を正規化
   let formattedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  
+  // 正規化後の値がundefined/nullの場合の防御
+  if (!formattedText || typeof formattedText !== 'string') {
+    return '';
+  }
 
   // 【】で囲まれた見出しの前後に改行を追加
   formattedText = formattedText.replace(/【([^】]+)】/g, '\n\n【$1】\n');
@@ -46,14 +51,18 @@ export function formatExplanationText(text: string): string {
  * @returns 改行処理されたテキスト
  */
 export function formatQuestionText(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
 
   let formattedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
   // 長い文章を適切な位置で改行（60文字程度で）
+  if (!formattedText || typeof formattedText !== 'string') {
+    return '';
+  }
+  
   const lines = formattedText.split('\n');
   const processedLines = lines.map(line => {
-    if (line.length <= 60) return line;
+    if (!line || typeof line !== 'string' || line.length <= 60) return line;
 
     // 句読点で区切って改行
     return line.replace(/([。、])([^。、]{20,})/g, '$1\n$2');
@@ -71,6 +80,11 @@ export function splitIntoParagraphs(text: string): string[] {
   if (!text) return [];
 
   const formattedText = formatExplanationText(text);
+  
+  // formatExplanationTextの結果がundefined/nullの場合の防御
+  if (!formattedText || typeof formattedText !== 'string') {
+    return [];
+  }
   
   // 【】見出しで分割
   const sections = formattedText.split(/\n\n(?=【)/);

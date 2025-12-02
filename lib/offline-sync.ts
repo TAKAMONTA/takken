@@ -1,4 +1,6 @@
 // オフライン同期機能
+import { logger } from './logger';
+
 export interface StudyProgressData {
   id: string;
   userId: string;
@@ -225,13 +227,15 @@ export class OfflineSyncManager {
       const registration = await navigator.serviceWorker.ready;
       await (registration as any).sync.register("study-progress-sync");
     } catch (error) {
-      console.error("Failed to register background sync:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to register background sync", err);
     }
   }
 
   async syncWithServer(): Promise<boolean> {
+    let offlineProgress: StudyProgressData[] = [];
     try {
-      const offlineProgress = await this.getOfflineStudyProgress();
+      offlineProgress = await this.getOfflineStudyProgress();
 
       if (offlineProgress.length === 0) {
         return true;
@@ -254,7 +258,9 @@ export class OfflineSyncManager {
         return false;
       }
     } catch (error) {
-      console.error("Failed to sync with server:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      const userId = offlineProgress.length > 0 ? offlineProgress[0].userId : 'unknown';
+      logger.error("Failed to sync with server", err, { userId });
       return false;
     }
   }
@@ -262,12 +268,12 @@ export class OfflineSyncManager {
   // 接続状態の監視
   setupConnectionListener(): void {
     window.addEventListener("online", async () => {
-      console.log("Connection restored, syncing data...");
+      logger.info("Connection restored, syncing data");
       await this.syncWithServer();
     });
 
     window.addEventListener("offline", () => {
-      console.log("Connection lost, switching to offline mode");
+      logger.warn("Connection lost, switching to offline mode");
     });
   }
 }

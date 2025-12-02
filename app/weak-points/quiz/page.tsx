@@ -8,6 +8,7 @@ import ExplanationDisplay from "@/components/ExplanationDisplay";
 import QuestionDisplay from "@/components/QuestionDisplay";
 import StudyTipDisplay from "@/components/StudyTipDisplay";
 import { getStudyTipsByDomain } from "@/lib/data/study-strategy";
+import { logger } from "@/lib/logger";
 
 // 弱点克服用の問題データ
 const weaknessQuestions = {
@@ -278,7 +279,7 @@ function WeakPointsQuizContent() {
     localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
-    console.log("弱点克服1問解答後の学習履歴を保存しました:", {
+    logger.debug("弱点克服1問解答後の学習履歴を保存しました", {
       questionIndex: currentQuestionIndex + 1,
       isCorrect: isCorrect,
       totalQuestions: updatedUser.totalStats.totalQuestions,
@@ -391,7 +392,7 @@ function WeakPointsQuizContent() {
     localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
-    console.log("弱点克服学習履歴を保存しました:", {
+    logger.debug("弱点克服学習履歴を保存しました", {
       questionsAnswered: questions.length,
       correctAnswers: correctCount,
       studyTimeMinutes: studyTimeMinutes,

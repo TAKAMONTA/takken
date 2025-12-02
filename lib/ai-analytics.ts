@@ -1,5 +1,6 @@
 // AI駆動の学習分析システム
 import { aiClient } from './ai-client';
+import { logger } from './logger';
 
 export interface AnswerPattern {
   questionId: string;
@@ -84,7 +85,8 @@ export class AIAnalyticsService {
       const analysis = JSON.parse(aiResponse.content);
       return analysis.weaknesses || [];
     } catch (error) {
-      console.error('AI分析エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('AI分析エラー', err, { patternCount: patterns.length });
       // フォールバック：基本的な統計分析
       return this.generateBasicAnalysis(categoryStats);
     }
@@ -166,7 +168,8 @@ ${JSON.stringify(highPriorityWeaknesses, null, 2)}
       const generatedQuestions = JSON.parse(response.content);
       return generatedQuestions.questions || [];
     } catch (error) {
-      console.error('問題生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('問題生成エラー', err, { weaknesses: weaknesses.length });
       return [];
     }
   }
@@ -220,7 +223,12 @@ ${JSON.stringify(highPriorityWeaknesses, null, 2)}
 
       return JSON.parse(response.content);
     } catch (error) {
-      console.error('フィードバック生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('フィードバック生成エラー', err, {
+        questionId: currentQuestion?.id,
+        userAnswer,
+        timeSpent,
+      });
       return {
         encouragement: '頑張っていますね！継続することが一番大切です。',
         confidence: 0.5
@@ -274,6 +282,9 @@ ${recentErrors}
     const analyses: WeaknessAnalysis[] = [];
     
     Object.entries(stats).forEach(([key, data]: [string, any]) => {
+      if (!key || typeof key !== 'string' || !key.includes('-')) {
+        return; // Skip invalid keys
+      }
       const [category, subcategory] = key.split('-');
       const errorRate = 1 - (data.correct / data.total);
       

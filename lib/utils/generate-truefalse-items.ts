@@ -3,6 +3,7 @@ import { TrueFalseItem } from '@/lib/types/quiz';
 import { questionsByCategory } from '@/lib/data/questions/index';
 import { frequencyData } from '@/lib/data/frequency-questions';
 import { frequency10y } from '@/lib/data/past-exams/frequency';
+import { logger } from '@/lib/logger';
 
 // 法令カテゴリのマッピング（frequency-questions.ts と questions の差異を吸収）
 const LAW_MAPPING = {
@@ -66,19 +67,19 @@ export function buildTFItemsFromFrequency(law: LawSlug): TrueFalseItem[] {
     )?.[0];
 
     if (!frequencyCategoryId) {
-      console.warn(`No frequency category found for law: ${law}`);
+      logger.warn(`No frequency category found for law: ${law}`);
       return items;
     }
 
     const category = frequencyData.find(cat => cat.id === frequencyCategoryId);
     if (!category) {
-      console.warn(`No frequency data found for category: ${frequencyCategoryId}`);
+      logger.warn(`No frequency data found for category: ${frequencyCategoryId}`);
       return items;
     }
 
     category.topics.forEach((topic, topicIdx) => {
       if (!topic.questions || topic.questions.length === 0) {
-        console.warn(`No questions found for topic: ${topic.topic}`);
+        logger.warn(`No questions found for topic: ${topic.topic}`);
         return;
       }
 
@@ -87,7 +88,7 @@ export function buildTFItemsFromFrequency(law: LawSlug): TrueFalseItem[] {
           // 穴埋め問題を完全な文に変換
           let statement = question.text;
           if (!statement || statement.trim() === '') {
-            console.warn(`Empty question text for topic: ${topic.topic}, question: ${qIdx}`);
+            logger.warn(`Empty question text for topic: ${topic.topic}, question: ${qIdx}`);
             return;
           }
 
@@ -133,12 +134,14 @@ export function buildTFItemsFromFrequency(law: LawSlug): TrueFalseItem[] {
             });
           }
         } catch (error) {
-          console.error(`Error processing question ${qIdx} in topic ${topic.topic}:`, error);
+          const err = error instanceof Error ? error : new Error(String(error));
+          logger.error(`Error processing question ${qIdx} in topic ${topic.topic}`, err);
         }
       });
     });
   } catch (error) {
-    console.error(`Error building TF items from frequency for law ${law}:`, error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error building TF items from frequency for law ${law}`, err);
   }
 
   return items;
@@ -278,12 +281,12 @@ export function getTFQuizSet(law: LawSlug, count: number = 10): TrueFalseItem[] 
   try {
     // 入力値の検証
     if (!law || !['takkengyouhou', 'minpou', 'hourei', 'zeihou'].includes(law)) {
-      console.error(`Invalid law parameter: ${law}`);
+      logger.error(`Invalid law parameter: ${law}`);
       return [];
     }
 
     if (count <= 0 || count > 100) {
-      console.error(`Invalid count parameter: ${count}`);
+      logger.error(`Invalid count parameter: ${count}`);
       count = 10; // デフォルト値にフォールバック
     }
 
@@ -291,20 +294,23 @@ export function getTFQuizSet(law: LawSlug, count: number = 10): TrueFalseItem[] 
     const mcqItems = buildTFItemsFromMCQ(law);
     const frequencyItems = buildTFItemsFromFrequency(law);
     
-    console.log(`Generated items for ${law}: MCQ=${mcqItems.length}, Frequency=${frequencyItems.length}`);
+    logger.debug(`Generated items for ${law}`, {
+      mcqCount: mcqItems.length,
+      frequencyCount: frequencyItems.length,
+    });
     
     // 全アイテムを統合
     const allItems = [...mcqItems, ...frequencyItems];
     
     // 問題データが不足している場合の処理
     if (allItems.length === 0) {
-      console.error(`No items generated for law: ${law}`);
+      logger.error(`No items generated for law: ${law}`);
       return [];
     }
 
     // 要求数より少ない場合は警告
     if (allItems.length < count) {
-      console.warn(`Requested ${count} items but only ${allItems.length} available for ${law}`);
+      logger.warn(`Requested ${count} items but only ${allItems.length} available for ${law}`);
     }
     
     // 重み付きサンプリングで指定数を抽出
@@ -318,13 +324,14 @@ export function getTFQuizSet(law: LawSlug, count: number = 10): TrueFalseItem[] 
     );
 
     if (validItems.length !== selectedItems.length) {
-      console.warn(`Filtered out ${selectedItems.length - validItems.length} invalid items`);
+      logger.warn(`Filtered out ${selectedItems.length - validItems.length} invalid items`);
     }
     
     // シャッフル（重み付き選択後の順序をランダム化）
     return validItems.sort(() => Math.random() - 0.5);
   } catch (error) {
-    console.error(`Error generating TF quiz set for ${law}:`, error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(`Error generating TF quiz set for ${law}`, err);
     return [];
   }
 }

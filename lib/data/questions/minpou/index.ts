@@ -38,18 +38,37 @@ import { minpouAdvancedQuestions_抵当権 } from "./generated-50/advanced-7";
 import { minpouAdvancedQuestions_債務不履行_解除 } from "./generated-50/advanced-8";
 import { minpouAdvancedQuestions_相続 } from "./generated-50/advanced-9";
 
+// 追加問題
+import { minpouAdditionalQuestions_20241026 } from "./additional-20241026";
+import { minpouAdditionalQuestions_20241219 } from "./additional-20241219";
+import { minpouAdditionalQuestions_20251101_batch1 } from "./additional-2025-11-01-batch1";
+import { minpouAdditionalQuestions_20251101_batch2 } from "./additional-2025-11-01-batch2";
+import { minpouAdditionalQuestions_20251101_batch3 } from "./additional-2025-11-01-batch3";
+import { minpouAdditionalQuestions_20251101_batch4 } from "./additional-2025-11-01-batch4";
+import { minpouAdditionalQuestions_20251101_batch5 } from "./additional-2025-11-01-batch5";
+import { minpouAdditionalQuestions_20251101_batch6 } from "./additional-2025-11-01-batch6";
+
 // 基礎問題（肢別形式）を多肢選択形式に変換する関数
-function convertTrueFalseToQuestion(item: TrueFalseItem, index: number): Question {
+function convertTrueFalseToQuestion(
+  item: TrueFalseItem,
+  index: number
+): Question {
+  // 防御的チェックを追加
+  const statement = item?.statement || "";
+  const explanation = item?.explanation || "";
+  const year = item?.source?.year || "2024";
+  const topic = item?.source?.topic || "";
+  
   return {
     id: index + 2000,
-    question: `次の記述について、民法の規定によれば、正しいか誤っているか判断しなさい。\n\n「${item.statement}」`,
+    question: `次の記述について、民法の規定によれば、正しいか誤っているか判断しなさい。\n\n「${statement}」`,
     options: ["正しい", "誤っている"],
-    correctAnswer: item.answer ? 0 : 1,
-    explanation: item.explanation || "",
+    correctAnswer: item?.answer ? 0 : 1,
+    explanation: explanation,
     category: "minpou",
     difficulty: "基礎",
-    year: item.source.year || "2024",
-    topic: item.source.topic
+    year: year,
+    topic: topic,
   };
 }
 
@@ -87,14 +106,23 @@ export const minpouQuestions: Question[] = [
   ...minpouAdvancedQuestions_抵当権,
   ...minpouAdvancedQuestions_債務不履行_解除,
   ...minpouAdvancedQuestions_相続,
+  // 追加問題
+  ...minpouAdditionalQuestions_20241026,
+  ...minpouAdditionalQuestions_20241219,
+  ...minpouAdditionalQuestions_20251101_batch1,
+  ...minpouAdditionalQuestions_20251101_batch2,
+  ...minpouAdditionalQuestions_20251101_batch3,
+  ...minpouAdditionalQuestions_20251101_batch4,
+  ...minpouAdditionalQuestions_20251101_batch5,
+  ...minpouAdditionalQuestions_20251101_batch6,
 ];
 
 // 難易度別の問題数統計
 export const minpouStats = {
   total: minpouQuestions.length,
-  basic: minpouQuestions.filter((q) => q.difficulty === "基礎").length,
-  standard: minpouQuestions.filter((q) => q.difficulty === "標準").length,
-  advanced: minpouQuestions.filter((q) => q.difficulty === "応用").length,
+  basic: minpouQuestions.filter(q => q.difficulty === "基礎").length,
+  standard: minpouQuestions.filter(q => q.difficulty === "標準").length,
+  advanced: minpouQuestions.filter(q => q.difficulty === "応用").length,
 };
 
 // 年度別の問題数統計

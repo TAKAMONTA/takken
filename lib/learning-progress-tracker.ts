@@ -1,5 +1,6 @@
 // 性格診断機能は削除済み
 import { LearningPlan, LearningStrategy } from "./learning-plan-generator";
+import { logger } from "./logger";
 
 export interface LearningSession {
   id: string;
@@ -88,11 +89,13 @@ export class LearningProgressTracker {
         return this.saveToLocalStorage(sessionWithId);
       }
     } catch (error) {
-      console.error("学習セッションの記録に失敗しました:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      const fallbackId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      logger.error("学習セッションの記録に失敗しました", err, { sessionId: fallbackId, userId: session.userId });
       // フォールバック: ローカルストレージに保存
       return this.saveToLocalStorage({
         ...session,
-        id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: fallbackId,
       });
     }
   }
@@ -110,7 +113,8 @@ export class LearningProgressTracker {
 
       return this.calculateProgressMetrics(sessions);
     } catch (error) {
-      console.error("進捗メトリクスの取得に失敗しました:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("進捗メトリクスの取得に失敗しました", err, { userId });
       return this.createEmptyProgressMetrics();
     }
   }
@@ -401,7 +405,8 @@ export class LearningProgressTracker {
         return this.getFromLocalStorage(userId);
       }
     } catch (error) {
-      console.error("学習セッションの取得に失敗しました:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("学習セッションの取得に失敗しました", err, { userId });
       return this.getFromLocalStorage(userId);
     }
   }
@@ -831,10 +836,8 @@ export class LearningProgressTracker {
         }));
       }
     } catch (error) {
-      console.error(
-        "ローカルストレージからの学習セッション取得に失敗しました:",
-        error
-      );
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("ローカルストレージからの学習セッション取得に失敗しました", err, { userId });
     }
 
     return [];

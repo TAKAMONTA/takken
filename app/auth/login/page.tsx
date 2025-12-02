@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider } from "firebase/auth";
+import { logger } from "@/lib/logger";
 
 export default function Login() {
   const router = useRouter();
@@ -77,7 +75,7 @@ export default function Login() {
 
       // ユーザーの認証状態を確認
       if (!user.emailVerified) {
-        console.warn("Email not verified for user:", user.uid);
+        logger.warn("Email not verified for user", { userId: user.uid });
         // メール未認証でも続行（必要に応じて制限可能）
       }
 
@@ -86,56 +84,77 @@ export default function Login() {
       try {
         userProfile = await firestoreService.getUserProfile(user.uid);
       } catch (firestoreError) {
-        console.error("Firestore error:", firestoreError);
+        const err = firestoreError instanceof Error ? firestoreError : new Error(String(firestoreError));
+        logger.error("Firestore error", err, { userId: user.uid });
         // Firestoreエラーでもログインは続行
       }
 
-      if (userProfile) {
-        // ユーザーデータをローカルストレージに保存（サニタイズ）
-        const userData = {
-          id: user.uid,
-          username: (
-            userProfile.name ||
-            user.displayName ||
-            "ユーザー"
-          ).substring(0, 50),
-          email: user.email,
-        };
+      // ユーザーデータをローカルストレージに保存（サニタイズ）
+      const userData = {
+        id: user.uid,
+        username: (
+          userProfile?.name ||
+          user.displayName ||
+          "ユーザー"
+        ).substring(0, 50),
+        name: userProfile?.name || user.displayName || "ユーザー",
+        email: user.email,
+        joinedAt: userProfile?.joinedAt || new Date().toISOString(),
+        streak: userProfile?.streak || {
+          currentStreak: 0,
+          longestStreak: 0,
+          lastStudyDate: "",
+          studyDates: [],
+        },
+        progress: userProfile?.progress || {
+          totalQuestions: 0,
+          correctAnswers: 0,
+          studyTimeMinutes: 0,
+          categoryProgress: {},
+        },
+        learningRecords: userProfile?.learningRecords || [],
+      };
 
-        try {
-          localStorage.setItem("takken_user", JSON.stringify(userData));
-        } catch (storageError) {
-          console.error("LocalStorage error:", storageError);
-          // ローカルストレージエラーでもログインは続行
-        }
-
-        // ホームページへ遷移
-        router.push("/");
-      } else {
-        // 初回ログインの場合もホームページへ
-        router.push("/");
+      try {
+        localStorage.setItem("takken_user", JSON.stringify(userData));
+        logger.info("Firebase login successful, user data saved", {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+        });
+      } catch (storageError) {
+        const err = storageError instanceof Error ? storageError : new Error(String(storageError));
+        logger.error("LocalStorage error", err, { userId: user.uid });
+        // ローカルストレージエラーでもログインは続行
       }
-    } catch (firebaseError: any) {
-      console.error("Firebase login error:", firebaseError);
+
+      // ダッシュボードへ遷移
+      logger.debug("Redirecting to dashboard");
+      router.push("/dashboard");
+    } catch (firebaseError: unknown) {
+      const err = firebaseError instanceof Error ? firebaseError : new Error(String(firebaseError));
+      const errorObj = err as { code?: string; message?: string };
+      logger.error("Firebase login error", err);
 
       // Firebaseが利用できない場合は、ローカルストレージのみで動作
       if (
-        firebaseError.code === "auth/configuration-not-found" ||
-        firebaseError.code === "auth/network-request-failed" ||
-        firebaseError.message?.includes("Firebase configuration")
+        errorObj.code === "auth/configuration-not-found" ||
+        errorObj.code === "auth/network-request-failed" ||
+        errorObj.message?.includes("Firebase configuration")
       ) {
         try {
           await handleLocalStorageLogin();
           return;
         } catch (localStorageError) {
-          console.error("LocalStorage fallback error:", localStorageError);
+          const localStorageErr = localStorageError instanceof Error ? localStorageError : new Error(String(localStorageError));
+          logger.error("LocalStorage fallback error", localStorageErr);
         }
       }
 
       // Firebase固有のエラーハンドリング
       let errorMessage = "ログインに失敗しました";
 
-      switch (firebaseError.code) {
+      switch (errorObj.code) {
         case "auth/user-not-found":
           errorMessage = "このメールアドレスのアカウントが見つかりません";
           break;
@@ -164,8 +183,8 @@ export default function Login() {
           errorMessage = "認証情報が無効です";
           break;
         default:
-          if (firebaseError.message) {
-            errorMessage = `エラー: ${firebaseError.message}`;
+          if (errorObj.message) {
+            errorMessage = `エラー: ${errorObj.message}`;
           }
       }
 
@@ -192,10 +211,31 @@ export default function Login() {
         const userData = {
           id: foundUser.id,
           username: (foundUser.username || "ユーザー").substring(0, 50),
+          name: foundUser.username || "ユーザー",
           email: foundUser.email,
+          joinedAt: new Date().toISOString(),
+          streak: {
+            currentStreak: 0,
+            longestStreak: 0,
+            lastStudyDate: "",
+            studyDates: [],
+          },
+          progress: {
+            totalQuestions: 0,
+            correctAnswers: 0,
+            studyTimeMinutes: 0,
+            categoryProgress: {},
+          },
+          learningRecords: [],
         };
         localStorage.setItem("takken_user", JSON.stringify(userData));
-        router.push("/");
+        logger.info("LocalStorage login successful", {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+        });
+        logger.debug("Redirecting to dashboard");
+        router.push("/dashboard");
       } else {
         // 新規ユーザーを作成
         const newUser = {
@@ -203,7 +243,34 @@ export default function Login() {
           username: "ユーザー",
           email: formData.email.trim(),
         };
-        localStorage.setItem("takken_user", JSON.stringify(newUser));
+
+        const userData = {
+          id: newUser.id,
+          username: newUser.username,
+          name: newUser.username,
+          email: newUser.email,
+          joinedAt: new Date().toISOString(),
+          streak: {
+            currentStreak: 0,
+            longestStreak: 0,
+            lastStudyDate: "",
+            studyDates: [],
+          },
+          progress: {
+            totalQuestions: 0,
+            correctAnswers: 0,
+            studyTimeMinutes: 0,
+            categoryProgress: {},
+          },
+          learningRecords: [],
+        };
+
+        localStorage.setItem("takken_user", JSON.stringify(userData));
+        logger.info("New user created and saved", {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+        });
 
         // ユーザーを保存
         existingUsers.push({
@@ -214,10 +281,12 @@ export default function Login() {
         });
         localStorage.setItem("takken_users", JSON.stringify(existingUsers));
 
-        router.push("/");
+        logger.debug("Redirecting to dashboard");
+        router.push("/dashboard");
       }
     } catch (error) {
-      console.error("LocalStorage login error:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("LocalStorage login error", err);
       throw new Error("ローカルストレージ認証に失敗しました");
     }
   };
@@ -246,29 +315,29 @@ export default function Login() {
 
       const provider = new GoogleAuthProvider();
       // モバイル（Capacitor/Cordova/Chrome Custom Tabs 等）では redirect のみ安定
-      const { signInWithRedirect } = await import(
-        "firebase/auth"
-      );
+      const { signInWithRedirect } = await import("firebase/auth");
       await signInWithRedirect(auth as any, provider);
       // この後は再ロードされるため、続きの処理はリダイレクト結果側で行う
       return;
-    } catch (error: any) {
-      console.error("Google login error:", error);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorObj = err as { code?: string; message?: string };
+      logger.error("Google login error", err);
       let errorMessage = "Googleログインに失敗しました";
 
-      if (error.code === "auth/popup-closed-by-user") {
+      if (errorObj.code === "auth/popup-closed-by-user") {
         errorMessage = "ログインがキャンセルされました";
-      } else if (error.code === "auth/popup-blocked") {
+      } else if (errorObj.code === "auth/popup-blocked") {
         errorMessage =
           "ポップアップがブロックされました。ポップアップを許可してください。";
-      } else if (error.code === "auth/configuration-not-found") {
+      } else if (errorObj.code === "auth/configuration-not-found") {
         errorMessage =
           "Firebaseの設定に問題があります。開発者にお問い合わせください。";
-      } else if (error.code === "auth/network-request-failed") {
+      } else if (errorObj.code === "auth/network-request-failed") {
         errorMessage =
           "ネットワークエラーが発生しました。インターネット接続を確認してください。";
-      } else if (error.message) {
-        errorMessage = `エラー: ${error.message}`;
+      } else if (errorObj.message) {
+        errorMessage = `エラー: ${errorObj.message}`;
       }
 
       setErrors({ general: errorMessage });
@@ -294,21 +363,32 @@ export default function Login() {
         if (!result) return;
         const user = result.user;
         const userProfile = await firestoreService.getUserProfile(user.uid);
-        if (userProfile) {
-          const userData = {
-            id: user.uid,
-            username: (
-              userProfile.name ||
-              user.displayName ||
-              "ユーザー"
-            ).substring(0, 50),
-            email: user.email,
-          } as any;
-          localStorage.setItem("takken_user", JSON.stringify(userData));
-          router.push("/");
-        } else {
-          router.push("/");
-        }
+        const userData = {
+          id: user.uid,
+          username: (
+            userProfile?.name ||
+            user.displayName ||
+            "ユーザー"
+          ).substring(0, 50),
+          name: userProfile?.name || user.displayName || "ユーザー",
+          email: user.email,
+          joinedAt: userProfile?.joinedAt || new Date().toISOString(),
+          streak: userProfile?.streak || {
+            currentStreak: 0,
+            longestStreak: 0,
+            lastStudyDate: "",
+            studyDates: [],
+          },
+          progress: userProfile?.progress || {
+            totalQuestions: 0,
+            correctAnswers: 0,
+            studyTimeMinutes: 0,
+            categoryProgress: {},
+          },
+          learningRecords: userProfile?.learningRecords || [],
+        };
+        localStorage.setItem("takken_user", JSON.stringify(userData));
+        router.push("/dashboard");
       } catch (e) {
         // 無視（未リダイレクト時を含む）
       }
@@ -359,8 +439,8 @@ export default function Login() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
+                    onChange={e =>
+                      setFormData(prev => ({
                         ...prev,
                         email: e.target.value,
                       }))
@@ -378,8 +458,8 @@ export default function Login() {
                   <input
                     type="password"
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
+                    onChange={e =>
+                      setFormData(prev => ({
                         ...prev,
                         password: e.target.value,
                       }))

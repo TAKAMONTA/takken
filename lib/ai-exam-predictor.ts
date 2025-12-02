@@ -1,5 +1,6 @@
 // AI駆動の出題予測システム
 import { aiClient } from './ai-client';
+import { logger } from './logger';
 
 export interface ExamTrend {
   year: number;
@@ -169,7 +170,8 @@ JSON形式で返してください：
       return result.predictions || [];
 
     } catch (error) {
-      console.error('出題予測エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('出題予測エラー', err);
       return this.generateDefaultPredictions();
     }
   }
@@ -226,7 +228,8 @@ ${legalChanges.join('\n')}
       return JSON.parse(response.content);
 
     } catch (error) {
-      console.error('法改正影響分析エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('法改正影響分析エラー', err);
       return {
         impactedCategories: [],
         newTopics: [],
@@ -294,7 +297,11 @@ JSON形式で返してください：
       return JSON.parse(response.content);
 
     } catch (error) {
-      console.error('個人化予測エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('個人化予測エラー', err, { 
+        weaknessCount: userWeaknesses.length,
+        strengthCount: userStrengths.length 
+      });
       return {
         priorityAreas: userWeaknesses.slice(0, 3),
         timeAllocation: {},
@@ -353,7 +360,8 @@ JSON形式で返してください：
       return JSON.parse(response.content);
 
     } catch (error) {
-      console.error('直前期戦略生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('直前期戦略生成エラー', err, { daysUntilExam });
       return {
         dailyPlan: {},
         focusAreas: ['宅建業法', '権利関係'],
@@ -396,7 +404,8 @@ ${JSON.stringify(trendData, null, 2)}
       return response.content;
 
     } catch (error) {
-      console.error('傾向分析生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('傾向分析生成エラー', err);
       return '過去の傾向を基に、バランスの取れた学習を推奨します。';
     }
   }
@@ -439,7 +448,8 @@ JSON形式で返してください：
       return result.strategies || [];
 
     } catch (error) {
-      console.error('学習戦略生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('学習戦略生成エラー', err, { predictions });
       return [
         '高確率分野を重点的に学習する',
         'バランスの取れた学習を心がける',
@@ -518,7 +528,8 @@ JSON形式で返してください：
       return JSON.parse(response.content);
 
     } catch (error) {
-      console.error('予測精度評価エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('予測精度評価エラー', err);
       return {
         accuracy: 0.5,
         categoryAccuracy: {},
@@ -574,7 +585,8 @@ JSON形式で返してください：
       return result.questions || [];
 
     } catch (error) {
-      console.error('緊急対策問題生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('緊急対策問題生成エラー', err, { weakAreas });
       return [];
     }
   }

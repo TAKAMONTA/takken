@@ -1,6 +1,7 @@
 // AI駆動のパーソナライズド問題生成システム
 import { aiClient } from './ai-client';
 import { WeaknessAnalysis } from './ai-analytics';
+import { logger } from './logger';
 
 export interface GeneratedQuestion {
   id: string;
@@ -67,7 +68,8 @@ export class AIQuestionGeneratorService {
         );
         questions.push(...generatedQuestions);
       } catch (error) {
-        console.error(`弱点 ${weakness.category} の問題生成エラー:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(`弱点 ${weakness.category} の問題生成エラー`, err, { category: weakness.category });
       }
     }
 
@@ -121,7 +123,8 @@ export class AIQuestionGeneratorService {
       }));
 
     } catch (error) {
-      console.error('AI問題生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('AI問題生成エラー', err, { weakness });
       return [];
     }
   }
@@ -185,7 +188,8 @@ ${selectedCategory}分野の宅建試験問題を${count}問生成してくだ�
       }));
 
     } catch (error) {
-      console.error('一般問題生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('一般問題生成エラー', err, { category: selectedCategory, count });
       return [];
     }
   }
@@ -264,7 +268,8 @@ JSON形式で返してください：
       }));
 
     } catch (error) {
-      console.error('概念強化問題生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('概念強化問題生成エラー', err, { concepts, userLevel });
       return [];
     }
   }
@@ -330,7 +335,8 @@ JSON形式で返してください：
         
         questions.push(question);
       } catch (error) {
-        console.error(`段階的問題生成エラー (ステップ ${i + 1}):`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(`段階的問題生成エラー (ステップ ${i + 1})`, err, { step: i + 1, topic, difficulty: currentDifficulty });
       }
     }
 
@@ -427,7 +433,8 @@ JSON形式で返してください：
 
       return JSON.parse(response.content);
     } catch (error) {
-      console.error('問題品質評価エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('問題品質評価エラー', err, { questionId: question.id });
       return {
         score: 3,
         feedback: ['標準的な問題です'],
@@ -492,7 +499,8 @@ ${improvements.join('\n')}
       };
 
     } catch (error) {
-      console.error('問題改善エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('問題改善エラー', err, { questionId: question.id });
       return question; // 改善に失敗した場合は元の問題を返す
     }
   }
@@ -558,7 +566,8 @@ JSON形式で返してください：
       }));
 
     } catch (error) {
-      console.error('類似問題生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('類似問題生成エラー', err, { baseQuestionId: baseQuestion.id });
       return [];
     }
   }

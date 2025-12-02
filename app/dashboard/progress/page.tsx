@@ -1,21 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import {
   LearningProgressTracker,
   ProgressMetrics,
   PersonalityCorrelation,
 } from "@/lib/learning-progress-tracker";
 import ProgressAnalytics from "@/components/ProgressAnalytics";
+import { logger } from "@/lib/logger";
 
 export default function ProgressPage() {
   const [progressMetrics, setProgressMetrics] =
     useState<ProgressMetrics | null>(null);
-  const [correlations, setCorrelations] = useState<PersonalityCorrelation[]>(
+  const [correlations] = useState<PersonalityCorrelation[]>(
     []
   );
-  const [improvementSuggestions, setImprovementSuggestions] = useState<
+  const [improvementSuggestions] = useState<
     string[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,12 +26,13 @@ export default function ProgressPage() {
   }, []);
 
   const loadProgressData = async () => {
+    let userId: string | undefined;
     try {
       setIsLoading(true);
       setError(null);
 
       // 仮のユーザーID（実際の実装では認証システムから取得）
-      const userId = "user_" + Date.now();
+      userId = "user_" + Date.now();
 
       // 進捗メトリクスを取得
       const metrics = await LearningProgressTracker.getProgressMetrics(userId);
@@ -40,7 +41,8 @@ export default function ProgressPage() {
       // 性格診断機能は削除されました
       // 今後、学習履歴のみに基づく分析機能を実装予定
     } catch (error) {
-      console.error("進捗データの読み込みに失敗しました:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("進捗データの読み込みに失敗しました", err, { userId });
       setError("進捗データの読み込みに失敗しました");
     } finally {
       setIsLoading(false);

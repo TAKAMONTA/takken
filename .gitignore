@@ -103,6 +103,11 @@ jspm_packages/
 tmp/
 temp/
 
+# Debug files and directories
+debug-*.json
+debug-ai-response.json
+tmp/debug/
+
 # PWA files
 sw.js
 workbox-*.js
@@ -141,3 +146,7 @@ extracted_answers.txt
 
 # Local development
 .local/
+
+# Debug files
+debug-*.json
+debug-ai-response.json

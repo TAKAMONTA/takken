@@ -6,6 +6,7 @@ import {
   LearningProgressTracker,
   LearningSession,
 } from "@/lib/learning-progress-tracker";
+import { logger } from "@/lib/logger";
 
 interface LearningSessionRecorderProps {
   userId: string;
@@ -70,7 +71,12 @@ export default function LearningSessionRecorder({
       const sessionId = await LearningProgressTracker.recordLearningSession(
         session
       );
-      console.log("学習セッションが記録されました:", sessionId);
+      logger.info("学習セッションが記録されました", {
+        sessionId,
+        userId,
+        category,
+        strategyId,
+      });
 
       if (onSessionComplete) {
         onSessionComplete(sessionId);
@@ -80,7 +86,12 @@ export default function LearningSessionRecorder({
       setIsRecording(false);
       setStartTime(null);
     } catch (error) {
-      console.error("学習セッションの記録に失敗しました:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("学習セッションの記録に失敗しました", err, {
+        userId,
+        category,
+        strategyId,
+      });
     }
   };
 

@@ -1,6 +1,33 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // 認証状態をチェック
+    const checkAuthStatus = () => {
+      try {
+        const userData = localStorage.getItem("takken_user");
+        if (userData) {
+          // ログイン済みの場合はダッシュボードにリダイレクト
+          router.push("/dashboard");
+        }
+      } catch (error) {
+        // localStorage が利用できない場合は無視
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.debug("LocalStorage not available", { 
+          error: err.message 
+        });
+      }
+    };
+
+    checkAuthStatus();
+  }, [router]);
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -242,10 +269,10 @@ export default function Home() {
             <p className="text-xs text-muted-foreground">
               お問い合わせ:{" "}
               <a
-                href="mailto:support@takkenroad.app"
+                href="mailto:admin@takaapps.com"
                 className="text-purple-600 hover:underline"
               >
-                support@takkenroad.app
+                admin@takaapps.com
               </a>
             </p>
             <p className="text-xs text-muted-foreground">

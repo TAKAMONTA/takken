@@ -46,18 +46,25 @@ export default function LegalPage() {
           <div className="space-y-6 text-sm text-gray-700">
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                サービス提供者
+                販売事業者名
               </h2>
-              <p>スマートフォンアプリ・Webアプリケーション開発事業者</p>
+              <p>TakaApps</p>
             </section>
 
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                事業者住所
+                運営統括責任者
+              </h2>
+              <p>該当なし</p>
+            </section>
+
+            <section>
+              <h2 className="text-base font-semibold mb-2 text-gray-900">
+                所在地
               </h2>
               <div className="space-y-1">
                 <p>〒900-0015</p>
-                <p>沖縄県那覇市久茂地3丁目26-32 YSCビル202</p>
+                <p>沖縄県那覇市久茂地3丁目26-32 YSCビル 202</p>
                 <p className="text-xs text-gray-600 mt-2">
                   ※バーチャルオフィス契約による連絡先
                 </p>
@@ -73,6 +80,16 @@ export default function LegalPage() {
                   </p>
                 </div>
               </div>
+            </section>
+
+            <section>
+              <h2 className="text-base font-semibold mb-2 text-gray-900">
+                電話番号
+              </h2>
+              <p>該当なし</p>
+              <p className="text-xs text-gray-600 mt-1">
+                ※お問い合わせはメールアドレス（admin@takaapps.com）にて承っております。
+              </p>
             </section>
 
             <section>
@@ -95,12 +112,12 @@ export default function LegalPage() {
               </h2>
               <p>
                 <a
-                  href="https://takkenroad.app"
+                  href="https://takken-study.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-purple-600 hover:underline"
                 >
-                  https://takkenroad.app
+                  https://takken-study.com
                 </a>
               </p>
             </section>
@@ -299,7 +316,7 @@ export default function LegalPage() {
 
             <div className="pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                最終更新日: 2025年10月11日
+                最終更新日: 2025年1月15日
               </p>
             </div>
           </div>

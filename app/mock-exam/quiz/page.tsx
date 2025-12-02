@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getMockExamQuestions } from "@/lib/data/mock-exam-questions";
+import { logger } from "@/lib/logger";
 // 植物機能は削除
 
 function MockExamQuizContent() {
@@ -194,7 +195,7 @@ function MockExamQuizContent() {
     localStorage.setItem("takken_user", JSON.stringify(updatedUser));
     // 植物状態の保存は不要
 
-    console.log("模擬試験学習履歴を保存しました:", {
+    logger.debug("模擬試験学習履歴を保存しました", {
       questionsAnswered: questions.length,
       correctAnswers: correctCount,
       studyTimeMinutes: studyTimeMinutes,

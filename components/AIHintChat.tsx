@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/ai-client";
 import { aiClient } from "@/lib/ai-client";
+import { logger } from "@/lib/logger";
 
 interface AIHintChatProps {
   question: string;
@@ -86,6 +87,10 @@ export default function AIHintChat({
       }
       // 401などはフォールバックへ
     } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      logger.warn("API Route failed, falling back to direct client", {
+        errorMessage: err.message,
+      });
       // フォールバックへ
     }
 
@@ -99,9 +104,14 @@ export default function AIHintChat({
         ...prev,
         { role: "assistant", content: response.content },
       ]);
-    } catch (e: any) {
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      logger.error("AI chat failed", err, {
+        questionLength: question.length,
+        messagesCount: newMessages.length,
+      });
       setError(
-        e?.message?.includes("API key")
+        err.message.includes("API key")
           ? "AIの設定が未完了です。開発ではAPI RouteかFirebase Functionsの設定が必要です。"
           : "AI応答の取得に失敗しました。しばらくしてから再試行してください。"
       );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { aiClient } from "@/lib/ai-client";
+import { logger } from "@/lib/logger";
 
 export default function TestAIPage() {
   const [message, setMessage] = useState("");
@@ -30,9 +31,10 @@ export default function TestAIPage() {
       ]);
 
       setResponse(result.content);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました");
-      console.error("AI Test Error:", err);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error.message || "エラーが発生しました");
+      logger.error("AI Test Error", error);
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function TestAIPage() {
         {
           totalQuestions: 50,
           correctAnswers: 35,
-          categories: {
+          categoryProgress: {
             宅建業法: { correct: 15, total: 20 },
             民法等: { correct: 10, total: 15 },
             法令上の制限: { correct: 5, total: 10 },
@@ -59,9 +61,10 @@ export default function TestAIPage() {
       );
 
       setResponse(result);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました");
-      console.error("AI Test Error:", err);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error.message || "エラーが発生しました");
+      logger.error("AI Test Error", error);
     } finally {
       setLoading(false);
     }
@@ -80,9 +83,10 @@ export default function TestAIPage() {
       );
 
       setResponse(result);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました");
-      console.error("AI Test Error:", err);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error.message || "エラーが発生しました");
+      logger.error("AI Test Error", error);
     } finally {
       setLoading(false);
     }
@@ -97,9 +101,10 @@ export default function TestAIPage() {
       const result = await aiClient.generateMotivationalMessage(7, 75);
 
       setResponse(result);
-    } catch (err: any) {
-      setError(err.message || "エラーが発生しました");
-      console.error("AI Test Error:", err);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error.message || "エラーが発生しました");
+      logger.error("AI Test Error", error);
     } finally {
       setLoading(false);
     }
@@ -117,7 +122,7 @@ export default function TestAIPage() {
           <div className="space-y-4">
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={e => setMessage(e.target.value)}
               placeholder="宅建試験について質問してください..."
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}

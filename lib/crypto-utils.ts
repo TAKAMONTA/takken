@@ -1,4 +1,5 @@
 import CryptoJS from "crypto-js";
+import { logger } from "./logger";
 
 /**
  * 暗号化キーを取得する（環境変数から）
@@ -112,7 +113,8 @@ export function verifyPassword(
     const hash = hashPassword(password);
     return hash === hashedPassword;
   } catch (error) {
-    console.error("Password verification error:", error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error("Password verification error", err);
     return false;
   }
 }

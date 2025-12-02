@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -67,15 +68,16 @@ export default function PWAInstallPrompt() {
       const { outcome } = await deferredPrompt.userChoice;
 
       if (outcome === "accepted") {
-        console.log("User accepted the install prompt");
+        logger.info("User accepted the install prompt", { outcome });
       } else {
-        console.log("User dismissed the install prompt");
+        logger.debug("User dismissed the install prompt", { outcome });
       }
 
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
     } catch (error) {
-      console.error("Error during installation:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error during installation", err);
     }
   };
 

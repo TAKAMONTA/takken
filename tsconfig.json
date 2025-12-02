@@ -48,10 +48,17 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts"],
+  "exclude": [
+    "node_modules",
+    "lib/data/scripts/**/*",
+    "scripts/**/*"
+  ],
   "ts-node": {
     "compilerOptions": {
-      "module": "commonjs"
-    }
+      "module": "commonjs",
+      "lib": ["es2020"]
+    },
+    "files": true,
+    "transpileOnly": true
   }
 }

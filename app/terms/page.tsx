@@ -187,8 +187,34 @@ export default function TermsPage() {
               </p>
             </section>
 
+            <section className="pt-4 border-t border-gray-200">
+              <h2 className="text-base font-semibold mb-2 text-gray-900">
+                関連ページ
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/legal"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  特定商取引法に基づく表記
+                </Link>
+                <Link
+                  href="/privacy"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  プライバシーポリシー
+                </Link>
+                <Link
+                  href="/support"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  サポート
+                </Link>
+              </div>
+            </section>
+
             <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500">最終更新日: 2025年1月9日</p>
+              <p className="text-xs text-gray-500">最終更新日: 2025年1月15日</p>
             </div>
           </div>
         </div>

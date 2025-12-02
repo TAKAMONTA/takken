@@ -27,20 +27,41 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 /**
- * メタデータから機密情報を除外する
+ * メタデータから機密情報を除外する（強化版）
  */
 function sanitizeMetadata(metadata?: LogMetadata): LogMetadata {
   if (!metadata) return {};
 
   const sanitized: LogMetadata = {};
-  const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'key'];
+  const sensitiveKeys = [
+    'password', 'token', 'apiKey', 'secret', 'key', 
+    'auth', 'authorization', 'apikey', 'api_key',
+    'firebase_api_key', 'openai_api_key', 'anthropic_api_key',
+    'google_ai_api_key', 'encryption_key'
+  ];
+
+  // APIキーのパターンマッチング
+  const apiKeyPatterns = [
+    /^sk-[a-zA-Z0-9]{20,}$/i, // OpenAI API key format
+    /^sk-ant-[a-zA-Z0-9-]+$/i, // Anthropic API key format
+    /^AIza[a-zA-Z0-9_-]{35}$/i, // Google AI API key format
+    /^[a-zA-Z0-9_-]{32,}$/i, // General API key format
+  ];
 
   for (const [key, value] of Object.entries(metadata)) {
     const lowerKey = key.toLowerCase();
-    const isSensitive = sensitiveKeys.some(sensitive => lowerKey.includes(sensitive));
+    const isSensitiveKey = sensitiveKeys.some(sensitive => lowerKey.includes(sensitive));
 
-    if (isSensitive) {
+    if (isSensitiveKey) {
       sanitized[key] = '***REDACTED***';
+    } else if (typeof value === 'string') {
+      // 値がAPIキーのパターンに一致するかチェック
+      const isApiKeyValue = apiKeyPatterns.some(pattern => pattern.test(value));
+      if (isApiKeyValue) {
+        sanitized[key] = '***REDACTED***';
+      } else {
+        sanitized[key] = value;
+      }
     } else {
       sanitized[key] = value;
     }
@@ -65,11 +86,63 @@ function formatLog(level: LogLevel, message: string, metadata?: LogMetadata): st
 
 /**
  * 本番環境でログを外部サービスに送信する
- * （将来的にSentry, LogRocket, Datadogなどに送信可能）
+ * Firebase Analyticsを使用してログイベントを記録
  */
-function sendToLoggingService(level: LogLevel, message: string, metadata?: LogMetadata): void {
-  // TODO: 本番環境でのログサービス統合
-  // 例: Sentry.captureMessage(message, { level, extra: metadata });
+async function sendToLoggingService(
+  level: LogLevel,
+  message: string,
+  metadata?: LogMetadata
+): Promise<void> {
+  // クライアントサイドでのみ実行
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  // 本番環境でのみFirebase Analyticsに送信
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      // 動的インポートでFirebase Analyticsを読み込み
+      const { logEvent } = await import('firebase/analytics');
+      const { initializeFirebase } = await import('./firebase-client');
+      
+      // initializeFirebaseはPromiseまたはオブジェクトを返す可能性がある
+      const firebaseInitResult = initializeFirebase();
+      const firebaseInstance = firebaseInitResult instanceof Promise
+        ? await firebaseInitResult
+        : firebaseInitResult;
+      
+      const { analytics } = firebaseInstance;
+      
+      if (analytics) {
+        // Firebase Analyticsのイベント名としてログレベルを含める
+        const eventName = `log_${level}`;
+        
+        // メタデータを整理（機密情報は既に除外済み）
+        const eventParams: Record<string, string | number> = {
+          message: message ? message.substring(0, 100) : '', // 長いメッセージは切り詰め
+          timestamp: Date.now(),
+        };
+
+        // メタデータを追加（Firebase Analyticsの制限に合わせて）
+        if (metadata) {
+          Object.entries(metadata).forEach(([key, value]) => {
+            // Firebase Analyticsは文字列値のみをサポート
+            const stringValue = value !== undefined && value !== null
+              ? (typeof value === 'object' 
+                  ? JSON.stringify(value).substring(0, 100)
+                  : String(value).substring(0, 100))
+              : '';
+            eventParams[key] = stringValue;
+          });
+        }
+
+        logEvent(analytics, eventName, eventParams);
+      }
+    } catch (error) {
+      // ログ送信の失敗は静かに処理（無限ループを防ぐ）
+      console.warn('Failed to send log to Firebase Analytics:', error);
+    }
+  }
 }
 
 /**
@@ -96,7 +169,10 @@ export const logger = {
     if (process.env.NODE_ENV === 'development') {
       console.log(formatLog('info', message, metadata));
     } else {
-      sendToLoggingService('info', message, metadata);
+      // 非同期で送信（エラーは無視）
+      sendToLoggingService('info', message, metadata).catch(() => {
+        // エラーは静かに無視
+      });
     }
   },
 
@@ -112,7 +188,10 @@ export const logger = {
       console.warn(formatted);
     } else {
       console.warn(formatted); // 本番環境でも警告は出力
-      sendToLoggingService('warn', message, metadata);
+      // 非同期で送信（エラーは静かに無視）
+      sendToLoggingService('warn', message, metadata).catch(() => {
+        // エラーは静かに無視
+      });
     }
   },
 
@@ -136,7 +215,10 @@ export const logger = {
     console.error(formatted);
 
     if (process.env.NODE_ENV === 'production') {
-      sendToLoggingService('error', message, errorMetadata);
+      // 非同期で送信（エラーは静かに無視）
+      sendToLoggingService('error', message, errorMetadata).catch(() => {
+        // エラーは静かに無視
+      });
     }
   },
 

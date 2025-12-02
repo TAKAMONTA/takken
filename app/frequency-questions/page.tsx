@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { UserProfile } from "@/lib/types";
 import {
   frequencyData,
   FrequencyCategory,
@@ -28,10 +26,7 @@ interface TabItem {
 }
 
 export default function FrequencyQuestions() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(frequencyData[0].id);
+  const [activeTab, setActiveTab] = useState(frequencyData[0]?.id || "");
 
   // タブデータをメモ化
   const tabs = useMemo((): TabItem[] => {
@@ -63,51 +58,6 @@ export default function FrequencyQuestions() {
     },
     [handleTabChange]
   );
-
-  useEffect(() => {
-    // 認証チェック（テスト用に一時的に無効化）
-    // const savedUser = localStorage.getItem('takken_rpg_user');
-    // if (savedUser) {
-    //   const userData = JSON.parse(savedUser);
-    //   setUser(userData);
-    // } else {
-    //   router.push('/');
-    //   return;
-    // }
-
-    // テスト用のダミーユーザー
-    setUser({
-      id: "test-user",
-      name: "テストユーザー",
-      email: "test@example.com",
-      streak: {
-        currentStreak: 0,
-        longestStreak: 0,
-        lastStudyDate: "",
-        studyDates: [],
-      },
-      progress: {
-        totalQuestions: 0,
-        correctAnswers: 0,
-        studyTimeMinutes: 0,
-        categoryProgress: {},
-      },
-      learningRecords: [],
-      joinedAt: new Date().toISOString(),
-    });
-    setLoading(false);
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <div className="text-lg font-medium text-gray-600">読み込み中...</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <ErrorBoundary>

@@ -8,6 +8,10 @@ export async function importQuestionsToFirestore(
   questions: Question[],
   category: string
 ): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore is not initialized');
+  }
+
   try {
     console.log(`${category}カテゴリの問題データをインポート中...`);
     
@@ -59,6 +63,10 @@ export async function importAllQuestions(): Promise<void> {
 
 // 既存の問題データを削除する関数（再インポート時に使用）
 export async function clearExistingQuestions(): Promise<void> {
+  if (!db) {
+    throw new Error('Firestore is not initialized');
+  }
+
   try {
     console.log('既存の問題データを削除中...');
     
@@ -85,6 +93,10 @@ export async function getQuestionStats(): Promise<{
   byCategory: Record<string, number>;
   byDifficulty: Record<string, number>;
 }> {
+  if (!db) {
+    throw new Error('Firestore is not initialized');
+  }
+
   try {
     const questionsRef = collection(db, 'questions');
     const snapshot = await getDocs(questionsRef);

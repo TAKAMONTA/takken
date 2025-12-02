@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { aiAnalyticsService, AnswerPattern } from '@/lib/ai-analytics';
+import { logger } from '@/lib/logger';
 
 interface AIRealTimeFeedbackProps {
   currentQuestion: any;
@@ -62,7 +63,12 @@ export default function AIRealTimeFeedback({
         onFeedbackReceived(feedbackData);
       }
     } catch (error) {
-      console.error('リアルタイムフィードバック生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('リアルタイムフィードバック生成エラー', err, {
+        questionId: currentQuestion?.id,
+        userAnswer,
+        timeSpent,
+      });
       // フォールバックフィードバック
       setFeedback({
         encouragement: '解答お疲れ様でした！継続的な学習が大切です。',
@@ -192,7 +198,9 @@ export default function AIRealTimeFeedback({
             <button
               onClick={() => {
                 // 類似問題の提案などの追加アクション
-                console.log('類似問題を提案');
+                logger.debug('類似問題を提案', {
+                  questionId: currentQuestion?.id,
+                });
               }}
               className="text-xs bg-white bg-opacity-50 hover:bg-opacity-75 px-3 py-1.5 rounded-md transition-colors"
             >

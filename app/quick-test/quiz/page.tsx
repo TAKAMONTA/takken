@@ -10,6 +10,7 @@ import { Question } from "@/lib/types/quiz";
 import { learningAnalytics } from "@/lib/analytics";
 import ExplanationDisplay from "@/components/ExplanationDisplay";
 import QuestionDisplay from "@/components/QuestionDisplay";
+import { logger } from "@/lib/logger";
 
 function QuickTestQuizContent() {
   const router = useRouter();
@@ -45,9 +46,9 @@ function QuickTestQuizContent() {
         const quickTestQuestions = await getQuickTestQuestions(5);
 
         if (quickTestQuestions.length === 0) {
-          console.warn(
-            "No questions available for quick test category:",
-            categoryParam
+          logger.warn(
+            "No questions available for quick test category",
+            { category: categoryParam }
           );
           router.push("/dashboard");
           return;
@@ -57,7 +58,8 @@ function QuickTestQuizContent() {
         setTimeLeft(quickTestQuestions.length * 60); // クイックテストは1問1分
         setStartTime(new Date());
       } catch (error) {
-        console.error("Error loading quick test questions:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Error loading quick test questions", err, { category: categoryParam });
         router.push("/dashboard");
       }
     };
@@ -168,7 +170,8 @@ function QuickTestQuizContent() {
         xpEarned: xpEarned,
       });
     } catch (error) {
-      console.error("Analytics session save failed:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Analytics session save failed", err, { userId: user?.id });
     }
   };
 

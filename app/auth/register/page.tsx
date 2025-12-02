@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { logger } from "@/lib/logger";
 
 export default function Register() {
   const router = useRouter();
@@ -128,30 +129,33 @@ export default function Register() {
 
       // ダッシュボードに遷移
       router.push("/dashboard");
-    } catch (error: any) {
-      console.error("Registration error:", error);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorObj = err as { code?: string; message?: string };
+      logger.error("Registration error", err);
 
       // Firebaseが利用できない場合は、ローカルストレージのみで動作
       if (
-        error.code === "auth/configuration-not-found" ||
-        error.code === "auth/network-request-failed" ||
-        error.message?.includes("Firebase configuration")
+        errorObj.code === "auth/configuration-not-found" ||
+        errorObj.code === "auth/network-request-failed" ||
+        errorObj.message?.includes("Firebase configuration")
       ) {
         try {
           await handleLocalStorageRegistration();
           return;
         } catch (localStorageError) {
-          console.error("LocalStorage registration error:", localStorageError);
+          const localStorageErr = localStorageError instanceof Error ? localStorageError : new Error(String(localStorageError));
+          logger.error("LocalStorage registration error", localStorageErr);
         }
       }
 
       let errorMessage = "登録に失敗しました";
 
-      if (error.code === "auth/email-already-in-use") {
+      if (errorObj.code === "auth/email-already-in-use") {
         errorMessage = "このメールアドレスは既に使用されています";
-      } else if (error.code === "auth/weak-password") {
+      } else if (errorObj.code === "auth/weak-password") {
         errorMessage = "パスワードが弱すぎます";
-      } else if (error.code === "auth/invalid-email") {
+      } else if (errorObj.code === "auth/invalid-email") {
         errorMessage = "無効なメールアドレスです";
       }
 
@@ -200,7 +204,8 @@ export default function Register() {
       // ダッシュボードに遷移
       router.push("/dashboard");
     } catch (error) {
-      console.error("LocalStorage registration error:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("LocalStorage registration error", err);
       throw error;
     }
   };
@@ -364,7 +369,7 @@ export default function Register() {
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-background border-t border-border py-2">
         <div className="text-center">
-          <p className="text-xs text-muted-foreground">takkenroad.app</p>
+          <p className="text-xs text-muted-foreground">takken-study.com</p>
         </div>
       </footer>
     </div>

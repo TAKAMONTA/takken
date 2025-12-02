@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { learningAnalytics } from '@/lib/analytics';
+import { logger } from '@/lib/logger';
 
 const menuItems = [
   { id: 'progress', title: '学習進捗', description: '分野別の進捗を確認', icon: 'ri-line-chart-line', link: '/stats/progress' },
@@ -29,7 +30,8 @@ export default function Stats() {
         const analytics = learningAnalytics.getAnalyticsSummary(userData.id);
         setStudyStats(analytics);
       } catch (error) {
-        console.error('Failed to load analytics:', error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Failed to load analytics', err, { userId: userData.id });
         // フォールバック: ユーザーデータから直接統計を計算
         const totalStats = userData.totalStats || { totalQuestions: 0, totalCorrect: 0, totalStudyTime: 0 };
         const categoryStats = userData.categoryStats || {};

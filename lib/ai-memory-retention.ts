@@ -1,5 +1,6 @@
 // AI駆動の記憶定着アルゴリズム
 import { aiClient } from './ai-client';
+import { logger } from './logger';
 
 export interface MemoryItem {
   id: string;
@@ -172,7 +173,8 @@ ${JSON.stringify(retentionAnalysis, null, 2)}
       };
 
     } catch (error) {
-      console.error('復習最適化エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('復習最適化エラー', err, { userId });
       return {
         recommendedItems: dueItems.slice(0, 10),
         optimalTiming: '朝の時間帯',
@@ -289,7 +291,8 @@ ${JSON.stringify(similarItems.map(item => ({
       return result.forgettingCurve || this.getDefaultForgettingCurve();
 
     } catch (error) {
-      console.error('忘却曲線予測エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('忘却曲線予測エラー', err, { concept });
       return this.getDefaultForgettingCurve();
     }
   }
@@ -341,7 +344,10 @@ JSON形式で返してください：
       return result.tips || ['定期的な復習を心がけてください'];
 
     } catch (error) {
-      console.error('学習効率アドバイス生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('学習効率アドバイス生成エラー', err, { 
+        memoryItemCount: memoryData.length 
+      });
       return [
         '定期的な復習を心がけてください',
         '間隔を空けて復習することで記憶が定着します',
@@ -473,7 +479,10 @@ JSON形式で返してください：
       return result.recommendations || [];
 
     } catch (error) {
-      console.error('記憶定着推奨事項生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('記憶定着推奨事項生成エラー', err, { 
+        overallRetention: overallRetention.toFixed(2) 
+      });
       return [
         '定期的な間隔復習を実践してください',
         '理解度の低い分野を重点的に復習してください',
@@ -577,7 +586,11 @@ JSON形式で返してください：
       return result.recommendations || [];
 
     } catch (error) {
-      console.error('セッション推奨事項生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('セッション推奨事項生成エラー', err, { 
+        sessionId: session.id,
+        itemCount: results.length 
+      });
       return ['継続的な復習を心がけてください'];
     }
   }

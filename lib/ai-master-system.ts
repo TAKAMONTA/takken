@@ -5,6 +5,7 @@ import { aiVoiceAssistant, VoiceInteraction } from './ai-voice-assistant';
 import { aiMemoryRetention, MemoryItem, ReviewSession } from './ai-memory-retention';
 import { aiExamPredictor, ExamPrediction, PredictionResult } from './ai-exam-predictor';
 import { aiClient } from './ai-client';
+import { logger } from './logger';
 
 export interface AISystemStatus {
   analytics: boolean;
@@ -102,7 +103,8 @@ export class AIMasterSystemService {
       };
 
     } catch (error) {
-      console.error('包括的分析エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('包括的分析エラー', err, { userId });
       throw new Error('AI分析システムでエラーが発生しました');
     }
   }
@@ -158,7 +160,7 @@ export class AIMasterSystemService {
       try {
         await aiVoiceAssistant.speak('適応型学習セッションを開始します。頑張りましょう！');
       } catch (error) {
-        console.log('音声機能は利用できませんが、セッションを続行します');
+              logger.warn('音声機能は利用できませんが、セッションを続行します');
       }
     }
 
@@ -264,7 +266,11 @@ JSON形式で返してください：
       return result.recommendations || [];
 
     } catch (error) {
-      console.error('統合推奨事項生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('統合推奨事項生成エラー', err, { 
+        weaknessCount: weaknesses.length,
+        insightCount: insights.length 
+      });
       return [
         '弱点分野を重点的に学習してください',
         '定期的な復習を心がけてください',
@@ -317,7 +323,10 @@ JSON形式で返してください：
       return result.actionPlan || [];
 
     } catch (error) {
-      console.error('アクションプラン生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('アクションプラン生成エラー', err, { 
+        weaknessCount: weaknesses.length 
+      });
       return [
         '今日: 弱点分野の基礎問題を5問解く',
         '明日: 昨日の復習と新しい分野の学習',
@@ -376,7 +385,10 @@ JSON形式で返してください：
       return result.insights || [];
 
     } catch (error) {
-      console.error('セッション洞察生成エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('セッション洞察生成エラー', err, { 
+        sessionId: session.id 
+      });
       return ['セッションお疲れ様でした！継続的な学習が重要です。'];
     }
   }
@@ -418,7 +430,8 @@ JSON形式で返してください：
       health.overallHealth = services.filter(Boolean).length / services.length;
 
     } catch (error) {
-      console.error('システム健全性チェックエラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('システム健全性チェックエラー', err);
       health.overallHealth = 0.5;
     }
 
@@ -508,7 +521,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('学習パス最適化エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('学習パス最適化エラー', err, { userId });
       return {
         optimizedPath: ['基礎固め', '応用問題', '模試練習', '弱点克服', '最終確認'],
         timeAllocation: {},
@@ -585,7 +599,8 @@ JSON形式で返してください：
       };
 
     } catch (error) {
-      console.error('ダッシュボードデータ生成エラー:', error);
+            const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('ダッシュボードデータ生成エラー', err, { userId });
       return {
         todayRecommendations: ['今日の学習を開始しましょう'],
         urgentActions: [],

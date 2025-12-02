@@ -1,4 +1,5 @@
 import { subscriptionService } from './subscription-service';
+import { logger } from './logger';
 
 export interface FeatureLimit {
   canUse: boolean;
@@ -44,7 +45,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check AI usage:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check AI usage', err, { userId });
       return {
         canUse: false,
         remaining: 0,
@@ -84,7 +86,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check past questions access:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check past questions access', err, { userId, questionYear });
       return {
         canUse: false,
         message: '問題へのアクセス権限を確認できませんでした。'
@@ -100,7 +103,8 @@ export class FeatureLimits {
       const hasPremium = await subscriptionService.hasPremiumAccess(userId);
       return !hasPremium; // プレミアムユーザーは広告非表示
     } catch (error) {
-      console.error('Failed to check ad display:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check ad display', err, { userId });
       return true; // エラーの場合は広告表示
     }
   }
@@ -124,7 +128,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check push notification access:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check push notification access', err, { userId });
       return {
         canUse: false,
         message: 'プッシュ通知機能の利用権限を確認できませんでした。'
@@ -151,7 +156,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check offline download access:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check offline download access', err, { userId });
       return {
         canUse: false,
         message: 'オフライン機能の利用権限を確認できませんでした。'
@@ -178,7 +184,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check analytics access:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check analytics access', err, { userId });
       return {
         canUse: false,
         message: '学習分析機能の利用権限を確認できませんでした。'
@@ -205,7 +212,8 @@ export class FeatureLimits {
         };
       }
     } catch (error) {
-      console.error('Failed to check AI question generation access:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check AI question generation access', err, { userId });
       return {
         canUse: false,
         message: 'AI問題生成機能の利用権限を確認できませんでした。'
@@ -247,7 +255,8 @@ export class FeatureLimits {
           return false;
       }
     } catch (error) {
-      console.error(`Failed to use feature ${featureType}:`, error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Failed to use feature ${featureType}`, err, { userId, featureType });
       return false;
     }
   }

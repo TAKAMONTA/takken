@@ -228,10 +228,10 @@ export default function SupportPage() {
             <div className="flex items-center space-x-3">
               <i className="ri-mail-line text-xl text-purple-600"></i>
               <a
-                href="mailto:support@takkenroad.app"
+                href="mailto:admin@takaapps.com"
                 className="text-sm text-purple-600 hover:underline"
               >
-                support@takkenroad.app
+                admin@takaapps.com
               </a>
             </div>
           </div>

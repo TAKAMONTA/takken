@@ -1,5 +1,6 @@
 import { firestoreService } from './firestore-service';
 import InAppPurchase, { Product, Transaction, Subscription } from '../src/plugins/InAppPurchase';
+import { logger } from './logger';
 
 /**
  * iOS In-App Purchase対応のサブスクリプション管理サービス
@@ -63,10 +64,11 @@ export class SubscriptionService {
       const productIds = SubscriptionService.PLANS.map(plan => plan.productId);
       const result = await InAppPurchase.getProducts(productIds);
       return result.products;
-    } catch (error) {
-      console.error('Failed to get products:', error);
-      return [];
-    }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Failed to get products', err);
+        return [];
+      }
   }
 
   /**
@@ -89,7 +91,8 @@ export class SubscriptionService {
       
       return false;
     } catch (error) {
-      console.error('Failed to purchase subscription:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to purchase subscription', err, { userId, planId });
       return false;
     }
   }
@@ -101,10 +104,11 @@ export class SubscriptionService {
     try {
       const subscription = await firestoreService.getUserSubscription(userId);
       return subscription;
-    } catch (error) {
-      console.error('Failed to get user subscription:', error);
-      return null;
-    }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Failed to get user subscription', err, { userId });
+        return null;
+      }
   }
 
   /**
@@ -131,10 +135,11 @@ export class SubscriptionService {
       }
 
       return true;
-    } catch (error) {
-      console.error('Failed to check premium access:', error);
-      return false;
-    }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Failed to check premium access', err, { userId });
+        return false;
+      }
   }
 
   /**
@@ -158,7 +163,8 @@ export class SubscriptionService {
         remaining
       };
     } catch (error) {
-      console.error('Failed to check AI usage limit:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to check AI usage limit', err, { userId });
       return { canUse: false, remaining: 0 };
     }
   }
@@ -170,7 +176,8 @@ export class SubscriptionService {
     try {
       await firestoreService.incrementAIUsageCount(userId, new Date());
     } catch (error) {
-      console.error('Failed to record AI usage:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to record AI usage', err, { userId });
     }
   }
 
@@ -194,7 +201,8 @@ export class SubscriptionService {
       
       return false;
     } catch (error) {
-      console.error('Failed to restore purchases:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to restore purchases', err, { userId });
       return false;
     }
   }
@@ -234,12 +242,16 @@ export class SubscriptionService {
   async setupPurchaseListener(): Promise<void> {
     try {
       await InAppPurchase.addPurchaseListener((transaction) => {
-        console.log('Purchase completed:', transaction);
+        logger.info('Purchase completed', { 
+          transactionId: transaction.transactionId,
+          productId: transaction.productId,
+        });
         // 必要に応じてUIを更新
       });
-    } catch (error) {
-      console.error('Failed to setup purchase listener:', error);
-    }
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Failed to setup purchase listener', err);
+      }
   }
 }
 

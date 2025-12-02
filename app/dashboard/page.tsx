@@ -13,6 +13,9 @@ import {
   StudyReminderManager,
 } from "@/lib/push-notifications";
 import AdSense from "@/components/AdSense";
+import { logger } from "@/lib/logger";
+import StudyInfoSection from "@/components/StudyInfoSection";
+import { UserProfile } from "@/lib/types";
 
 // シンプルな学習オプション
 const quickActions = [
@@ -34,7 +37,7 @@ const quickActions = [
 
 export default function Dashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   // 植物機能は削除
 
@@ -62,7 +65,8 @@ export default function Dashboard() {
           );
         }
       } catch (error) {
-        console.error("PWA initialization failed:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("PWA initialization failed", err);
       }
     };
 
@@ -73,6 +77,35 @@ export default function Dashboard() {
 
     const initAuth = async () => {
       try {
+        // まずローカルストレージからユーザー情報を確認
+        const localUserData = localStorage.getItem("takken_user");
+        logger.debug("Dashboard Auth Debug", {
+          environment: process.env.NODE_ENV,
+          hasLocalUserData: !!localUserData,
+          localUserData: localUserData ? "exists" : "null",
+          currentUrl:
+            typeof window !== "undefined" ? window.location.href : "server",
+        });
+
+        if (localUserData) {
+          try {
+            const userData = JSON.parse(localUserData);
+            logger.debug("Local user data found", {
+              id: userData.id,
+              name: userData.name,
+              email: userData.email,
+            });
+            setUser(userData);
+            setLoading(false);
+            return;
+          } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error("Error parsing local user data", err);
+            localStorage.removeItem("takken_user");
+          }
+        }
+
+        // Firebase認証も試行
         const { onAuthStateChanged } = await import("firebase/auth");
         const { initializeFirebase } = await import(
           "../../lib/firebase-client"
@@ -82,21 +115,36 @@ export default function Dashboard() {
         );
         const { auth } = initializeFirebase();
 
-        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+          logger.debug("Firebase Auth State Changed", {
+            hasFirebaseUser: !!firebaseUser,
+            firebaseUserUid: firebaseUser?.uid,
+            firebaseUserEmail: firebaseUser?.email,
+          });
+
           if (firebaseUser) {
             try {
               // Firestoreからユーザープロファイルを取得
               const userProfile = await firestoreService.getUserProfile(
                 firebaseUser.uid
               );
+              logger.debug("Firestore Profile", {
+                hasProfile: !!userProfile,
+                profileName: userProfile?.name,
+                userId: firebaseUser.uid,
+              });
+
               if (userProfile) {
                 setUser(userProfile);
 
-                // 植物機能は削除。ユーザーのみ保存
+                // ローカルストレージにも保存
                 localStorage.setItem(
                   "takken_user",
                   JSON.stringify(userProfile)
                 );
+                logger.debug("Firebase user profile saved to localStorage", {
+                  userId: firebaseUser.uid,
+                });
               } else {
                 // プロファイルが存在しない場合は初期データを作成
                 const initialUserData = {
@@ -122,25 +170,77 @@ export default function Dashboard() {
                   firebaseUser.uid,
                   initialUserData
                 );
-                setUser(initialUserData as any);
+                setUser(initialUserData as UserProfile);
                 localStorage.setItem(
                   "takken_user",
                   JSON.stringify(initialUserData)
                 );
+                logger.info("Initial user data created and saved", {
+                  userId: firebaseUser.uid,
+                });
               }
             } catch (error) {
-              console.error("Error loading user profile:", error);
+              const err = error instanceof Error ? error : new Error(String(error));
+              logger.error("Error loading user profile", err, { userId: firebaseUser?.uid });
+              // Firebaseエラーの場合はローカルストレージ認証にフォールバック
+              const localUserData = localStorage.getItem("takken_user");
+              if (localUserData) {
+                try {
+                  const userData = JSON.parse(localUserData);
+                  setUser(userData);
+                  setLoading(false);
+                  logger.debug("Fallback to local user data", { userId: userData.id });
+                  return;
+                } catch (parseError) {
+                  const parseErr = parseError instanceof Error ? parseError : new Error(String(parseError));
+                  logger.error("Error parsing local user data", parseErr);
+                }
+              }
+              logger.debug("Redirecting to login page due to Firebase error");
               router.push("/auth/login");
               return;
             }
           } else {
-            router.push("/");
+            // Firebase認証されていない場合、ローカルストレージを再確認
+            logger.debug("Firebase user not found, checking localStorage again");
+            const localUserData = localStorage.getItem("takken_user");
+            if (localUserData) {
+              try {
+                const userData = JSON.parse(localUserData);
+                setUser(userData);
+                setLoading(false);
+                logger.debug("Using localStorage user data", { userId: userData.id });
+                return;
+              } catch (error) {
+                const err = error instanceof Error ? error : new Error(String(error));
+                logger.error("Error parsing local user data", err);
+                localStorage.removeItem("takken_user");
+              }
+            }
+            // どちらの認証も失敗した場合はログインページへ
+            logger.debug("No authentication found, redirecting to login");
+            router.push("/auth/login");
             return;
           }
           setLoading(false);
         });
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Error initializing auth", err);
+        // Firebase初期化エラーの場合はローカルストレージ認証にフォールバック
+        const localUserData = localStorage.getItem("takken_user");
+        if (localUserData) {
+          try {
+            const userData = JSON.parse(localUserData);
+            setUser(userData);
+            setLoading(false);
+            return;
+          } catch (parseError) {
+            const parseErr = parseError instanceof Error ? parseError : new Error(String(parseError));
+            logger.error("Error parsing local user data", parseErr);
+            localStorage.removeItem("takken_user");
+          }
+        }
         router.push("/auth/login");
         setLoading(false);
       }
@@ -165,16 +265,16 @@ export default function Dashboard() {
 
   // AI先生用のユーザーコンテキスト（植物機能削除に伴い簡略化）
   const userContext: UserContext = {
-    name: user.username,
+    name: user.name,
     streak: user.streak?.currentStreak || 0,
     petLevel: 0,
     petType: "none",
     petStage: 0,
     petXP: 0,
-    recentPerformance: user.stats?.recentPerformance || undefined,
-    weakAreas: user.stats?.weakAreas || undefined,
-    lastStudyDate: user.lastStudyDate || undefined,
-    totalStudyDays: user.stats?.totalStudyDays || 0,
+    recentPerformance: undefined, // UserProfileには stats がないため undefined
+    weakAreas: undefined, // UserProfileには stats がないため undefined
+    lastStudyDate: user.streak?.lastStudyDate || undefined,
+    totalStudyDays: user.streak?.studyDates?.length || 0,
   };
 
   return (
@@ -209,6 +309,89 @@ export default function Dashboard() {
             userContext={userContext}
             className="bg-white rounded-lg border border-gray-200"
           />
+        </section>
+
+        {/* 学習進捗セクション */}
+        <section className="mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="text-green-600 text-2xl mr-3">📈</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">学習進捗</h3>
+                  <p className="text-sm text-gray-600">今日の学習状況を確認</p>
+                </div>
+              </div>
+              <Link href="/stats/progress">
+                <div className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <p className="text-2xl font-bold text-green-600">
+                  {userContext.streak}
+                </p>
+                <p className="text-sm text-gray-600">連続学習日数</p>
+              </div>
+              <div className="text-center p-3 bg-gray-50 rounded">
+                <p className="text-2xl font-bold text-blue-600">0</p>
+                <p className="text-sm text-gray-600">今日の問題数</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 苦手分野セクション */}
+        <section className="mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <div className="text-orange-600 text-2xl mr-3">🎯</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">苦手分野</h3>
+                  <p className="text-sm text-gray-600">
+                    重点的に学習すべき分野
+                  </p>
+                </div>
+              </div>
+              <Link href="/weak-points">
+                <div className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </Link>
+            </div>
+            <div className="text-center p-3 bg-orange-50 rounded">
+              <p className="text-sm text-orange-700">
+                苦手分野を特定するには、まず問題を解いてみましょう
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Study Menu */}
@@ -253,11 +436,16 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* AdSense Advertisement */}
+        {/* Study Information Section */}
         <section className="mb-6">
+          <StudyInfoSection user={user} />
+        </section>
+
+        {/* AdSense Advertisement (Optional - can be removed or moved) */}
+        {/* <section className="mb-6">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600 mb-3 text-center">
-              💡 宅建試験の学習に役立つ情報
+              💡 広告
             </p>
             <AdSense
               adSlot="1234567890"
@@ -265,14 +453,17 @@ export default function Dashboard() {
               className="rounded-lg"
             />
           </div>
-        </section>
+        </section> */}
 
         {/* 植物の進捗UIは削除 */}
 
         {/* Footer with Legal Links */}
         <footer className="mt-8 pt-6 border-t border-gray-200">
           <div className="text-center space-y-2">
-            <div className="flex justify-center space-x-4 text-xs text-gray-500">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
+              <Link href="/legal" className="hover:text-gray-700">
+                特定商取引法に基づく表記
+              </Link>
               <Link href="/privacy" className="hover:text-gray-700">
                 プライバシーポリシー
               </Link>

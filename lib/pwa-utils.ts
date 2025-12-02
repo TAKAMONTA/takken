@@ -1,4 +1,5 @@
 // PWA and Push Notification utilities
+import { logger } from './logger';
 
 export interface PWAInstallPrompt {
   prompt: () => Promise<void>;
@@ -54,7 +55,7 @@ class PWAManager {
         });
 
         this.swRegistration = registration;
-        console.log("Service Worker registered successfully:", registration);
+        logger.info("Service Worker registered successfully", { scope: registration.scope });
 
         // Listen for updates
         registration.addEventListener("updatefound", () => {
@@ -74,7 +75,8 @@ class PWAManager {
 
         return registration;
       } catch (error) {
-        console.error("Service Worker registration failed:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Service Worker registration failed", err);
         return null;
       }
     }
@@ -85,12 +87,12 @@ class PWAManager {
   private setupInstallPrompt() {
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
-      this.deferredPrompt = e as any;
-      console.log("Install prompt ready");
+      this.deferredPrompt = e as unknown as PWAInstallPrompt;
+      logger.debug("Install prompt ready");
     });
 
     window.addEventListener("appinstalled", () => {
-      console.log("PWA installed successfully");
+      logger.info("PWA installed successfully");
       this.deferredPrompt = null;
     });
   }
@@ -111,14 +113,15 @@ class PWAManager {
       const choiceResult = await this.deferredPrompt.userChoice;
 
       if (choiceResult.outcome === "accepted") {
-        console.log("User accepted the install prompt");
+        logger.info("User accepted the install prompt");
         return true;
       } else {
-        console.log("User dismissed the install prompt");
+        logger.debug("User dismissed the install prompt");
         return false;
       }
     } catch (error) {
-      console.error("Error showing install prompt:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error showing install prompt", err);
       return false;
     } finally {
       this.deferredPrompt = null;
@@ -129,14 +132,14 @@ class PWAManager {
   isInstalled(): boolean {
     return (
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true
+      (window.navigator as { standalone?: boolean }).standalone === true
     );
   }
 
   // Setup push notifications
   async setupPushNotifications(): Promise<void> {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      console.log("Push notifications not supported");
+      logger.debug("Push notifications not supported");
       return;
     }
 
@@ -168,13 +171,13 @@ class PWAManager {
   // Subscribe to push notifications
   async subscribeToPush(): Promise<PushSubscription | null> {
     if (!this.swRegistration) {
-      console.error("Service Worker not registered");
+      logger.warn("Service Worker not registered");
       return null;
     }
 
     const permission = await this.requestNotificationPermission();
     if (!permission.granted) {
-      console.log("Notification permission denied");
+      logger.debug("Notification permission denied");
       return null;
     }
 
@@ -182,7 +185,7 @@ class PWAManager {
       // Get VAPID public key from environment or server
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidPublicKey) {
-        console.error("VAPID public key not configured");
+        logger.warn("VAPID public key not configured");
         return null;
       }
 
@@ -193,14 +196,15 @@ class PWAManager {
         ) as BufferSource,
       });
 
-      console.log("Push subscription successful:", subscription);
+      logger.info("Push subscription successful", { endpoint: subscription.endpoint });
 
       // Send subscription to server
       await this.sendSubscriptionToServer(subscription);
 
       return subscription;
     } catch (error) {
-      console.error("Failed to subscribe to push notifications:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to subscribe to push notifications", err);
       return null;
     }
   }
@@ -216,12 +220,13 @@ class PWAManager {
         await this.swRegistration.pushManager.getSubscription();
       if (subscription) {
         await subscription.unsubscribe();
-        console.log("Unsubscribed from push notifications");
+        logger.info("Unsubscribed from push notifications");
         return true;
       }
       return false;
     } catch (error) {
-      console.error("Failed to unsubscribe from push notifications:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to unsubscribe from push notifications", err);
       return false;
     }
   }
@@ -235,7 +240,8 @@ class PWAManager {
     try {
       return await this.swRegistration.pushManager.getSubscription();
     } catch (error) {
-      console.error("Failed to get push subscription:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to get push subscription", err);
       return null;
     }
   }
@@ -247,10 +253,21 @@ class PWAManager {
       return;
     }
 
+    // Validate time parameter
+    if (!time || typeof time !== "string") {
+      logger.warn("Invalid time parameter for study reminder", { time });
+      return;
+    }
+
     // Calculate delay until reminder time
     const now = new Date();
     const reminderTime = new Date();
-    const [hours, minutes] = time.split(":").map(Number);
+    const timeParts = time.split(":");
+    if (timeParts.length !== 2) {
+      logger.warn("Invalid time format for study reminder", { time });
+      return;
+    }
+    const [hours, minutes] = timeParts.map(Number);
     reminderTime.setHours(hours, minutes, 0, 0);
 
     if (reminderTime <= now) {
@@ -333,7 +350,8 @@ class PWAManager {
         }),
       });
     } catch (error) {
-      console.error("Failed to send subscription to server:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to send subscription to server", err);
     }
   }
 
@@ -346,7 +364,8 @@ class PWAManager {
         return user.id;
       }
     } catch (error) {
-      console.error("Failed to get user ID:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to get user ID", err);
     }
     return null;
   }
@@ -368,11 +387,23 @@ class PWAManager {
   }
 }
 
-// Export singleton instance
-export const pwaManager = new PWAManager();
+// Export singleton instance (only in browser)
+export const pwaManager = typeof window !== 'undefined' ? new PWAManager() : null as any;
 
 // Hook for React components
 export const usePWA = () => {
+  if (typeof window === 'undefined' || !pwaManager) {
+    return {
+      canInstall: () => false,
+      install: () => Promise.resolve(false),
+      isInstalled: () => false,
+      subscribeToPush: () => Promise.resolve(null),
+      unsubscribeFromPush: () => Promise.resolve(false),
+      scheduleReminder: (time: string) => Promise.resolve(),
+      showNotification: (title: string, body: string, url?: string) => Promise.resolve(),
+    };
+  }
+  
   return {
     canInstall: () => pwaManager.canInstall(),
     install: () => pwaManager.showInstallPrompt(),

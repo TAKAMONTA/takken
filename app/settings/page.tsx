@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export default function SettingsPage() {
           setLoading(false);
         });
       } catch (error) {
-        console.error("Firebase initialization error:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Firebase initialization error", err);
         setLoading(false);
       }
     };
@@ -65,7 +67,8 @@ export default function SettingsPage() {
       await signOut(auth);
       router.push("/");
     } catch (error) {
-      console.error("ログアウトエラー:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("ログアウトエラー", err);
     }
   };
 

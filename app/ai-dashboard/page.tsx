@@ -6,6 +6,7 @@ import { aiMasterSystem, ComprehensiveAnalysis, AISystemStatus } from '@/lib/ai-
 import { aiMemoryRetention } from '@/lib/ai-memory-retention';
 import { aiVoiceAssistant } from '@/lib/ai-voice-assistant';
 import AIEnhancementDashboard from '@/components/AIEnhancementDashboard';
+import { logger } from '@/lib/logger';
 
 export default function AIDashboardPage() {
   const [analysis, setAnalysis] = useState<ComprehensiveAnalysis | null>(null);
@@ -41,7 +42,8 @@ export default function AIDashboardPage() {
       setAnalysis(sampleAnalysis);
 
     } catch (error) {
-      console.error('ダッシュボード初期化エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('ダッシュボード初期化エラー', err);
     } finally {
       setIsLoading(false);
     }
@@ -51,9 +53,10 @@ export default function AIDashboardPage() {
     try {
       await aiVoiceAssistant.speak('AI音声アシスタントです。何かご質問はありますか？');
       const interaction = await aiVoiceAssistant.startVoiceSession();
-      console.log('音声セッション完了:', interaction);
+      logger.debug('音声セッション完了', { interactionId: interaction.id });
     } catch (error) {
-      console.error('音声セッションエラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('音声セッションエラー', err);
       alert('音声機能でエラーが発生しました。ブラウザの音声機能を確認してください。');
     }
   };
@@ -66,10 +69,11 @@ export default function AIDashboardPage() {
       });
       
       // 実際の実装では、生成された問題でクイズページに遷移
-      console.log('適応型セッション開始:', session);
+      logger.debug('適応型セッション開始', { sessionId: session.id });
       alert(`${session.generatedQuestions.length}問のパーソナライズド問題を生成しました！`);
     } catch (error) {
-      console.error('適応型セッションエラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('適応型セッションエラー', err);
       alert('セッション開始でエラーが発生しました。');
     }
   };

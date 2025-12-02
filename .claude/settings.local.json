@@ -1,24 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)",
-      "Bash(cmd /c \"rmdir /s /q .next\")",
-      "Bash(npx cap sync:*)",
-      "Read(/C:\\Users\\tnaka\\takken\\android/**)",
-      "Bash(cmd /c \"cd android && gradlew assembleRelease\")",
-      "Bash(cmd /c:*)",
-      "Bash(powershell:*)",
-      "Bash(dir:*)",
-      "Read(/C:\\Users\\tnaka\\takken\\android/**)",
-      "Read(/C:\\Users\\tnaka\\takken\\android\\app/**)",
-      "Bash(npm install dompurify)",
-      "Bash(npm install:*)",
-      "Bash(npx tsc:*)",
-      "Bash(gh pr list:*)",
-      "Bash(npm run test:*)",
-      "Bash(npm outdated:*)",
-      "Bash(git add:*)",
-      "Bash(git reset:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(node -e:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase hosting:sites:list:*)",
+      "Bash(gh pr list:*)"
     ],
     "deny": [],
     "ask": []

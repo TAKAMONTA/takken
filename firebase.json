@@ -10,6 +10,23 @@
     ],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          }
+        ]
+      },
+      {
         "source": "/service-worker.js",
         "headers": [
           {
@@ -39,16 +56,24 @@
     ]
   },
 
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20",
+    "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+  },
+
   "emulators": {
     "auth": {
       "port": 9099
     },
-
     "firestore": {
       "port": 8080
     },
     "hosting": {
       "port": 5000
+    },
+    "functions": {
+      "port": 5001
     },
     "ui": {
       "enabled": true

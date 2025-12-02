@@ -1,4 +1,6 @@
 // プッシュ通知機能
+import { logger } from './logger';
+
 export class PushNotificationManager {
   private static instance: PushNotificationManager;
   private registration: ServiceWorkerRegistration | null = null;
@@ -12,7 +14,7 @@ export class PushNotificationManager {
 
   async initialize(): Promise<boolean> {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      console.log("Push notifications are not supported");
+      logger.debug("Push notifications are not supported");
       return false;
     }
 
@@ -20,7 +22,8 @@ export class PushNotificationManager {
       this.registration = await navigator.serviceWorker.ready;
       return true;
     } catch (error) {
-      console.error("Failed to initialize push notifications:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to initialize push notifications", err);
       return false;
     }
   }
@@ -52,7 +55,8 @@ export class PushNotificationManager {
 
       return subscription;
     } catch (error) {
-      console.error("Failed to subscribe to push notifications:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to subscribe to push notifications", err);
       return null;
     }
   }
@@ -73,7 +77,10 @@ export class PushNotificationManager {
     }
 
     // バックグラウンド同期でリマインダーを登録
-    await (this.registration as any).sync.register("study-reminder");
+    const syncManager = (this.registration as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } }).sync;
+    if (syncManager) {
+      await syncManager.register("study-reminder");
+    }
 
     // ローカルストレージにリマインダー設定を保存
     localStorage.setItem(
@@ -113,7 +120,8 @@ export class PushNotificationManager {
         body: JSON.stringify(subscription),
       });
     } catch (error) {
-      console.error("Failed to send subscription to server:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to send subscription to server", err);
     }
   }
 }
@@ -142,7 +150,8 @@ export class StudyReminderManager {
       await pushManager.scheduleStudyReminder(hour, minute);
       return true;
     } catch (error) {
-      console.error("Failed to setup study reminder:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to setup study reminder", err, { hour, minute });
       return false;
     }
   }

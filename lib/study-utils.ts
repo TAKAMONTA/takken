@@ -5,6 +5,7 @@ import {
   UserProfile,
 } from "./types";
 import { Question } from "./types/quiz";
+import { logger } from "./logger";
 import {
   FrequencyDataset,
   getFrequencyCount,
@@ -38,7 +39,12 @@ export function updateStudyStreak(
   currentStreak: StudyStreak,
   studyDate: string
 ): StudyStreak {
-  const today = new Date().toISOString().split("T")[0];
+  // ビルド時の実行を避けるため、防御的チェックを追加
+  const todayISO = new Date().toISOString();
+  if (!todayISO || typeof todayISO !== 'string') {
+    return currentStreak;
+  }
+  const today = todayISO.split("T")[0];
   const lastStudyDate = currentStreak.lastStudyDate;
 
   if (lastStudyDate === today) {
@@ -48,7 +54,11 @@ export function updateStudyStreak(
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  const yesterdayISO = yesterday.toISOString();
+  if (!yesterdayISO || typeof yesterdayISO !== 'string') {
+    return currentStreak;
+  }
+  const yesterdayStr = yesterdayISO.split("T")[0];
 
   let newCurrentStreak = currentStreak.currentStreak;
   let newLongestStreak = currentStreak.longestStreak;
@@ -159,9 +169,10 @@ export async function saveStudyData(
     };
 
     localStorage.setItem("takken_user", JSON.stringify(updatedUserData));
-  } catch (error) {
-    console.error("学習データの保存に失敗しました:", error);
-  }
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("学習データの保存に失敗しました", err);
+    }
 }
 
 // 頻出問題の取得

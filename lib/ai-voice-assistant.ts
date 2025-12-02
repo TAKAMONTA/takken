@@ -1,5 +1,6 @@
 // AI音声アシスタント機能
 import { aiClient } from './ai-client';
+import { logger } from './logger';
 
 export interface VoiceConfig {
   language: string;
@@ -64,16 +65,17 @@ export class AIVoiceAssistantService {
 
     this.recognition.onstart = () => {
       this.isListening = true;
-      console.log('音声認識開始');
+      logger.debug('音声認識開始');
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
-      console.log('音声認識終了');
+      logger.debug('音声認識終了');
     };
 
     this.recognition.onerror = (event: any) => {
-      console.error('音声認識エラー:', event.error);
+      const error = event.error instanceof Error ? event.error : new Error(String(event.error));
+      logger.error('音声認識エラー', error, { errorCode: event.error });
       this.isListening = false;
     };
   }
@@ -95,7 +97,7 @@ export class AIVoiceAssistantService {
         const transcript = event.results[0][0].transcript;
         const confidence = event.results[0][0].confidence;
         
-        console.log('認識結果:', transcript, '信頼度:', confidence);
+        logger.debug('認識結果', { transcript, confidence });
         resolve(transcript);
       };
 
@@ -179,7 +181,8 @@ export class AIVoiceAssistantService {
       return interaction;
 
     } catch (error) {
-      console.error('音声セッションエラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('音声セッションエラー', err);
       throw error;
     }
   }
@@ -212,7 +215,8 @@ export class AIVoiceAssistantService {
 
       return response.content;
     } catch (error) {
-      console.error('音声クエリ処理エラー:', error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('音声クエリ処理エラー', err, { userInput });
       return 'すみません、うまく聞き取れませんでした。もう一度お話しください。';
     }
   }
@@ -283,7 +287,8 @@ export class AIVoiceAssistantService {
         }
 
       } catch (error) {
-        console.error(`問題 ${i + 1} の音声セッションエラー:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(`問題 ${i + 1} の音声セッションエラー`, err, { questionIndex: i + 1 });
         await this.speak('申し訳ありません。次の問題に進みます。');
       }
     }

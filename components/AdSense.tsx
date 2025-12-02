@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 interface AdSenseProps {
   adSlot: string;
@@ -22,7 +23,8 @@ export default function AdSense({
         {}
       );
     } catch (error) {
-      console.error("AdSense error:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("AdSense error", err, { adSlot });
     }
   }, []);
 

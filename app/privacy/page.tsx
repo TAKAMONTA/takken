@@ -149,7 +149,15 @@ export default function PrivacyPage() {
               </p>
               <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                 <p className="font-medium">宅建合格ロード サポート</p>
-                <p>Email: admin@takaapps.com</p>
+                <p>
+                  Email:{" "}
+                  <a
+                    href="mailto:admin@takaapps.com"
+                    className="text-purple-600 hover:underline"
+                  >
+                    admin@takaapps.com
+                  </a>
+                </p>
                 <p className="text-xs text-gray-600 mt-2">
                   住所: 〒900-0015 沖縄県那覇市久茂地3丁目26-32 YSCビル202
                   <br />
@@ -158,8 +166,34 @@ export default function PrivacyPage() {
               </div>
             </section>
 
+            <section className="pt-4 border-t border-gray-200">
+              <h2 className="text-base font-semibold mb-2 text-gray-900">
+                関連ページ
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/legal"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  特定商取引法に基づく表記
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  利用規約
+                </Link>
+                <Link
+                  href="/support"
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  サポート
+                </Link>
+              </div>
+            </section>
+
             <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500">最終更新日: 2025年1月9日</p>
+              <p className="text-xs text-gray-500">最終更新日: 2025年1月15日</p>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
   AITeacherMessage,
   UserContext,
 } from "@/lib/ai-teacher-messages";
+import { logger } from "@/lib/logger";
 
 interface AITeacherProps {
   userContext: UserContext;
@@ -38,7 +39,10 @@ export default function AITeacher({
           setShowTeacher(true);
         }, 500);
       } catch (error) {
-        console.error("Failed to generate AI teacher message:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error("Failed to generate AI teacher message", err, {
+          userContext: userContext.name || "unknown",
+        });
         // フォールバックメッセージ
         setMessage({
           type: "greeting",
@@ -67,8 +71,6 @@ export default function AITeacher({
         return "bg-green-50 border-green-200";
       case "advice":
         return "bg-yellow-50 border-yellow-200";
-      case "garden":
-        return "bg-green-50 border-green-200";
       case "reminder":
         return "bg-orange-50 border-orange-200";
       default:
@@ -84,8 +86,6 @@ export default function AITeacher({
         return "💪";
       case "advice":
         return "💡";
-      case "garden":
-        return "🌱";
       case "reminder":
         return "⏰";
       default:
@@ -180,10 +180,6 @@ export default function AITeacher({
                 <span>学習状況:</span>
                 <span className="font-medium">{userContext.streak}日連続</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>精霊レベル:</span>
-                <span className="font-medium">Lv.{userContext.petLevel}</span>
-              </div>
             </div>
 
             {/* 追加アクション */}
@@ -191,11 +187,6 @@ export default function AITeacher({
               <Link href="/stats">
                 <button className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors">
                   進捗確認
-                </button>
-              </Link>
-              <Link href="/plant-garden">
-                <button className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors">
-                  🌱 庭園
                 </button>
               </Link>
             </div>
