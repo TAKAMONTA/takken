@@ -1,0 +1,8 @@
+# Vercelビルドから除外するファイル・ディレクトリ
+# functionsディレクトリはFirebase Functions用で、Next.jsのビルドには不要
+
+functions/
+functions/**
+*.md
+!README.md
+

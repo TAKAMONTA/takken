@@ -17,6 +17,8 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false, // 型エラーは表示するが、ビルドを継続
+    // functionsディレクトリを型チェックから除外
+    tsconfigPath: './tsconfig.json',
   },
   // ビルド時のエラーメッセージを詳細に表示
   // onDemandEntries は開発サーバー専用の設定
@@ -30,6 +32,7 @@ const nextConfig = {
         tls: false,
       };
     }
+    
     
     // エラーの詳細を表示
     config.stats = {
