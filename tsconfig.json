@@ -51,7 +51,8 @@
   "exclude": [
     "node_modules",
     "lib/data/scripts/**/*",
-    "scripts/**/*"
+    "scripts/**/*",
+    "functions/**/*"
   ],
   "ts-node": {
     "compilerOptions": {
