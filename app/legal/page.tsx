@@ -48,14 +48,7 @@ export default function LegalPage() {
               <h2 className="text-base font-semibold mb-2 text-gray-900">
                 販売事業者名
               </h2>
-              <p>TakaApps</p>
-            </section>
-
-            <section>
-              <h2 className="text-base font-semibold mb-2 text-gray-900">
-                運営統括責任者
-              </h2>
-              <p>該当なし</p>
+              <p>個人事業主 仲井間隆行</p>
             </section>
 
             <section>
@@ -86,9 +79,9 @@ export default function LegalPage() {
               <h2 className="text-base font-semibold mb-2 text-gray-900">
                 電話番号
               </h2>
-              <p>該当なし</p>
+              <p>050-1726-1564</p>
               <p className="text-xs text-gray-600 mt-1">
-                ※お問い合わせはメールアドレス（admin@takaapps.com）にて承っております。
+                ※お問い合わせはメールアドレス（admin@takaapps.com）を優先しております。
               </p>
             </section>
 
@@ -165,7 +158,10 @@ export default function LegalPage() {
               <div className="space-y-2">
                 <p>■ Web版：無料</p>
                 <p>
-                  ■ モバイルアプリ版 プレミアムプラン：月額500円程度（税込）
+                  ■ モバイルアプリ版 プレミアムプラン：月額980円（税込）
+                </p>
+                <p className="text-xs text-gray-600 ml-4">
+                  ■ モバイルアプリ版 プレミアムプラン（年額）：9,800円（税込、2ヶ月分お得）
                 </p>
                 <p className="text-xs text-gray-600 ml-4">
                   ※詳細な価格はApp StoreまたはGoogle Playでご確認ください
@@ -316,7 +312,7 @@ export default function LegalPage() {
 
             <div className="pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                最終更新日: 2025年1月15日
+                最終更新日: 2025年1月27日
               </p>
             </div>
           </div>
