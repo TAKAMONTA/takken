@@ -57,7 +57,7 @@ export default function SubscriptionPage() {
             </h3>
             <p className="text-gray-600 mb-4">基本機能をご利用いただけます</p>
             <div className="text-sm text-gray-500">
-              AI機能: 月5回まで / 広告表示あり
+              AI機能: 月20回まで / 問題演習: 300問まで / 過去問: 直近2年分 / 広告表示あり
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function SubscriptionPage() {
 
           <div className="bg-purple-50 rounded-lg p-4">
             <p className="text-sm text-purple-900 font-medium mb-1">
-              月額 500円程度（税込）
+              月額 980円（税込）
             </p>
             <p className="text-xs text-purple-700">
               ※詳細な価格はApp Store/Google Playでご確認ください

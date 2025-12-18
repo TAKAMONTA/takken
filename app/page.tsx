@@ -200,7 +200,7 @@ export default function Home() {
                     プレミアムプラン（モバイルアプリ版のみ）
                   </p>
                   <p className="text-sm text-gray-600">
-                    iOS/Androidアプリで月額500円程度（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます
+                    iOS/Androidアプリで月額980円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     ※Web版は無料でご利用いただけます
