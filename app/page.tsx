@@ -197,14 +197,18 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 mb-1">
-                    プレミアムプラン（モバイルアプリ版のみ）
+                    プレミアムプラン
                   </p>
-                  <p className="text-sm text-gray-600">
-                    iOS/Androidアプリで月額980円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます
+                  <p className="text-sm text-gray-600 mb-2">
+                    Web版・iOS/Androidアプリで月額980円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    ※Web版は無料でご利用いただけます
-                  </p>
+                  <Link 
+                    href="/subscription/pricing" 
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
+                  >
+                    料金プランを見る
+                    <i className="ri-arrow-right-s-line"></i>
+                  </Link>
                 </div>
               </div>
             </div>

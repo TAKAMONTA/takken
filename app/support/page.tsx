@@ -13,7 +13,7 @@ export default function SupportPage() {
       items: [
         {
           q: "Web版で課金できますか？",
-          a: "Web版は無料でご利用いただけます。プレミアム機能の課金はモバイルアプリ版（iOS/Android）のみで提供しています。App StoreまたはGoogle Playから安全に決済いただけます。",
+          a: "はい、Web版でもStripe経由でプレミアムプランにご登録いただけます。クレジットカードまたはデビットカードで安全に決済いただけます。モバイルアプリ版（iOS/Android）では、App StoreまたはGoogle Playから決済できます。",
         },
         {
           q: "プレミアムプランの料金は？",

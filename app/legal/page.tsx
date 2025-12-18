@@ -33,10 +33,9 @@ export default function LegalPage() {
                 本Webサイトは<strong>無料の学習支援サービス</strong>
                 として提供されています。
                 <br />
-                有料のプレミアム機能は
-                <strong>モバイルアプリ版（iOS/Android）のみ</strong>
-                で提供しており、 決済はApp Store（Apple）およびGoogle
-                Play（Google）を通じて行われます。
+                プレミアムプランは
+                <strong>Web版・モバイルアプリ版（iOS/Android）</strong>
+                でご利用いただけます。Web版はStripe経由、モバイルアプリ版はApp Store（Apple）またはGoogle Play（Google）を通じて決済を行います。
               </p>
             </div>
           </div>
@@ -153,18 +152,18 @@ export default function LegalPage() {
 
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                販売価格（モバイルアプリ版のみ）
+                販売価格
               </h2>
               <div className="space-y-2">
-                <p>■ Web版：無料</p>
+                <p>■ Web版（無料プラン）：無料</p>
                 <p>
-                  ■ モバイルアプリ版 プレミアムプラン：月額980円（税込）
+                  ■ プレミアムプラン（Web版・モバイルアプリ版共通）：月額980円（税込）
                 </p>
                 <p className="text-xs text-gray-600 ml-4">
-                  ■ モバイルアプリ版 プレミアムプラン（年額）：9,800円（税込、2ヶ月分お得）
+                  ■ プレミアムプラン（年額）：9,800円（税込、2ヶ月分お得）
                 </p>
                 <p className="text-xs text-gray-600 ml-4">
-                  ※詳細な価格はApp StoreまたはGoogle Playでご確認ください
+                  ※Web版はStripe経由で決済、モバイルアプリ版はApp Store（iOS）またはGoogle Play（Android）で決済
                 </p>
                 <p className="text-xs text-gray-600 ml-4">
                   ※価格は予告なく変更される場合があります
@@ -186,28 +185,26 @@ export default function LegalPage() {
 
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                支払方法（モバイルアプリ版のみ）
+                支払方法
               </h2>
               <div className="space-y-1">
                 <p>
-                  モバイルアプリ版のサブスクリプション決済は以下を通じて行われます：
+                  プレミアムプランのサブスクリプション決済は以下を通じて行われます：
                 </p>
                 <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li>Web版：Stripe決済システム（クレジットカード、デビットカード）</li>
                   <li>iOS版：App Store（Apple）の決済システム</li>
                   <li>Android版：Google Playの決済システム</li>
                 </ul>
                 <p className="text-xs text-gray-600 mt-2">
                   ※各プラットフォームで利用可能な支払い方法（クレジットカード、デビットカード、キャリア決済等）をご利用いただけます
                 </p>
-                <p className="text-xs text-gray-600">
-                  ※Web版では決済機能は提供しておりません
-                </p>
               </div>
             </section>
 
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                支払時期（モバイルアプリ版のみ）
+                支払時期
               </h2>
               <p>
                 サブスクリプション登録時に初回決済が行われ、以降は自動更新されます。
@@ -229,24 +226,25 @@ export default function LegalPage() {
 
             <section>
               <h2 className="text-base font-semibold mb-2 text-gray-900">
-                返品・キャンセルについて（モバイルアプリ版のみ）
+                返品・キャンセルについて
               </h2>
               <div className="space-y-2">
                 <p className="ml-4">
-                  モバイルアプリ版のサブスクリプションの解約・返金については、
-                  App StoreまたはGoogle Playの返金ポリシーに従います。
+                  プレミアムプランのサブスクリプションの解約・返金については、決済方法により異なります。
                 </p>
 
                 <p className="font-medium mt-3">■ 解約方法</p>
                 <ul className="list-disc list-inside ml-8 space-y-1 text-xs">
+                  <li>Web版：ダッシュボードのサブスクリプション設定から解約</li>
                   <li>iOS：設定 → Apple ID → サブスクリプション</li>
                   <li>Android：Google Play → メニュー → 定期購入</li>
                 </ul>
 
                 <p className="font-medium mt-3">■ 返金について</p>
                 <p className="ml-4 text-xs">
-                  返金を希望される場合は、AppleまたはGoogleのサポートに直接お問い合わせください。
-                  サービス提供者側では返金処理を行うことができません。
+                  Web版：初回購入後7日以内の返金に応じます。お問い合わせページからご連絡ください。
+                  <br />
+                  モバイルアプリ版：返金を希望される場合は、AppleまたはGoogleのサポートに直接お問い合わせください。サービス提供者側では返金処理を行うことができません。
                 </p>
               </div>
             </section>

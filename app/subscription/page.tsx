@@ -29,14 +29,14 @@ export default function SubscriptionPage() {
             <i className="ri-information-line text-blue-500 text-xl mr-3 mt-0.5"></i>
             <div>
               <h3 className="text-sm font-semibold text-blue-900 mb-1">
-                プレミアム機能について
+                プレミアムプランについて
               </h3>
               <p className="text-sm text-blue-800">
-                プレミアム機能は
-                <strong>モバイルアプリ版（iOS/Android）のみ</strong>
-                で提供しています。
+                プレミアムプランは
+                <strong>Web版・iOS/Androidアプリ</strong>
+                でご利用いただけます。
                 <br />
-                Web版は無料でご利用いただけます。
+                Stripe経由で安全に決済できます。
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function SubscriptionPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <i className="ri-vip-crown-line text-purple-600"></i>
-            プレミアム機能（モバイルアプリ版）
+            プレミアムプランの機能
           </h2>
 
           <div className="space-y-3 mb-6">
@@ -113,13 +113,19 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          <div className="bg-purple-50 rounded-lg p-4">
+          <div className="bg-purple-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-900 font-medium mb-1">
               月額 980円（税込）
             </p>
-            <p className="text-xs text-purple-700">
-              ※詳細な価格はApp Store/Google Playでご確認ください
+            <p className="text-xs text-purple-700 mb-2">
+              Web版・iOS/Androidアプリでご利用いただけます
             </p>
+            <Link
+              href="/subscription/pricing"
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium underline"
+            >
+              料金プラン詳細を見る
+            </Link>
           </div>
         </div>
 
