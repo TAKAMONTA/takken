@@ -65,9 +65,10 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  // 本番環境でのconsole.logを無効化
+  // 本番環境でのconsole.logを無効化（デバッグ中は無効化）
+  // TODO: デバッグ完了後、本番環境では再度有効化を検討
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
+    removeConsole: false, // デバッグのため一時的に無効化
   },
   eslint: {
     ignoreDuringBuilds: true,
