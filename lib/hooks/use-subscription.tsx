@@ -185,34 +185,41 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         throw new Error("ログインが必要です");
       }
 
-      // Firebase認証トークンを取得
-      const auth = getAuth();
-      let user = auth.currentUser;
-      console.log("[Checkout] Firebase認証ユーザー", { hasUser: !!user });
-      
-      // Firebase認証ユーザーがいない場合、認証状態を再確認
-      if (!user) {
-        // 少し待ってから再確認（認証状態の同期を待つ）
-        console.log("[Checkout] 認証状態の再確認を待機中...");
-        await new Promise(resolve => setTimeout(resolve, 500));
-        user = auth.currentUser;
-        console.log("[Checkout] 再確認後のFirebase認証ユーザー", { hasUser: !!user });
-      }
-      
       // ヘッダーを準備
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
+
+      // Firebase認証トークンを取得（未初期化の場合はスキップ）
+      let user = null;
+      try {
+        const auth = getAuth();
+        user = auth.currentUser;
+        console.log("[Checkout] Firebase認証ユーザー", { hasUser: !!user });
+        
+        // Firebase認証ユーザーがいない場合、認証状態を再確認
+        if (!user) {
+          // 少し待ってから再確認（認証状態の同期を待つ）
+          console.log("[Checkout] 認証状態の再確認を待機中...");
+          await new Promise(resolve => setTimeout(resolve, 500));
+          user = auth.currentUser;
+          console.log("[Checkout] 再確認後のFirebase認証ユーザー", { hasUser: !!user });
+        }
+        
+        if (user) {
+          // Firebase認証ユーザーがいる場合はトークンを使用
+          console.log("[Checkout] Firebase IDトークンを取得中...");
+          const token = await user.getIdToken();
+          headers.Authorization = `Bearer ${token}`;
+          console.log("[Checkout] Firebase IDトークン取得完了", { tokenLength: token.length });
+        }
+      } catch (firebaseError) {
+        // Firebase App が初期化されていない場合はスキップ
+        console.warn("[Checkout] Firebase未初期化、ローカルストレージ認証を使用", firebaseError);
+      }
       
-      if (user) {
-        // Firebase認証ユーザーがいる場合はトークンを使用
-        console.log("[Checkout] Firebase IDトークンを取得中...");
-        const token = await user.getIdToken();
-        headers.Authorization = `Bearer ${token}`;
-        console.log("[Checkout] Firebase IDトークン取得完了", { tokenLength: token.length });
-      } else {
+      if (!user) {
         // ローカルストレージ認証の場合は、userIdをヘッダーに含める
-        // 注意: 開発環境でのみ有効
         headers["X-User-Id"] = userId;
         console.log("[Checkout] ローカルストレージ認証を使用", { userId });
         logger.debug("ローカルストレージ認証を使用してCheckoutセッションを作成", { userId });
