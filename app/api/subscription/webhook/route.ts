@@ -118,8 +118,8 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error("Stripe Webhook処理エラー", err, {
-      eventType: event?.type,
-      eventId: event?.id,
+      eventType: event ? event.type : undefined,
+      eventId: event ? event.id : undefined,
     });
     return NextResponse.json(
       { error: "Webhook処理中にエラーが発生しました" },
