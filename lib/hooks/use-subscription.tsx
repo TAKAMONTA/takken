@@ -169,20 +169,28 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     yearly = false
   ): Promise<string | null> => {
     try {
+      console.log("[Checkout] セッション作成開始", { plan, yearly });
+      
       const userId = getCurrentUserId();
+      console.log("[Checkout] ユーザーID取得", { userId: userId ? `${userId.substring(0, 8)}...` : "なし" });
+      
       if (!userId) {
+        console.error("[Checkout] エラー: ユーザーIDが取得できませんでした");
         throw new Error("ログインが必要です");
       }
 
       // Firebase認証トークンを取得
       const auth = getAuth();
       let user = auth.currentUser;
+      console.log("[Checkout] Firebase認証ユーザー", { hasUser: !!user });
       
       // Firebase認証ユーザーがいない場合、認証状態を再確認
       if (!user) {
         // 少し待ってから再確認（認証状態の同期を待つ）
+        console.log("[Checkout] 認証状態の再確認を待機中...");
         await new Promise(resolve => setTimeout(resolve, 500));
         user = auth.currentUser;
+        console.log("[Checkout] 再確認後のFirebase認証ユーザー", { hasUser: !!user });
       }
       
       // ヘッダーを準備
@@ -192,39 +200,82 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       
       if (user) {
         // Firebase認証ユーザーがいる場合はトークンを使用
+        console.log("[Checkout] Firebase IDトークンを取得中...");
         const token = await user.getIdToken();
         headers.Authorization = `Bearer ${token}`;
+        console.log("[Checkout] Firebase IDトークン取得完了", { tokenLength: token.length });
       } else {
         // ローカルストレージ認証の場合は、userIdをヘッダーに含める
         // 注意: 開発環境でのみ有効
         headers["X-User-Id"] = userId;
+        console.log("[Checkout] ローカルストレージ認証を使用", { userId });
         logger.debug("ローカルストレージ認証を使用してCheckoutセッションを作成", { userId });
       }
+
+      const requestBody = {
+        plan,
+        yearly,
+      };
+      console.log("[Checkout] APIリクエスト送信", { 
+        url: "/api/subscription/create-checkout-session",
+        method: "POST",
+        headers: { ...headers, Authorization: headers.Authorization ? "Bearer ***" : undefined },
+        body: requestBody
+      });
 
       // APIを呼び出してCheckoutセッションを作成
       const response = await fetch("/api/subscription/create-checkout-session", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          plan,
-          yearly,
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("[Checkout] APIレスポンス受信", { 
+        status: response.status, 
+        statusText: response.statusText,
+        ok: response.ok 
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Checkoutセッションの作成に失敗しました");
+        let errorMessage = "Checkoutセッションの作成に失敗しました";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          logger.error("APIエラーレスポンス", { 
+            status: response.status, 
+            statusText: response.statusText,
+            error: errorData 
+          });
+        } catch (parseError) {
+          // JSONパースに失敗した場合、レスポンステキストを取得
+          const text = await response.text();
+          errorMessage = `HTTP ${response.status}: ${text || response.statusText}`;
+          logger.error("APIエラー（JSONパース失敗）", { 
+            status: response.status, 
+            statusText: response.statusText,
+            body: text 
+          });
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log("[Checkout] レスポンスデータ", { hasUrl: !!data.url, hasError: !!data.error });
 
       if (!data.url) {
+        console.error("[Checkout] エラー: Checkout URLが取得できませんでした", data);
         throw new Error("Checkout URLが取得できませんでした");
       }
 
+      console.log("[Checkout] 成功: Checkout URL取得", { url: data.url.substring(0, 50) + "..." });
       return data.url;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
+      console.error("[Checkout] エラー発生", { 
+        message: error.message, 
+        stack: error.stack,
+        name: error.name 
+      });
       logger.error("Checkoutセッション作成エラー", error);
       setError(error.message);
       return null;

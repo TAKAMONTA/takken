@@ -13,25 +13,34 @@ export default function PricingPage() {
   const router = useRouter();
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
+    console.log("[Pricing] 登録ボタンクリック", { plan, selectedYearly });
+    
     if (plan === SubscriptionPlan.FREE) {
+      console.log("[Pricing] 無料プランはスキップ");
       return;
     }
 
+    console.log("[Pricing] 処理開始");
     setIsProcessing(true);
     try {
+      console.log("[Pricing] createCheckoutSession呼び出し");
       const checkoutUrl = await createCheckoutSession(plan, selectedYearly);
+      console.log("[Pricing] createCheckoutSession完了", { hasUrl: !!checkoutUrl });
+      
       if (checkoutUrl) {
+        console.log("[Pricing] Checkoutページにリダイレクト", { url: checkoutUrl.substring(0, 50) + "..." });
         window.location.href = checkoutUrl;
       } else {
         // より詳細なエラーメッセージを表示
-        console.error("Checkoutセッション作成失敗: URLがnull");
+        console.error("[Pricing] Checkoutセッション作成失敗: URLがnull");
         alert("決済セッションの作成に失敗しました。\n\n考えられる原因:\n- ログインが必要です\n- 環境設定が完了していません\n\nブラウザのコンソール（F12）で詳細を確認してください。");
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error("Checkoutセッション作成エラー:", err);
+      console.error("[Pricing] エラー発生:", err);
       alert(`エラーが発生しました: ${err.message}\n\nブラウザのコンソール（F12）で詳細を確認してください。`);
     } finally {
+      console.log("[Pricing] 処理完了");
       setIsProcessing(false);
     }
   };
