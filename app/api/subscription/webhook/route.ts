@@ -101,11 +101,11 @@ export async function POST(request: NextRequest) {
         break;
 
       case "customer.subscription.updated":
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        await handleSubscriptionUpdated(event.data.object);
         break;
 
       case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        await handleSubscriptionDeleted(event.data.object);
         break;
 
       default:
@@ -160,8 +160,8 @@ async function handleCheckoutSessionCompleted(
 
     // Stripeからサブスクリプション情報を取得
     const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-    // Stripe APIのレスポンス型をSubscription型として扱う
-    const subscription = subscriptionResponse as Stripe.Subscription;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = subscriptionResponse as any;
 
     // Firestoreにサブスクリプション情報を保存
     const db = initializeAdminFirestore();
@@ -208,8 +208,10 @@ async function handleCheckoutSessionCompleted(
 
 /**
  * サブスクリプション更新時の処理
+ * @param subscription - Stripe Subscriptionオブジェクト（any型で受け取り、SDKバージョン間の型互換性問題を回避）
  */
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionUpdated(subscription: any) {
   try {
     // カスタマーIDからユーザーIDを取得（metadataに保存されている場合）
     // または、subscriptionsコレクションから検索
@@ -258,8 +260,10 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 /**
  * サブスクリプションキャンセル時の処理
+ * @param subscription - Stripe Subscriptionオブジェクト（any型で受け取り、SDKバージョン間の型互換性問題を回避）
  */
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionDeleted(subscription: any) {
   try {
     const db = initializeAdminFirestore();
     const subscriptionsSnapshot = await db
@@ -299,9 +303,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 /**
  * StripeのステータスをSubscriptionStatusにマッピング
+ * @param stripeStatus - Stripeのサブスクリプションステータス文字列
  */
 function mapStripeStatusToSubscriptionStatus(
-  stripeStatus: Stripe.Subscription.Status
+  stripeStatus: string
 ): SubscriptionStatus {
   switch (stripeStatus) {
     case "active":
