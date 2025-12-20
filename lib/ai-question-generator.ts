@@ -112,15 +112,15 @@ export class AIQuestionGeneratorService {
         maxTokens: 2500
       });
 
-      const result = JSON.parse(response.content);
+      const result = JSON.parse(response.content) as { questions: Partial<GeneratedQuestion>[] };
       
-      return result.questions.map((q: any) => ({
+      return result.questions.map((q) => ({
         ...q,
         id: `ai_generated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         generatedAt: new Date(),
         aiProvider: 'OpenAI',
         targetWeakness: `${weakness.category}-${weakness.subcategory}`
-      }));
+      })) as GeneratedQuestion[];
 
     } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
@@ -177,15 +177,15 @@ ${selectedCategory}分野の宅建試験問題を${count}問生成してくだ�
         maxTokens: 2000
       });
 
-      const result = JSON.parse(response.content);
+      const result = JSON.parse(response.content) as { questions: Partial<GeneratedQuestion>[] };
       
-      return result.questions.map((q: any) => ({
+      return result.questions.map((q) => ({
         ...q,
         id: `ai_general_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         generatedAt: new Date(),
         aiProvider: 'OpenAI',
         targetWeakness: 'general'
-      }));
+      })) as GeneratedQuestion[];
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -257,15 +257,15 @@ JSON形式で返してください：
         maxTokens: 2000
       });
 
-      const result = JSON.parse(response.content);
+      const result = JSON.parse(response.content) as { questions: Partial<GeneratedQuestion>[] };
       
-      return result.questions.map((q: any) => ({
+      return result.questions.map((q) => ({
         ...q,
         id: `ai_concept_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         generatedAt: new Date(),
         aiProvider: 'OpenAI',
         targetWeakness: 'concept_reinforcement'
-      }));
+      })) as GeneratedQuestion[];
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -555,15 +555,15 @@ JSON形式で返してください：
         maxTokens: 2000
       });
 
-      const result = JSON.parse(response.content);
+      const result = JSON.parse(response.content) as { questions: Partial<GeneratedQuestion>[] };
       
-      return result.questions.map((q: any, index: number) => ({
+      return result.questions.map((q, index: number) => ({
         ...q,
         id: `${baseQuestion.id}_similar_${index + 1}`,
         generatedAt: new Date(),
         aiProvider: baseQuestion.aiProvider,
         targetWeakness: baseQuestion.targetWeakness
-      }));
+      })) as GeneratedQuestion[];
 
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

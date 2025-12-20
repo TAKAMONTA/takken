@@ -436,6 +436,35 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* プレミアムプランへの誘導 */}
+        <section className="mb-6">
+          <Link href="/subscription/pricing">
+            <motion.div
+              className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg p-4 text-white shadow-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <i className="ri-vip-crown-line text-2xl"></i>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg">プレミアムプラン</h4>
+                    <p className="text-sm text-white/80">
+                      AI機能無制限・広告非表示
+                    </p>
+                  </div>
+                </div>
+                <i className="ri-arrow-right-s-line text-2xl"></i>
+              </div>
+            </motion.div>
+          </Link>
+        </section>
+
         {/* Study Information Section */}
         <section className="mb-6">
           <StudyInfoSection user={user} />
@@ -461,6 +490,9 @@ export default function Dashboard() {
         <footer className="mt-8 pt-6 border-t border-gray-200">
           <div className="text-center space-y-2">
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
+              <Link href="/subscription/pricing" className="hover:text-gray-700 font-medium text-purple-600">
+                料金プラン
+              </Link>
               <Link href="/legal" className="hover:text-gray-700">
                 特定商取引法に基づく表記
               </Link>
@@ -495,6 +527,13 @@ export default function Dashboard() {
             >
               <i className="ri-book-open-line text-xl"></i>
               <span className="text-xs">学習</span>
+            </Link>
+            <Link
+              href="/subscription/pricing"
+              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
+            >
+              <i className="ri-vip-crown-line text-xl"></i>
+              <span className="text-xs">プラン</span>
             </Link>
             <Link
               href="/stats"

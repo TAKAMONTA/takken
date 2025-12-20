@@ -1,10 +1,167 @@
 import { NextRequest, NextResponse } from "next/server";
-import { aiClient, ChatMessage } from "@/lib/ai-client";
+import { ChatMessage, AIClientOptions, AIResponse } from "@/lib/ai-client";
 import {
   verifyRequestAuth,
   createAuthErrorResponse,
 } from "@/lib/firebase-admin-auth";
 import { logger } from "@/lib/logger";
+
+/**
+ * AI APIを直接呼び出す（サーバー側のみ）
+ */
+async function callAIDirectly(
+  messages: ChatMessage[],
+  options: AIClientOptions = {}
+): Promise<AIResponse> {
+  const provider = options.provider || getPrimaryAIProvider();
+  
+  if (!provider) {
+    throw new Error("AI APIが設定されていません");
+  }
+
+  switch (provider) {
+    case "OpenAI":
+      return await callOpenAI(messages, options);
+    case "Anthropic":
+      return await callAnthropic(messages, options);
+    case "Google AI":
+      return await callGoogleAI(messages, options);
+    default:
+      throw new Error(`サポートされていないプロバイダー: ${provider}`);
+  }
+}
+
+function getPrimaryAIProvider(): string {
+  if (process.env.OPENAI_API_KEY) return "OpenAI";
+  if (process.env.ANTHROPIC_API_KEY) return "Anthropic";
+  if (process.env.GOOGLE_AI_API_KEY) return "Google AI";
+  return "";
+}
+
+async function callOpenAI(
+  messages: ChatMessage[],
+  options: AIClientOptions
+): Promise<AIResponse> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OpenAI API key not configured");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model || "gpt-4o-mini",
+      messages,
+      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens || 1000,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    content: data.choices[0].message.content,
+    provider: "OpenAI",
+    usage: {
+      tokens: data.usage?.total_tokens || 0,
+    },
+  };
+}
+
+async function callAnthropic(
+  messages: ChatMessage[],
+  options: AIClientOptions
+): Promise<AIResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("Anthropic API key not configured");
+  }
+
+  const systemMessage = messages.find((m) => m.role === "system")?.content || "";
+  const userMessages = messages.filter((m) => m.role !== "system");
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: options.model || "claude-3-5-sonnet-20241022",
+      system: systemMessage,
+      messages: userMessages,
+      max_tokens: options.maxTokens || 1000,
+      temperature: options.temperature || 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Anthropic API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    content: data.content[0].text,
+    provider: "Anthropic",
+    usage: {
+      tokens: data.usage?.input_tokens + data.usage?.output_tokens || 0,
+    },
+  };
+}
+
+async function callGoogleAI(
+  messages: ChatMessage[],
+  options: AIClientOptions
+): Promise<AIResponse> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Google AI API key not configured");
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${options.model || "gemini-pro"}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: {
+          temperature: options.temperature || 0.7,
+          maxOutputTokens: options.maxTokens || 1000,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Google AI API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    content: data.candidates[0].content.parts[0].text,
+    provider: "Google AI",
+    usage: {
+      tokens: data.usageMetadata?.totalTokenCount || 0,
+    },
+  };
+}
 
 /**
  * AI Chat API Route
@@ -55,8 +212,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // AI APIを呼び出し（サーバー側でのみ実行）
-    const response = await aiClient.chat(validMessages, options);
+    // AI APIを直接呼び出し（サーバー側でのみ実行）
+    // UnifiedAIClientはFirebase Functionsエミュレーターを使おうとするため、直接APIを呼ぶ
+    const response = await callAIDirectly(validMessages, options);
 
     return NextResponse.json({
       success: true,

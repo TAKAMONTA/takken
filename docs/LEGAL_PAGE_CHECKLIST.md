@@ -111,11 +111,11 @@
 
 3. **ウェブサイト URL**
 
-   - [ ] Stripe に登録されている URL: `https://takkenroad.app` を確認
+   - [ ] Stripe に登録されている URL: `https://takken-study.com` を確認
    - [ ] URL が正しくアクセス可能であることを確認
 
 4. **サポートメールアドレス**
-   - [ ] Stripe に登録: `support@takkenroad.app`
+   - [ ] Stripe に登録: `admin@takaapps.com`
    - [ ] 特定商取引法ページと一致していることを確認
 
 ## 🔧 デプロイ前チェック
@@ -163,11 +163,11 @@ git push origin main
 
 以下の URL にアクセスして確認：
 
-- [ ] `https://takkenroad.app/legal` - 特定商取引法ページ
-- [ ] `https://takkenroad.app/` - トップページフッターのリンク
-- [ ] `https://takkenroad.app/support` - サポートページのリンク
-- [ ] `https://takkenroad.app/terms` - 利用規約ページのリンク
-- [ ] `https://takkenroad.app/privacy` - プライバシーポリシーのリンク
+- [ ] `https://takken-study.com/legal` - 特定商取引法ページ
+- [ ] `https://takken-study.com/` - トップページフッターのリンク
+- [ ] `https://takken-study.com/support` - サポートページのリンク
+- [ ] `https://takken-study.com/terms` - 利用規約ページのリンク
+- [ ] `https://takken-study.com/privacy` - プライバシーポリシーのリンク
 
 ## 📧 Stripe 再申請メールテンプレート
 
@@ -189,7 +189,7 @@ Stripe ご担当者様
 【対応完了事項】
 
 1. 特定商取引法に基づく表記ページの作成
-   URL: https://takkenroad.app/legal
+   URL: https://takken-study.com/legal
 
 2. ウェブサイトのアクセス性
    - パスワード保護なし
@@ -213,8 +213,8 @@ Stripe ご担当者様
    - その他必要事項
 
 【アクセス方法】
-トップページ（https://takkenroad.app/）のフッター、
-またはサポートページ（https://takkenroad.app/support）から
+トップページ（https://takken-study.com/）のフッター、
+またはサポートページ（https://takken-study.com/support）から
 「特定商取引法に基づく表記」をクリックしてアクセスできます。
 
 お手数をおかけいたしますが、
@@ -237,7 +237,7 @@ Stripe ご担当者様
 
 ### ページアクセス
 
-- [ ] https://takkenroad.app/legal にアクセスできる
+- [ ] https://takken-study.com/legal にアクセスできる
 - [ ] パスワード保護がかかっていない
 - [ ] スマホ・タブレット・PC で正常に表示される
 

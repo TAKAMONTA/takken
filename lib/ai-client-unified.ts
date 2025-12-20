@@ -114,11 +114,48 @@ export class UnifiedAIClient {
 
   private async callAPIRoute(endpoint: string, data: any): Promise<any> {
     try {
+      // 認証ヘッダーを準備
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      
+      // Firebase認証トークンまたはローカルストレージ認証のuserIdを取得
+      try {
+        const { getAuth } = await import("firebase/auth");
+        const auth = getAuth();
+        const user = auth.currentUser;
+        
+        // ローカルストレージからuserIdを取得（常に送信）
+        const userData = localStorage.getItem("takken_user");
+        if (userData) {
+          try {
+            const localUser = JSON.parse(userData);
+            if (localUser.id) {
+              headers["X-User-Id"] = localUser.id;
+            }
+          } catch (parseError) {
+            // パースエラーは無視
+          }
+        }
+        
+        if (user) {
+          try {
+            const token = await user.getIdToken();
+            headers.Authorization = `Bearer ${token}`;
+          } catch (tokenError) {
+            // トークン取得に失敗した場合は、X-User-Idのみを使用
+            console.warn("Firebase IDトークンの取得に失敗しました", tokenError);
+          }
+        }
+      } catch (authError) {
+        // 認証情報の取得に失敗した場合でも続行
+        const err = authError instanceof Error ? authError : new Error(String(authError));
+        console.warn("認証情報の取得に失敗しました", err);
+      }
+      
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(data),
       });
 

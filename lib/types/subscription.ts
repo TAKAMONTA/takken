@@ -84,9 +84,9 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     description: '基本的な学習機能を利用できます',
     price: 0,
     features: {
-      questionLimit: 500,
-      pastExamYears: 3,
-      aiExplanationLimit: 10, // 月10回まで
+      questionLimit: 300, // 300問まで（全体の約20% - プレミアムの価値を明確化）
+      pastExamYears: 2, // 直近2年分（プレミアムは10年分）
+      aiExplanationLimit: 20, // 月20回まで（プレミアムは無制限）
       advancedAnalytics: false,
       successPatternAnalysis: false,
       spacedRepetition: false,

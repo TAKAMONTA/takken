@@ -114,9 +114,9 @@ SKU: TAKKENROAD001
 #### URL 情報
 
 ```
-サポートURL: https://takkenroad.app/support
-マーケティングURL: https://takkenroad.app（オプション）
-プライバシーポリシーURL: https://takkenroad.app/privacy
+サポートURL: https://takken-study.com/support
+マーケティングURL: https://takken-study.com（オプション）
+プライバシーポリシーURL: https://takken-study.com/privacy
 ```
 
 #### キーワード
@@ -284,7 +284,7 @@ npx cap open ios
 ### Step 6-4: テストアカウントの提供
 
 ```
-ユーザー名: reviewer@takkenroad.app
+ユーザー名: reviewer@takaapps.com
 パスワード: [安全なパスワードを設定]
 
 注記:

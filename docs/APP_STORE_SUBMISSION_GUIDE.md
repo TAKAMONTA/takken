@@ -126,19 +126,19 @@ SKU: TAKKENROAD001
 #### **サポート URL**
 
 ```
-https://takkenroad.app/support (準備が必要)
+https://takken-study.com/support (準備が必要)
 ```
 
 #### **マーケティング URL** (オプション)
 
 ```
-https://takkenroad.app
+https://takken-study.com
 ```
 
 #### **プライバシーポリシー URL**
 
 ```
-https://takkenroad.app/privacy (既に実装済み)
+https://takken-study.com/privacy (既に実装済み)
 ```
 
 ---
@@ -280,7 +280,7 @@ Xcode で以下の手順：
 審査員用のテストアカウントを提供：
 
 ```
-ユーザー名: reviewer@takkenroad.app
+ユーザー名: reviewer@takaapps.com
 パスワード: [安全なパスワード]
 
 注記:
@@ -354,7 +354,7 @@ Xcode で以下の手順：
 
 ### 必要なページ（実装前）
 
-1. **サポートページ** - `https://takkenroad.app/support`
+1. **サポートページ** - `https://takken-study.com/support`
 2. **FAQ** - よくある質問
 3. **お問い合わせフォーム** - Firebase Functions + メール送信
 

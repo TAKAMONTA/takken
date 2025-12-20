@@ -7,7 +7,7 @@
 1. **特定商取引法に基づく表記ページの作成**
 
    - 作成場所: `/app/legal/page.tsx`
-   - URL: `https://takkenroad.app/legal`
+   - URL: `https://takken-study.com/legal`
    - 内容: 特定商取引法で必要な全項目を網羅
 
 2. **アクセス性の向上**
@@ -99,18 +99,18 @@
 
 デプロイ後、以下の URL にアクセスして確認：
 
-1. **特定商取引法ページ**: `https://takkenroad.app/legal`
+1. **特定商取引法ページ**: `https://takken-study.com/legal`
 
    - パスワード保護がかかっていないこと
    - 全ての事業者情報が正しく表示されていること
    - レスポンシブデザインが正常に動作すること
 
-2. **トップページ**: `https://takkenroad.app/`
+2. **トップページ**: `https://takken-study.com/`
 
    - フッターに「特定商取引法に基づく表記」リンクがあること
    - リンクをクリックして正常に遷移すること
 
-3. **サポートページ**: `https://takkenroad.app/support`
+3. **サポートページ**: `https://takken-study.com/support`
    - クイックリンクに「特定商取引法に基づく表記」があること
    - リンクをクリックして正常に遷移すること
 
@@ -133,11 +133,11 @@ Stripe ご担当者様
 
 【対応内容】
 1. 「特定商取引法に基づく表記」ページを作成し、公開いたしました
-   URL: https://takkenroad.app/legal
+   URL: https://takken-study.com/legal
 
 2. トップページおよびサポートページから、特定商取引法ページへ簡単にアクセスできるようリンクを追加いたしました
-   - トップページフッター: https://takkenroad.app/
-   - サポートページ: https://takkenroad.app/support
+   - トップページフッター: https://takken-study.com/
+   - サポートページ: https://takken-study.com/support
 
 3. ウェブサイトはパスワード保護なし、誰でもアクセス可能です
 

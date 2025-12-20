@@ -177,10 +177,10 @@ AI先生と楽しく学ぶ宅建試験対策
 【サポート】
 ━━━━━━━━━━━━━━━━━━━━
 
-• サポートページ: https://takkenroad.app/support
-• お問い合わせ: support@takkenroad.app
-• プライバシーポリシー: https://takkenroad.app/privacy
-• 利用規約: https://takkenroad.app/terms
+• サポートページ: https://takken-study.com/support
+• お問い合わせ: admin@takaapps.com
+• プライバシーポリシー: https://takken-study.com/privacy
+• 利用規約: https://takken-study.com/terms
 
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -213,19 +213,19 @@ takken,real estate,exam,ai,study,education,law,certification,offline,quiz
 ### サポート URL（必須）
 
 ```
-https://takkenroad.app/support
+https://takken-study.com/support
 ```
 
 ### マーケティング URL（オプション）
 
 ```
-https://takkenroad.app
+https://takken-study.com
 ```
 
 ### プライバシーポリシー URL（必須）
 
 ```
-https://takkenroad.app/privacy
+https://takken-study.com/privacy
 ```
 
 ---
@@ -349,7 +349,7 @@ AI先生と一緒に、過去問を徹底攻略。
 3. サブスクリプション - 月額500円のプレミアムプラン
 
 ＜テストアカウント＞
-ユーザー名: reviewer@takkenroad.app
+ユーザー名: reviewer@takaapps.com
 パスワード: TakkenReview2024!
 
 このアカウントはプレミアムプランが有効化されており、すべての機能をテストできます。
@@ -372,7 +372,7 @@ AI先生と一緒に、過去問を徹底攻略。
 • 個人情報の取り扱いはプライバシーポリシーに準拠
 • ユーザートラッキングは広告の最適化にのみ使用
 
-ご不明な点がございましたら、support@takkenroad.app までお問い合わせください。
+ご不明な点がございましたら、admin@takaapps.com までお問い合わせください。
 
 よろしくお願いいたします。
 ```

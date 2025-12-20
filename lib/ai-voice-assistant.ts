@@ -19,9 +19,52 @@ export interface VoiceInteraction {
   confidence: number;
 }
 
+// SpeechRecognition型定義（ブラウザAPI）
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => unknown) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown) | null;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
 export class AIVoiceAssistantService {
   private synthesis: SpeechSynthesis | null = null;
-  private recognition: any = null; // SpeechRecognition
+  private recognition: SpeechRecognition | null = null;
   private isListening = false;
   private isSpeaking = false;
   private voiceConfig: VoiceConfig = {
@@ -48,9 +91,12 @@ export class AIVoiceAssistantService {
 
     // Speech Recognition (音声認識)
     if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      this.setupRecognition();
+      const SpeechRecognitionConstructor = (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition; SpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition || 
+                                          (window as unknown as { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition;
+      if (SpeechRecognitionConstructor) {
+        this.recognition = new SpeechRecognitionConstructor();
+        this.setupRecognition();
+      }
     }
   }
 
@@ -73,8 +119,8 @@ export class AIVoiceAssistantService {
       logger.debug('音声認識終了');
     };
 
-    this.recognition.onerror = (event: any) => {
-      const error = event.error instanceof Error ? event.error : new Error(String(event.error));
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      const error = new Error(`音声認識エラー: ${event.error} - ${event.message}`);
       logger.error('音声認識エラー', error, { errorCode: event.error });
       this.isListening = false;
     };
@@ -93,9 +139,10 @@ export class AIVoiceAssistantService {
         return;
       }
 
-      this.recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        const confidence = event.results[0][0].confidence;
+      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const result = event.results[event.resultIndex];
+        const transcript = result[0].transcript;
+        const confidence = result[0].confidence;
         
         logger.debug('認識結果', { transcript, confidence });
         resolve(transcript);
@@ -222,15 +269,15 @@ export class AIVoiceAssistantService {
   }
 
   // 問題の音声読み上げ
-  async readQuestion(question: any): Promise<void> {
+  async readQuestion(question: { question: string; options: string[] }): Promise<void> {
     const questionText = `
 問題です。${question.question}
 
 選択肢は次の通りです。
-1番、${question.choices[0]}
-2番、${question.choices[1]}
-3番、${question.choices[2]}
-4番、${question.choices[3]}
+1番、${question.options[0]}
+2番、${question.options[1]}
+3番、${question.options[2]}
+4番、${question.options[3]}
 
 どちらが正解だと思いますか？
     `;
@@ -247,7 +294,7 @@ export class AIVoiceAssistantService {
   }
 
   // 音声による学習セッション
-  async conductVoiceLearningSession(questions: any[]): Promise<VoiceInteraction[]> {
+  async conductVoiceLearningSession(questions: Array<{ question: string; options: string[]; correctAnswer: number; explanation: string }>): Promise<VoiceInteraction[]> {
     const sessionInteractions: VoiceInteraction[] = [];
 
     await this.speak('音声学習セッションを開始します。質問を読み上げますので、答えを声に出してお答えください。');
@@ -298,7 +345,7 @@ export class AIVoiceAssistantService {
   }
 
   // 音声回答の評価
-  private evaluateVoiceAnswer(userAnswer: string, question: any): boolean {
+  private evaluateVoiceAnswer(userAnswer: string, question: { options: string[]; correctAnswer: number }): boolean {
     const normalizedAnswer = userAnswer.toLowerCase().trim();
     
     // 数字での回答
@@ -308,7 +355,7 @@ export class AIVoiceAssistantService {
     }
 
     // 選択肢の内容での回答
-    const correctChoice = question.choices[question.correctAnswer - 1].toLowerCase();
+    const correctChoice = question.options[question.correctAnswer - 1].toLowerCase();
     return normalizedAnswer.includes(correctChoice) || correctChoice.includes(normalizedAnswer);
   }
 

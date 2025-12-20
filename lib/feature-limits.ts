@@ -69,15 +69,15 @@ export class FeatureLimits {
         };
       }
 
-      // 無料ユーザーは直近3年分のみ
+      // 無料ユーザーは直近2年分のみ
       const currentYear = new Date().getFullYear();
       const questionYearNum = parseInt(questionYear.replace(/[^\d]/g, ''));
       const yearsDiff = currentYear - questionYearNum;
 
-      if (yearsDiff <= 3) {
+      if (yearsDiff <= 2) {
         return {
           canUse: true,
-          message: '直近3年分の問題にアクセスできます'
+          message: '直近2年分の問題にアクセスできます'
         };
       } else {
         return {

@@ -156,8 +156,8 @@ ios/App/App/Assets.xcassets/AppIcon.appiconset/
 - ✅ 説明文: `docs/APP_STORE_DESCRIPTION.md` に記載
 - ✅ キーワード: 準備済み
 - ✅ カテゴリ: 教育、仕事効率化
-- ✅ サポート URL: https://takkenroad.app/support
-- ✅ プライバシーポリシー URL: https://takkenroad.app/privacy
+- ✅ サポート URL: https://takken-study.com/support
+- ✅ プライバシーポリシー URL: https://takken-study.com/privacy
 
 **手順**:
 `docs/APP_STORE_SUBMISSION_GUIDE.md` の「手順 2」を参照

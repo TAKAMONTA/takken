@@ -222,7 +222,7 @@ iOS App Store 申請に必要なすべての**技術的準備が完了**しま�
   - 技術的な問題
   - 宅建試験について
 - ✅ お問い合わせ情報
-  - メールアドレス: support@takkenroad.app
+  - メールアドレス: admin@takaapps.com
   - 必要な情報のガイド
 - ✅ クイックリンク
   - プライバシーポリシー
@@ -322,9 +322,9 @@ SKU: TAKKENROAD001
 ### URL
 
 ```
-サポートURL: https://takkenroad.app/support (実装済み)
-プライバシーポリシー: https://takkenroad.app/privacy (実装済み)
-利用規約: https://takkenroad.app/terms (実装済み)
+サポートURL: https://takken-study.com/support (実装済み)
+プライバシーポリシー: https://takken-study.com/privacy (実装済み)
+利用規約: https://takken-study.com/terms (実装済み)
 ```
 
 ### In-App Purchase

@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import { useSubscription } from "@/lib/hooks/use-subscription";
+import { SubscriptionPlan, PLAN_CONFIGS } from "@/lib/types/subscription";
 
 interface FeatureLimitGuardProps {
-  feature: string;
+  feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features'];
   children: React.ReactNode;
   fallback?: React.ReactNode;
   showWarning?: boolean;
@@ -15,9 +17,37 @@ export function FeatureLimitGuard({
   fallback,
   showWarning = true,
 }: FeatureLimitGuardProps) {
-  // iOS In-App Purchase対応予定
-  // 現在はすべての機能を許可（2025年10月Stripe削除）
-  return <>{children}</>;
+  const { hasFeatureAccess, subscription, isLoading } = useSubscription();
+
+  // ローディング中は制限しない
+  if (isLoading) {
+    return <>{children}</>;
+  }
+
+  // 機能へのアクセス権をチェック
+  const hasAccess = hasFeatureAccess(feature);
+
+  if (hasAccess) {
+    return <>{children}</>;
+  }
+
+  // フォールバックが指定されている場合はそれを使用
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+
+  // 警告メッセージを表示
+  if (showWarning) {
+    return (
+      <FeatureLimitMessage
+        feature={feature}
+        planConfig={subscription ? PLAN_CONFIGS[subscription.plan] : PLAN_CONFIGS[SubscriptionPlan.FREE]}
+        showWarning={showWarning}
+      />
+    );
+  }
+
+  return null;
 }
 
 interface UsageLimitGuardProps {
@@ -25,6 +55,7 @@ interface UsageLimitGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
   showWarning?: boolean;
+  currentUsage?: number;
 }
 
 export function UsageLimitGuard({
@@ -32,10 +63,33 @@ export function UsageLimitGuard({
   children,
   fallback,
   showWarning = true,
+  currentUsage,
 }: UsageLimitGuardProps) {
-  // iOS In-App Purchase対応予定
-  // 現在は制限なしで使用可能（2025年10月Stripe削除）
-  return <>{children}</>;
+  const { canUseFeature, subscription, isLoading } = useSubscription();
+
+  // ローディング中は制限しない
+  if (isLoading) {
+    return <>{children}</>;
+  }
+
+  // 機能が使用可能かチェック
+  const canUse = canUseFeature(feature, currentUsage);
+
+  if (canUse) {
+    return <>{children}</>;
+  }
+
+  // フォールバックが指定されている場合はそれを使用
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+
+  // 警告メッセージを表示
+  if (showWarning) {
+    return <UsageLimitMessage feature={feature} />;
+  }
+
+  return null;
 }
 
 interface FeatureLimitMessageProps {
@@ -222,16 +276,43 @@ interface UsageDisplayProps {
 }
 
 export function UsageDisplay({ feature, className = "" }: UsageDisplayProps) {
+  const { getFeatureLimit, subscription, isLoading } = useSubscription();
   const featureName = feature === "questionLimit" ? "問題演習" : "AI解説";
+
+  if (isLoading) {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-600">{featureName}</span>
+          <span className="text-gray-400">読み込み中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const limit = getFeatureLimit(feature);
+  const isUnlimited = limit === -1;
+  const planName = subscription
+    ? PLAN_CONFIGS[subscription.plan].name
+    : PLAN_CONFIGS[SubscriptionPlan.FREE].name;
 
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-600">{featureName}</span>
         <span className="font-medium">
-          <span className="text-green-600">無制限</span>
+          {isUnlimited ? (
+            <span className="text-green-600">無制限</span>
+          ) : (
+            <span className="text-gray-600">{limit}回/月</span>
+          )}
         </span>
       </div>
+      {!isUnlimited && (
+        <div className="text-xs text-gray-500">
+          プラン: {planName}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 
 export const metadata: Metadata = {
   title: "宅建合格ロード",
@@ -74,8 +75,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-background text-foreground">
-        {children}
-        <PWAInstallPrompt />
+        <SubscriptionProvider>
+          {children}
+          <PWAInstallPrompt />
+        </SubscriptionProvider>
       </body>
     </html>
   );

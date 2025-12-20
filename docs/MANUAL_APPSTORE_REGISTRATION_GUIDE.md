@@ -127,19 +127,19 @@ AI先生と楽しく学ぶ宅建試験対策
 #### **プライバシーポリシー URL**
 
 ```
-https://takkenroad.app/privacy
+https://takken-study.com/privacy
 ```
 
 #### **サポート URL**
 
 ```
-https://takkenroad.app/support
+https://takken-study.com/support
 ```
 
 #### **マーケティング URL**（オプション）
 
 ```
-https://takkenroad.app
+https://takken-study.com
 ```
 
 ### 2-3. 保存
@@ -360,7 +360,7 @@ https://takkenroad.app
 
 - **ユーザー名**:
   ```
-  reviewer@takkenroad.app
+  reviewer@takaapps.com
   ```
 - **パスワード**:
   ```
@@ -405,7 +405,7 @@ https://takkenroad.app
 - 個人情報の取り扱いはプライバシーポリシーに準拠
 - ユーザートラッキングは広告の最適化にのみ使用
 
-ご不明な点がございましたら、support@takkenroad.app までお問い合わせください。
+ご不明な点がございましたら、admin@takaapps.com までお問い合わせください。
 
 よろしくお願いいたします。
 ```
@@ -615,7 +615,7 @@ AI機能無制限、広告非表示、全年度の過去問アクセスなど、
 ### 5-4. プライバシーポリシー URL
 
 ```
-https://takkenroad.app/privacy
+https://takken-study.com/privacy
 ```
 
 ### 5-5. 保存

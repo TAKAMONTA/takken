@@ -155,7 +155,7 @@ http://localhost:3000/legal
 ### 本番環境（デプロイ後）
 
 ```
-https://takkenroad.app/legal
+https://takken-study.com/legal
 ```
 
 ### 確認項目
@@ -236,8 +236,8 @@ code app/legal/page.tsx
 Stripe ダッシュボードで以下を確認：
 
 - ビジネス名: `宅建合格ロード` または登録名
-- ウェブサイト URL: `https://takkenroad.app`
-- サポートメール: `support@takkenroad.app`
+- ウェブサイト URL: `https://takken-study.com`
+- サポートメール: `admin@takaapps.com`
 - 商品説明との一致
 
 ### 3. ローカルテスト
@@ -259,9 +259,9 @@ git push origin main
 
 デプロイ完了後、以下の URL で確認：
 
-- https://takkenroad.app/legal
-- https://takkenroad.app/
-- https://takkenroad.app/support
+- https://takken-study.com/legal
+- https://takken-study.com/
+- https://takken-study.com/support
 
 ### 6. Stripe 再申請
 
@@ -271,7 +271,7 @@ Stripe からのメールに返信：
 件名: Re: アカウント決済受け付け機能停止のご連絡
 
 【対応完了】
-1. 特定商取引法ページ作成: https://takkenroad.app/legal
+1. 特定商取引法ページ作成: https://takken-study.com/legal
 2. アクセス性確保: パスワード保護なし
 3. 情報の一致: Stripe登録情報と一致確認済み
 

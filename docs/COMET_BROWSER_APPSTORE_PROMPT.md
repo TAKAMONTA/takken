@@ -42,13 +42,13 @@ App Store Connect で新規iOSアプリを作成し、基本情報を入力す�
    - セカンダリ: 仕事効率化
 
 3. **プライバシーポリシーURL**:
-   https://takkenroad.app/privacy
+   https://takken-study.com/privacy
 
 4. **サポートURL**:
-   https://takkenroad.app/support
+   https://takken-study.com/support
 
 5. **マーケティングURL**（オプション）:
-   https://takkenroad.app
+   https://takken-study.com
 
 【手順3: 説明文の入力】
 以下の説明文を「説明」フィールドにコピー&ペースト：
