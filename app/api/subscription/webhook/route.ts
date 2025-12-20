@@ -117,10 +117,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
+    // eventの型を明示的にキャストしてTypeScriptエラーを回避
+    const capturedEvent = event as Stripe.Event | null;
     const logData: { eventType?: string; eventId?: string } = {};
-    if (event) {
-      logData.eventType = event.type;
-      logData.eventId = event.id;
+    if (capturedEvent !== null) {
+      logData.eventType = capturedEvent.type;
+      logData.eventId = capturedEvent.id;
     }
     logger.error("Stripe Webhook処理エラー", err, logData);
     return NextResponse.json(
