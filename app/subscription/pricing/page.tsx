@@ -7,7 +7,7 @@ import { SubscriptionPlan, PLAN_CONFIGS } from "@/lib/types/subscription";
 import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
-  const { subscription, isLoading, createCheckoutSession } = useSubscription();
+  const { subscription, isLoading, error, createCheckoutSession } = useSubscription();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedYearly, setSelectedYearly] = useState(false);
   const router = useRouter();
