@@ -320,10 +320,11 @@ export async function verifyRequestAuth(request: Request): Promise<string> {
         });
         return userIdHeader;
       } else {
-        // 開発環境では、Firestoreにユーザーが存在しない場合でも許可（初回ユーザーの可能性）
-        if (!isProduction) {
-          logger.debug("ローカルストレージ認証を使用（開発環境: Firestoreにユーザーが存在しませんが許可）", { 
-            userId: `${userIdHeader.substring(0, 8)}...` 
+        // 開発環境、またはバイパスが有効な場合は、Firestoreにユーザーが存在しない場合でも許可（初回ユーザーの可能性）
+        if (!isProduction || allowDevBypass) {
+          logger.debug("ローカルストレージ認証を使用（Firestoreにユーザーが存在しませんが許可）", { 
+            userId: `${userIdHeader.substring(0, 8)}...`,
+            reason: !isProduction ? "開発環境" : "ALLOW_DEV_BYPASS_AUTH有効",
           });
           return userIdHeader;
         }
