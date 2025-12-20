@@ -159,7 +159,9 @@ async function handleCheckoutSessionCompleted(
     }
 
     // Stripeからサブスクリプション情報を取得
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
+    // Stripe APIのレスポンス型をSubscription型として扱う
+    const subscription = subscriptionResponse as Stripe.Subscription;
 
     // Firestoreにサブスクリプション情報を保存
     const db = initializeAdminFirestore();
