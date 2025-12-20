@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Stripeクライアントの初期化
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2025-11-17.clover",
+      apiVersion: "2025-07-30.basil",
     });
 
     // Price IDの取得
