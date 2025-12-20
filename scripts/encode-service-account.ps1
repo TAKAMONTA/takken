@@ -43,3 +43,4 @@ $clipboardText = "FIREBASE_SERVICE_ACCOUNT_KEY=$base64"
 Set-Clipboard -Value $clipboardText
 Write-Host "`n✅ クリップボードにコピーしました！" -ForegroundColor Green
 Write-Host "   .env.local を開いて、FIREBASE_SERVICE_ACCOUNT_KEY= の後に貼り付けてください。" -ForegroundColor Cyan
+

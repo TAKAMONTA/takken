@@ -210,3 +210,4 @@ npm run dev
 - `app/api/subscription/webhook/route.ts`: Webhook API（修正済み）
 - `app/api/ai/chat/route.ts`: AI Chat API（変更なし、認証ヘルパーを使用）
 - `env.example.txt`: 環境変数テンプレート（更新済み）
+
