@@ -21,24 +21,32 @@ export default function PricingPage() {
     }
 
     console.log("[Pricing] 処理開始");
+    console.log("[Pricing] createCheckoutSession関数:", typeof createCheckoutSession);
+    console.log("[Pricing] subscription:", subscription);
+    console.log("[Pricing] error:", error);
     setIsProcessing(true);
     try {
-      console.log("[Pricing] createCheckoutSession呼び出し");
+      console.log("[Pricing] createCheckoutSession呼び出し直前");
       const checkoutUrl = await createCheckoutSession(plan, selectedYearly);
-      console.log("[Pricing] createCheckoutSession完了", { hasUrl: !!checkoutUrl });
+      console.log("[Pricing] createCheckoutSession完了", { 
+        hasUrl: !!checkoutUrl, 
+        urlType: typeof checkoutUrl,
+        url: checkoutUrl ? checkoutUrl.substring(0, 50) + "..." : "null"
+      });
       
       if (checkoutUrl) {
-        console.log("[Pricing] Checkoutページにリダイレクト", { url: checkoutUrl.substring(0, 50) + "..." });
+        console.log("[Pricing] Checkoutページにリダイレクト");
         window.location.href = checkoutUrl;
       } else {
         // より詳細なエラーメッセージを表示
         console.error("[Pricing] Checkoutセッション作成失敗: URLがnull");
-        alert("決済セッションの作成に失敗しました。\n\n考えられる原因:\n- ログインが必要です\n- 環境設定が完了していません\n\nブラウザのコンソール（F12）で詳細を確認してください。");
+        const errorDetails = error || subscription?.error || "不明なエラー";
+        alert(`決済セッションの作成に失敗しました。\n\nエラー詳細: ${errorDetails}\n\n考えられる原因:\n- ログインが必要です\n- サーバー側でエラーが発生しました\n\nVercelのログで詳細を確認してください。`);
       }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.error("[Pricing] エラー発生:", err);
-      alert(`エラーが発生しました: ${err.message}\n\nブラウザのコンソール（F12）で詳細を確認してください。`);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error("[Pricing] エラー発生:", error);
+      alert(`エラーが発生しました: ${error.message}\n\n詳細情報がコンソールに表示されています。`);
     } finally {
       console.log("[Pricing] 処理完了");
       setIsProcessing(false);
