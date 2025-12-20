@@ -23,11 +23,14 @@ export default function PricingPage() {
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       } else {
-        alert("決済セッションの作成に失敗しました。もう一度お試しください。");
+        // より詳細なエラーメッセージを表示
+        console.error("Checkoutセッション作成失敗: URLがnull");
+        alert("決済セッションの作成に失敗しました。\n\n考えられる原因:\n- ログインが必要です\n- 環境設定が完了していません\n\nブラウザのコンソール（F12）で詳細を確認してください。");
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      alert(`エラーが発生しました: ${err.message}`);
+      console.error("Checkoutセッション作成エラー:", err);
+      alert(`エラーが発生しました: ${err.message}\n\nブラウザのコンソール（F12）で詳細を確認してください。`);
     } finally {
       setIsProcessing(false);
     }
@@ -38,13 +41,29 @@ export default function PricingPage() {
   const freeConfig = PLAN_CONFIGS[SubscriptionPlan.FREE];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ヘッダー */}
+    <div className="min-h-screen bg-gray-50">
+      {/* ナビゲーションヘッダー */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16">
+            <Link
+              href="/"
+              className="text-gray-600 hover:text-gray-900 mr-4 transition-colors"
+              aria-label="ホームに戻る"
+            >
+              <i className="ri-arrow-left-line text-xl"></i>
+            </Link>
+            <h1 className="text-lg font-medium text-gray-900">プレミアムプラン</h1>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* タイトルセクション */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
             プレミアムプランで学習効果を最大化
-          </h1>
+          </h2>
           <p className="text-xl text-gray-600 mb-8">
             AI機能と高度な分析で、効率的に宅建試験に合格しよう
           </p>
@@ -223,7 +242,6 @@ export default function PricingPage() {
                   spacedRepetition: "スペーシング復習",
                   adFree: "広告非表示",
                   offlineQuestions: "オフライン問題",
-                  prioritySupport: "優先サポート",
                   customStudyPlans: "カスタム学習プラン",
                 };
 
@@ -256,7 +274,7 @@ export default function PricingPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                無制限の過去問演習（{premiumConfig.features.pastExamYears}年分以上）
+                無制限の過去問演習
               </li>
               <li className="flex items-center">
                 <svg
