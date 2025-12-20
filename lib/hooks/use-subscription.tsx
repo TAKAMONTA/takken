@@ -59,17 +59,23 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
    */
   const getCurrentUserId = (): string | null => {
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        return user.uid;
-      }
-
-      // Firebase認証がない場合、ローカルストレージから取得
+      // まずローカルストレージから取得（より堅牢）
       const userData = localStorage.getItem("takken_user");
       if (userData) {
         const user = JSON.parse(userData);
         return user.id;
+      }
+
+      // ローカルストレージにない場合、Firebase認証から取得
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (user) {
+          return user.uid;
+        }
+      } catch (firebaseError) {
+        // Firebase App が初期化されていない場合はスキップ
+        console.warn("[getCurrentUserId] Firebase未初期化:", firebaseError);
       }
 
       return null;
