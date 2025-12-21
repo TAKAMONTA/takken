@@ -105,14 +105,14 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     popular: true,
     features: {
       questionLimit: -1, // 無制限
-      pastExamYears: 10,
+      pastExamYears: -1, // 無制限（実際の年度数ではなく、すべての問題にアクセス可能）
       aiExplanationLimit: -1, // 無制限
       advancedAnalytics: true,
       successPatternAnalysis: true,
       spacedRepetition: true,
       adFree: true,
       offlineQuestions: true,
-      prioritySupport: true,
+      prioritySupport: false,
       customStudyPlans: true
     }
   }

@@ -110,12 +110,24 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error("Stripe Checkoutセッション作成エラー", err, { userId });
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    // 詳細なエラー情報をログに記録
+    logger.error("Stripe Checkoutセッション作成エラー", err, { 
+      userId,
+      errorMessage: err.message,
+      errorStack: err.stack,
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      hasPriceIdMonthly: !!process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
+      hasPriceIdYearly: !!process.env.STRIPE_PRICE_ID_PREMIUM_YEARLY,
+      hasFirebaseServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
+    });
 
     // 認証エラーの場合
     if (
       err.message?.includes("認証が必要です") ||
-      err.message?.includes("Invalid")
+      err.message?.includes("Invalid") ||
+      err.message?.includes("認証")
     ) {
       return createAuthErrorResponse();
     }
@@ -127,18 +139,28 @@ export async function POST(request: NextRequest) {
         type: err.type,
         code: err.code,
       });
+      // 本番環境では詳細を隠す
+      const errorMessage = isProduction
+        ? "決済処理中にエラーが発生しました。しばらくしてから再試行してください。"
+        : `決済処理中にエラーが発生しました: ${err.message} (Type: ${err.type}, Code: ${err.code})`;
       return NextResponse.json(
-        { error: `決済処理中にエラーが発生しました: ${err.message}` },
+        { error: errorMessage },
         { status: 500 }
       );
     }
 
+    // その他のエラー
+    const errorMessage = isProduction
+      ? "決済セッションの作成中にエラーが発生しました。しばらくしてから再試行してください。"
+      : `決済セッションの作成中にエラーが発生しました: ${err.message}`;
+    
     return NextResponse.json(
-      { error: "決済セッションの作成中にエラーが発生しました" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
 }
+
 
 
 

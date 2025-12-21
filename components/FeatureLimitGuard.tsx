@@ -112,7 +112,6 @@ function FeatureLimitMessage({
       spacedRepetition: "スペーシング復習",
       adFree: "広告非表示",
       offlineQuestions: "オフライン問題",
-      prioritySupport: "優先サポート",
       customStudyPlans: "カスタム学習プラン",
       pastExamYears: "過去問年数",
     };

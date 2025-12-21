@@ -20,3 +20,4 @@ export default function FirebaseInitializer() {
   // このコンポーネントはUIを持たない
   return null;
 }
+
