@@ -3,7 +3,6 @@ import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
-import VercelAnalytics from "@/components/VercelAnalytics";
 
 export const metadata: Metadata = {
   title: "宅建合格ロード",
@@ -82,7 +81,6 @@ export default function RootLayout({
           {children}
           <PWAInstallPrompt />
         </SubscriptionProvider>
-        <VercelAnalytics />
       </body>
     </html>
   );
