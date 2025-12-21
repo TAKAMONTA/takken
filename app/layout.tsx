@@ -3,7 +3,11 @@ import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
-import { Analytics } from "@vercel/analytics/react";
+import dynamic from "next/dynamic";
+
+const Analytics = dynamic(() => import("@vercel/analytics/react").then((mod) => mod.Analytics), {
+  ssr: false,
+});
 
 export const metadata: Metadata = {
   title: "宅建合格ロード",
