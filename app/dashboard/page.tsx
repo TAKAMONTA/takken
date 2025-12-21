@@ -16,6 +16,8 @@ import AdSense from "@/components/AdSense";
 import { logger } from "@/lib/logger";
 import StudyInfoSection from "@/components/StudyInfoSection";
 import { UserProfile } from "@/lib/types";
+import SubscriptionBadge from "@/components/SubscriptionBadge";
+import AIUsageIndicator from "@/components/AIUsageIndicator";
 
 // シンプルな学習オプション
 const quickActions = [
@@ -281,22 +283,26 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* シンプルなヘッダー */}
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
-                {user?.name?.charAt(0) || "U"}
-              </span>
+        <div className="max-w-md mx-auto px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-lg">
+                  {user?.name?.charAt(0) || "U"}
+                </span>
+              </div>
+              <div>
+                <h1 className="text-lg font-medium text-gray-900">
+                  こんにちは、{user?.name || "ユーザー"}さん！
+                </h1>
+                <p className="text-sm text-gray-600">
+                  今日も学習を頑張りましょう
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-medium text-gray-900">
-                こんにちは、{user?.name || "ユーザー"}さん！
-              </h1>
-              <p className="text-sm text-gray-600">
-                今日も学習を頑張りましょう
-              </p>
-            </div>
+            <SubscriptionBadge />
           </div>
+          <AIUsageIndicator showUpgradeButton={false} />
         </div>
       </header>
 

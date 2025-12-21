@@ -5,6 +5,7 @@ import { SubscriptionPlan, SubscriptionStatus, PLAN_CONFIGS } from "@/lib/types/
 import { firestoreService } from "@/lib/firestore-service";
 import { logger } from "@/lib/logger";
 import { getAuth } from "firebase/auth";
+import { fetchWithRetry, parseAPIError, getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 
 /**
  * サブスクリプション情報の型定義
@@ -236,12 +237,19 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         body: requestBody
       });
 
-      // APIを呼び出してCheckoutセッションを作成
-      const response = await fetch("/api/subscription/create-checkout-session", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(requestBody),
-      });
+      // APIを呼び出してCheckoutセッションを作成（リトライ付き）
+      const response = await fetchWithRetry(
+        "/api/subscription/create-checkout-session",
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify(requestBody),
+        },
+        {
+          maxRetries: 2,
+          retryDelay: 1000,
+        }
+      );
 
       console.log("[Checkout] APIレスポンス受信", { 
         status: response.status, 
@@ -250,26 +258,24 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       });
 
       if (!response.ok) {
-        let errorMessage = "Checkoutセッションの作成に失敗しました";
+        // エラーデータを取得
+        let errorData: any = null;
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-          logger.error("APIエラーレスポンス", { 
-            status: response.status, 
-            statusText: response.statusText,
-            error: errorData 
-          });
+          errorData = await response.json();
         } catch (parseError) {
-          // JSONパースに失敗した場合、レスポンステキストを取得
-          const text = await response.text();
-          errorMessage = `HTTP ${response.status}: ${text || response.statusText}`;
-          logger.error("APIエラー（JSONパース失敗）", { 
-            status: response.status, 
-            statusText: response.statusText,
-            body: text 
-          });
+          errorData = { error: response.statusText };
         }
-        throw new Error(errorMessage);
+
+        // APIエラーを解析
+        const apiError = parseAPIError(response, errorData);
+        logger.error("APIエラーレスポンス", { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorData,
+          errorType: apiError.type,
+        });
+
+        throw apiError;
       }
 
       const data = await response.json();
@@ -284,13 +290,16 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       return data.url;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
+      const friendlyMessage = getUserFriendlyErrorMessage(error);
+      
       console.error("[Checkout] エラー発生", { 
-        message: error.message, 
+        message: error.message,
+        friendlyMessage,
         stack: error.stack,
         name: error.name 
       });
       logger.error("Checkoutセッション作成エラー", error);
-      setError(error.message);
+      setError(friendlyMessage);
       return null;
     }
   };

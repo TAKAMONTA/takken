@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSubscription } from "@/lib/hooks/use-subscription";
 import { SubscriptionPlan, PLAN_CONFIGS } from "@/lib/types/subscription";
 import { useRouter } from "next/navigation";
+import { getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 
 export default function PricingPage() {
   const { subscription, isLoading, error, createCheckoutSession } = useSubscription();
@@ -40,13 +41,31 @@ export default function PricingPage() {
       } else {
         // より詳細なエラーメッセージを表示
         console.error("[Pricing] Checkoutセッション作成失敗: URLがnull");
-        const errorDetails = error || subscription?.error || "不明なエラー";
-        alert(`決済セッションの作成に失敗しました。\n\nエラー詳細: ${errorDetails}\n\n考えられる原因:\n- ログインが必要です\n- サーバー側でエラーが発生しました\n\nVercelのログで詳細を確認してください。`);
+        const errorMessage = error || subscription?.error || "不明なエラーが発生しました";
+        const friendlyMessage = getUserFriendlyErrorMessage(new Error(errorMessage));
+        
+        alert(
+          `決済セッションの作成に失敗しました\n\n` +
+          `${friendlyMessage}\n\n` +
+          `以下をお試しください：\n` +
+          `• ページを再読み込みして再度お試しください\n` +
+          `• インターネット接続を確認してください\n` +
+          `• 問題が続く場合は、サポートページからお問い合わせください`
+        );
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
+      const friendlyMessage = getUserFriendlyErrorMessage(error);
+      
       console.error("[Pricing] エラー発生:", error);
-      alert(`エラーが発生しました: ${error.message}\n\n詳細情報がコンソールに表示されています。`);
+      alert(
+        `エラーが発生しました\n\n` +
+        `${friendlyMessage}\n\n` +
+        `以下をお試しください：\n` +
+        `• ページを再読み込みして再度お試しください\n` +
+        `• インターネット接続を確認してください\n` +
+        `• 問題が続く場合は、サポートページからお問い合わせください`
+      );
     } finally {
       console.log("[Pricing] 処理完了");
       setIsProcessing(false);
@@ -324,6 +343,104 @@ export default function PricingPage() {
                 ? "現在のプラン"
                 : `${selectedYearly ? "年額" : "月額"}プランに登録`}
             </button>
+          </div>
+        </div>
+
+        {/* 詳細なプラン比較表 */}
+        <div className="mt-16 max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
+            プラン詳細比較
+          </h2>
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                    機能
+                  </th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
+                    無料プラン
+                  </th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-purple-600 bg-purple-50">
+                    プレミアムプラン
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-900">問題演習数</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-600">
+                    {freeConfig.features.questionLimit}問まで
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center font-semibold text-green-600">
+                    無制限
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">AI解説機能</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-600">
+                    月{freeConfig.features.aiExplanationLimit}回まで
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center font-semibold text-green-600">
+                    無制限
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-900">過去問年度</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-600">
+                    直近{freeConfig.features.pastExamYears}年分
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center font-semibold text-green-600">
+                    全年度
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">広告表示</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-600">
+                    表示あり
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center font-semibold text-green-600">
+                    広告なし
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-900">高度な分析機能</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-gray-400">✕</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-green-600 font-semibold">✓</span>
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">合格者パターン分析</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-gray-400">✕</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-green-600 font-semibold">✓</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-900">オフライン問題</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-gray-400">✕</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-green-600 font-semibold">✓</span>
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">カスタム学習プラン</td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-gray-400">✕</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-center">
+                    <span className="text-green-600 font-semibold">✓</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
