@@ -45,3 +45,6 @@ Write-Host "`n✅ クリップボードにコピーしました！" -ForegroundC
 Write-Host "   .env.local を開いて、FIREBASE_SERVICE_ACCOUNT_KEY= の後に貼り付けてください。" -ForegroundColor Cyan
 
 
+
+
+

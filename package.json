@@ -23,7 +23,17 @@
     "deploy:functions": "bash scripts/deploy/deploy-functions.sh",
     "deploy:functions:win": "call scripts/deploy/deploy-functions.bat",
     "duplicate:questions": "ts-node scripts/check/duplicates.ts",
-    "check:questions": "ts-node scripts/check/question-counts.ts"
+    "check:questions": "ts-node scripts/check/question-counts.ts",
+    "check:subscription": "ts-node scripts/check-subscription-data.ts",
+    "check:webhook": "ts-node scripts/check-stripe-webhook-events.ts",
+    "verify:webhook": "ts-node scripts/check-stripe-webhook-events.ts && ts-node scripts/check-subscription-data.ts",
+    "generate:prediction": "ts-node scripts/generate/generate-prediction-questions.ts",
+    "generate:prediction:takkengyouhou": "ts-node scripts/generate/generate-prediction-questions.ts takkengyouhou",
+    "generate:prediction:minpou": "ts-node scripts/generate/generate-prediction-questions.ts minpou",
+    "generate:prediction:hourei": "ts-node scripts/generate/generate-prediction-questions.ts hourei",
+    "generate:prediction:zeihou": "ts-node scripts/generate/generate-prediction-questions.ts zeihou",
+    "test:prediction": "ts-node scripts/generate/test-prediction.ts",
+    "integrate:prediction": "ts-node scripts/integrate/integrate-prediction-questions.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.9.1",

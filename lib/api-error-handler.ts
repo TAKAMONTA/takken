@@ -236,3 +236,6 @@ export function getUserFriendlyErrorMessage(error: Error | APIError): string {
 
   return error.message || "エラーが発生しました。しばらく待ってから再試行してください。";
 }
+
+
+

@@ -46,7 +46,7 @@ export default function Practice() {
             >
               <i className="ri-arrow-left-line text-xl"></i>
             </Link>
-            <h1 className="text-lg font-medium text-gray-900">学習</h1>
+            <h1 className="text-lg font-medium text-gray-900">AI予想問題</h1>
           </div>
         </div>
       </header>

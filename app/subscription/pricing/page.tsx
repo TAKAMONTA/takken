@@ -164,7 +164,7 @@ export default function PricingPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                過去問演習（{freeConfig.features.questionLimit === -1 ? "無制限" : `${freeConfig.features.questionLimit}問まで`}）
+                AI予想問題（{freeConfig.features.questionLimit === -1 ? "無制限" : `${freeConfig.features.questionLimit}問まで`}）
               </li>
               <li className="flex items-center">
                 <svg

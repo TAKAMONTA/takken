@@ -48,13 +48,13 @@ export default function Home() {
               className="text-2xl font-medium mb-4 fade-in"
               style={{ animationDelay: "0.1s" }}
             >
-              宅建合格への道のりを始めよう
+              AI予想問題で宅建合格を目指そう
             </h2>
             <p
               className="text-minimal max-w-md mx-auto fade-in"
               style={{ animationDelay: "0.2s" }}
             >
-              AI先生と一緒に楽しく宅建試験に合格しよう
+              AIが生成する高品質な予想問題で、最新の法改正や頻出トピックを徹底攻略！
             </p>
           </section>
 
@@ -169,10 +169,10 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 mb-1">
-                    過去問演習アプリ
+                    AI予想問題アプリ
                   </p>
                   <p className="text-sm text-gray-600">
-                    宅地建物取引士試験の過去問題を効率的に学習できる学習支援アプリケーションです
+                    宅地建物取引士試験のAI生成予想問題で効率的に学習できる学習支援アプリケーションです
                   </p>
                 </div>
               </div>

@@ -5,8 +5,8 @@ import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
 
 export const metadata: Metadata = {
-  title: "宅建合格ロード",
-  description: "AI先生と一緒に楽しく宅建試験に合格しよう！",
+  title: "宅建合格ロード - AI予想問題で学ぶ",
+  description: "AI生成の予想問題で宅建試験対策！最新の法改正や頻出トピックを徹底カバー。AI先生と一緒に効率的に合格を目指そう！",
 };
 
 export default function RootLayout({

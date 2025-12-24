@@ -1,6 +1,14 @@
-# Takken RPG (宅建RPG)
+# 宅建合格ロード - AI予想問題アプリ
 
-宅建試験対策のためのRPG風学習アプリケーションです。
+宅建試験対策のためのAI予想問題学習アプリケーションです。
+
+## 特徴
+
+- 🤖 **AI生成予想問題**: 過去問ではなく、AIが試験傾向を分析して生成した高品質な予想問題
+- 📚 **豊富な問題数**: 各カテゴリ200-300問、合計800-1000問以上
+- 🎯 **最新対応**: 最新の法改正や頻出トピックを反映
+- 💡 **AI学習サポート**: わからない問題はAI先生が丁寧に解説
+- 📊 **弱点分析**: あなたの苦手分野を自動分析して効率的に学習
 
 ## プロジェクト構造
 
@@ -26,16 +34,19 @@ takken/
 
 ## スクリプトの使用方法
 
-### 問題データの生成
+### AI予想問題の生成
 
-AIを使用して問題データを生成します。
+AIを使用して予想問題データを生成します。
 
 ```bash
-# 全カテゴリの問題を一括生成
-npm run generate:all
+# 全カテゴリの予想問題を一括生成（推奨）
+npm run generate:prediction
 
-# 個別の生成スクリプト実行（例：宅建業法）
-npx ts-node scripts/generate/generate-takkengyouhou-50.ts
+# カテゴリ別に生成
+npm run generate:prediction:takkengyouhou  # 宅建業法（約260問）
+npm run generate:prediction:minpou         # 民法等（約300問）
+npm run generate:prediction:hourei         # 法令上の制限（約220問）
+npm run generate:prediction:zeihou         # 税・その他（約200問）
 ```
 
 ### デプロイ

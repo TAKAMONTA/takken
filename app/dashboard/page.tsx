@@ -23,9 +23,9 @@ import AIUsageIndicator from "@/components/AIUsageIndicator";
 const quickActions = [
   {
     id: "practice",
-    title: "学習開始",
+    title: "AI予想問題",
     icon: "ri-book-open-line",
-    description: "分野別に問題を解く",
+    description: "AI生成問題を分野別に学習",
     route: "/practice",
   },
   {

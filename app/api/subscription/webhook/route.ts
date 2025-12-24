@@ -171,6 +171,14 @@ async function handleCheckoutSessionCompleted(
       ? SubscriptionPlan.PREMIUM
       : SubscriptionPlan.FREE;
 
+    // 日付の検証とヘルパー関数
+    const toFirestoreTimestamp = (unixSeconds: number | undefined): Date | FieldValue => {
+      if (unixSeconds && typeof unixSeconds === 'number' && !isNaN(unixSeconds)) {
+        return new Date(unixSeconds * 1000);
+      }
+      return FieldValue.serverTimestamp();
+    };
+
     // 既存のFirestoreサービスとの互換性を保つため、両方の形式で保存
     const subscriptionData = {
       userId,
@@ -179,11 +187,11 @@ async function handleCheckoutSessionCompleted(
       status: mapStripeStatusToSubscriptionStatus(subscription.status),
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: subscription.customer as string,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      startDate: new Date(subscription.current_period_start * 1000), // 既存形式との互換性
-      endDate: new Date(subscription.current_period_end * 1000), // 既存形式との互換性
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodStart: toFirestoreTimestamp(subscription.current_period_start),
+      currentPeriodEnd: toFirestoreTimestamp(subscription.current_period_end),
+      startDate: toFirestoreTimestamp(subscription.current_period_start), // 既存形式との互換性
+      endDate: toFirestoreTimestamp(subscription.current_period_end), // 既存形式との互換性
+      cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       autoRenew: !subscription.cancel_at_period_end, // 既存形式との互換性
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -232,14 +240,22 @@ async function handleSubscriptionUpdated(subscription: any) {
     const subscriptionDoc = subscriptionsSnapshot.docs[0];
     const userId = subscriptionDoc.id;
 
+    // 日付の検証とヘルパー関数
+    const toFirestoreTimestamp = (unixSeconds: number | undefined): Date | FieldValue => {
+      if (unixSeconds && typeof unixSeconds === 'number' && !isNaN(unixSeconds)) {
+        return new Date(unixSeconds * 1000);
+      }
+      return FieldValue.serverTimestamp();
+    };
+
     // サブスクリプション情報を更新（既存形式との互換性も保つ）
     await subscriptionDoc.ref.update({
       status: mapStripeStatusToSubscriptionStatus(subscription.status),
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      startDate: new Date(subscription.current_period_start * 1000), // 既存形式との互換性
-      endDate: new Date(subscription.current_period_end * 1000), // 既存形式との互換性
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodStart: toFirestoreTimestamp(subscription.current_period_start),
+      currentPeriodEnd: toFirestoreTimestamp(subscription.current_period_end),
+      startDate: toFirestoreTimestamp(subscription.current_period_start), // 既存形式との互換性
+      endDate: toFirestoreTimestamp(subscription.current_period_end), // 既存形式との互換性
+      cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       autoRenew: !subscription.cancel_at_period_end, // 既存形式との互換性
       updatedAt: FieldValue.serverTimestamp(),
     });
