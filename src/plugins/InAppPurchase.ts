@@ -7,9 +7,9 @@ export interface InAppPurchasePlugin {
   getProducts(productIds: string[]): Promise<{ products: Product[] }>;
 
   /**
-   * サブスクリプションを購入
+   * サブスクリプションを購入（ネイティブは options.productId を参照）
    */
-  purchaseSubscription(productId: string): Promise<{ transaction: Transaction }>;
+  purchaseSubscription(options: { productId: string }): Promise<{ transaction: Transaction }>;
 
   /**
    * 購入履歴を取得

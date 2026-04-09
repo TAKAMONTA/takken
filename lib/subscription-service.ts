@@ -81,7 +81,9 @@ export class SubscriptionService {
         throw new Error('Plan not found');
       }
 
-      const result = await InAppPurchase.purchaseSubscription(plan.productId);
+      const result = await InAppPurchase.purchaseSubscription({
+        productId: plan.productId,
+      });
       
       if (result.transaction) {
         // Firestoreにサブスクリプション情報を保存

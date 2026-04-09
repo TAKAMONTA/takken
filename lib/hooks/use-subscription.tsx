@@ -6,6 +6,8 @@ import { firestoreService } from "@/lib/firestore-service";
 import { logger } from "@/lib/logger";
 import { getAuth } from "firebase/auth";
 import { fetchWithRetry, parseAPIError, getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
+import { Capacitor } from "@capacitor/core";
+import InAppPurchase from "@/src/plugins/InAppPurchase";
 
 /**
  * サブスクリプション情報の型定義
@@ -29,6 +31,7 @@ interface SubscriptionContextType {
   error: string | null;
   refreshSubscription: () => Promise<void>;
   createCheckoutSession: (plan: SubscriptionPlan, yearly?: boolean) => Promise<string | null>;
+  restorePurchases: () => Promise<void>;
   hasFeatureAccess: (feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features']) => boolean;
   getFeatureLimit: (feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features']) => number;
   canUseFeature: (feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features'], currentUsage?: number) => boolean;
@@ -109,6 +112,35 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         return;
       }
 
+      // iOSの場合はネイティブからアクティブなサブスクリプションを確認
+      if (Capacitor.getPlatform() === 'ios') {
+        try {
+          const { subscriptions } = await InAppPurchase.getActiveSubscriptions();
+          const activeSub = subscriptions.find(s => s.isActive);
+
+          if (activeSub) {
+            const planConfig = Object.values(PLAN_CONFIGS).find(c =>
+              c.applePriceId === activeSub.productId || c.appleYearlyPriceId === activeSub.productId
+            );
+
+            if (planConfig) {
+              setSubscription({
+                plan: planConfig.id,
+                status: SubscriptionStatus.ACTIVE,
+                cancelAtPeriodEnd: !activeSub.willRenew,
+                isLoading: false,
+                error: null,
+                endDate: activeSub.expirationDate ? new Date(activeSub.expirationDate) : undefined
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (nativeError) {
+          logger.error("Native subscription check failed", nativeError instanceof Error ? nativeError : new Error(String(nativeError)));
+        }
+      }
+
       // Firestoreからサブスクリプション情報を取得
       const userSubscription = await firestoreService.getUserSubscription(userId);
 
@@ -177,13 +209,51 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   ): Promise<string | null> => {
     try {
       console.log("[Checkout] セッション作成開始", { plan, yearly });
-      
+
       const userId = getCurrentUserId();
       console.log("[Checkout] ユーザーID取得", { userId: userId ? `${userId.substring(0, 8)}...` : "なし" });
-      
+
       if (!userId) {
         console.error("[Checkout] エラー: ユーザーIDが取得できませんでした");
         throw new Error("ログインが必要です");
+      }
+
+      // iOS環境の場合はネイティブ決済を行う
+      if (Capacitor.getPlatform() === 'ios') {
+        const config = PLAN_CONFIGS[plan];
+        const appleId = yearly ? config.appleYearlyPriceId : config.applePriceId;
+
+        if (!appleId) {
+          throw new Error("iOS用の商品IDが設定されていません");
+        }
+
+        console.log("[NativePurchase] iOS 決済開始", { appleId });
+        let result;
+        try {
+          result = await InAppPurchase.purchaseSubscription({
+            productId: appleId,
+          });
+        } catch (nativeErr: unknown) {
+          const msg = nativeErr instanceof Error ? nativeErr.message : String(nativeErr);
+          const code = typeof (nativeErr as { code?: string })?.code === 'string' ? (nativeErr as { code: string }).code : '';
+          // 商品未登録・未提出時に StoreKit が返すエラーを分かりやすく表示
+          if (msg.includes('Product not found') || msg.includes('not found') || code === 'PRODUCT_NOT_FOUND') {
+            throw new Error('この商品は現在準備中です。しばらく経ってから再度お試しください。');
+          }
+          if (msg.includes('User cancelled') || code === 'USER_CANCELLED') {
+            throw new Error('購入がキャンセルされました。');
+          }
+          throw nativeErr;
+        }
+        const { transaction } = result;
+        console.log("[NativePurchase] iOS 決済完了", transaction);
+
+        // TODO: サーバーサイドで検証(Apple Server-to-Server通知等)が必要だが、
+        // 現時点では即時リフレッシュ
+        await loadSubscription();
+
+        // iOSではURLは不要
+        return "native-purchase-success";
       }
 
       // ヘッダーを準備
@@ -197,7 +267,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         const auth = getAuth();
         user = auth.currentUser;
         console.log("[Checkout] Firebase認証ユーザー", { hasUser: !!user });
-        
+
         // Firebase認証ユーザーがいない場合、認証状態を再確認
         if (!user) {
           // 少し待ってから再確認（認証状態の同期を待つ）
@@ -206,7 +276,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
           user = auth.currentUser;
           console.log("[Checkout] 再確認後のFirebase認証ユーザー", { hasUser: !!user });
         }
-        
+
         if (user) {
           // Firebase認証ユーザーがいる場合はトークンを使用
           console.log("[Checkout] Firebase IDトークンを取得中...");
@@ -218,7 +288,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         // Firebase App が初期化されていない場合はスキップ
         console.warn("[Checkout] Firebase未初期化、ローカルストレージ認証を使用", firebaseError);
       }
-      
+
       if (!user) {
         // ローカルストレージ認証の場合は、userIdをヘッダーに含める
         headers["X-User-Id"] = userId;
@@ -230,7 +300,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         plan,
         yearly,
       };
-      console.log("[Checkout] APIリクエスト送信", { 
+      console.log("[Checkout] APIリクエスト送信", {
         url: "/api/subscription/create-checkout-session",
         method: "POST",
         headers: { ...headers, Authorization: headers.Authorization ? "Bearer ***" : undefined },
@@ -251,10 +321,10 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         }
       );
 
-      console.log("[Checkout] APIレスポンス受信", { 
-        status: response.status, 
+      console.log("[Checkout] APIレスポンス受信", {
+        status: response.status,
         statusText: response.statusText,
-        ok: response.ok 
+        ok: response.ok
       });
 
       if (!response.ok) {
@@ -268,8 +338,8 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
         // APIエラーを解析
         const apiError = parseAPIError(response, errorData);
-        logger.error("APIエラーレスポンス", { 
-          status: response.status, 
+        logger.error("APIエラーレスポンス", {
+          status: response.status,
           statusText: response.statusText,
           error: errorData,
           errorType: apiError.type,
@@ -291,12 +361,12 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       const friendlyMessage = getUserFriendlyErrorMessage(error);
-      
-      console.error("[Checkout] エラー発生", { 
+
+      console.error("[Checkout] エラー発生", {
         message: error.message,
         friendlyMessage,
         stack: error.stack,
-        name: error.name 
+        name: error.name
       });
       logger.error("Checkoutセッション作成エラー", error);
       setError(friendlyMessage);
@@ -364,6 +434,27 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     return currentUsage < limit;
   };
 
+  /**
+   * 購入を復元
+   */
+  const restorePurchases = async () => {
+    if (Capacitor.getPlatform() !== 'ios') return;
+
+    setIsLoading(true);
+    try {
+      console.log("[NativePurchase] 購入の復元開始");
+      await InAppPurchase.restorePurchases();
+      await loadSubscription();
+      console.log("[NativePurchase] 購入の復元完了");
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error("購入の復元エラー", error);
+      setError("購入の復元に失敗しました");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 初期化時にサブスクリプション情報を読み込む
   useEffect(() => {
     loadSubscription();
@@ -375,6 +466,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     error,
     refreshSubscription,
     createCheckoutSession,
+    restorePurchases,
     hasFeatureAccess,
     getFeatureLimit,
     canUseFeature,

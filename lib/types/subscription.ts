@@ -100,9 +100,11 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     id: SubscriptionPlan.PREMIUM,
     name: 'プレミアムプラン',
     description: '全機能を無制限で利用できます',
-    price: 980,
-    yearlyPrice: 9800, // 2ヶ月分お得
+    price: 1000,
+    yearlyPrice: 9000, // 3ヶ月分お得
     popular: true,
+    applePriceId: 'com.takamonta.takken.premium.monthly',
+    appleYearlyPriceId: 'com.takamonta.takken.premium.yearly',
     features: {
       questionLimit: -1, // 無制限
       pastExamYears: -1, // 無制限（実際の年度数ではなく、すべての問題にアクセス可能）
@@ -139,13 +141,13 @@ export function canUseFeature(
   currentUsage?: number
 ): boolean {
   const limit = getFeatureLimit(userPlan, feature);
-  
+
   // 無制限の場合
   if (limit === -1) return true;
-  
+
   // 使用量が指定されていない場合は制限のみチェック
   if (currentUsage === undefined) return limit > 0;
-  
+
   // 使用量が制限内かチェック
   return currentUsage < limit;
 }

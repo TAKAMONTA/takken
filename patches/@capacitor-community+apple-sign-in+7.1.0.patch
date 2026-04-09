@@ -1,0 +1,81 @@
+diff --git a/node_modules/@capacitor-community/apple-sign-in/Package.swift b/node_modules/@capacitor-community/apple-sign-in/Package.swift
+index 1234567..abcdefg 100644
+--- a/node_modules/@capacitor-community/apple-sign-in/Package.swift
++++ b/node_modules/@capacitor-community/apple-sign-in/Package.swift
+@@ -10,7 +10,7 @@ let package = Package(
+     ],
+     dependencies: [
+-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.0.0")
++        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", "7.0.0"..<"9.0.0")
+     ],
+     targets: [
+diff --git a/node_modules/@capacitor-community/apple-sign-in/ios/Sources/SignInWithApple/Plugin.swift b/node_modules/@capacitor-community/apple-sign-in/ios/Sources/SignInWithApple/Plugin.swift
+index f53087c..6efe4d9 100755
+--- a/node_modules/@capacitor-community/apple-sign-in/ios/Sources/SignInWithApple/Plugin.swift
++++ b/node_modules/@capacitor-community/apple-sign-in/ios/Sources/SignInWithApple/Plugin.swift
+@@ -1,4 +1,5 @@
+ import Foundation
++import UIKit
+ import Capacitor
+ import AuthenticationServices
+ 
+@@ -24,6 +25,7 @@ public class SignInWithApple: CAPPlugin, CAPBridgedPlugin {
+ 
+         let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+         authorizationController.delegate = self
++        authorizationController.presentationContextProvider = self
+         authorizationController.performRequests()
+     }
+ 
+@@ -58,14 +60,22 @@ extension SignInWithApple: ASAuthorizationControllerDelegate {
+             return
+         }
+ 
++        guard let tokenData = appleIDCredential.identityToken,
++              let identityToken = String(data: tokenData, encoding: .utf8) else {
++            call.reject("Missing Apple identity token")
++            self.bridge?.releaseCall(call)
++            return
++        }
++        let authCode = appleIDCredential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) } ?? ""
++
+         let result = [
+             "response": [
+                 "user": appleIDCredential.user,
+                 "email": appleIDCredential.email,
+                 "givenName": appleIDCredential.fullName?.givenName,
+                 "familyName": appleIDCredential.fullName?.familyName,
+-                "identityToken": String(data: appleIDCredential.identityToken!, encoding: .utf8),
+-                "authorizationCode": String(data: appleIDCredential.authorizationCode!, encoding: .utf8)
++                "identityToken": identityToken,
++                "authorizationCode": authCode
+             ]
+         ]
+ 
+@@ -83,3 +93,26 @@ extension SignInWithApple: ASAuthorizationControllerDelegate {
+         self.bridge?.releaseCall(call)
+     }
+ }
++
++extension SignInWithApple: ASAuthorizationControllerPresentationContextProviding {
++    public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
++        if let window = self.bridge?.viewController?.view.window {
++            return window
++        }
++        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
++        for scene in scenes {
++            if let window = scene.windows.first(where: { $0.isKeyWindow }) {
++                return window
++            }
++        }
++        for scene in scenes {
++            if let window = scene.windows.first {
++                return window
++            }
++        }
++        if let window = self.webView?.window {
++            return window
++        }
++        return UIWindow(frame: UIScreen.main.bounds)
++    }
++}
