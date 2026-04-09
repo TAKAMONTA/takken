@@ -1,19 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // API Routesを有効化するため、静的エクスポートを無効化
-  // ⚠️ 重要: API Routes (app/api/*) を使用するには、Node.jsサーバーが必要です
-  // 
-  // デプロイオプション:
-  // 1. Vercel (推奨) - Next.jsのAPI Routesを完全サポート
-  // 2. Node.jsサーバー (自前ホスティング)
-  // 3. Firebase Hosting + Firebase Functions - APIロジックをFunctionsに移行
-  //
-  // 注意: Firebase HostingのみではAPI Routesは動作しません
-  // output: "export" を削除したため、静的エクスポートは無効化されています
+  // ビルドモード切り替え:
+  // - Vercel (Web): サーバーモード (API Routes有効)
+  // - Capacitor (iOS): 静的エクスポート (CAPACITOR_BUILD=true で有効化)
+  ...(process.env.CAPACITOR_BUILD ? { output: "export" } : {}),
   
   // trailingSlash: true, // API Routes使用時は通常false
   images: {
-    unoptimized: false, // API Routes使用時は最適化を有効化可能
+    unoptimized: true, // API Routes使用時は最適化を有効化可能
   },
   typescript: {
     ignoreBuildErrors: false, // 型エラーは表示するが、ビルドを継続
