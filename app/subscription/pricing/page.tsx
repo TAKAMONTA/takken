@@ -8,14 +8,14 @@ import { useRouter } from "next/navigation";
 import { getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 
 export default function PricingPage() {
-  const { subscription, isLoading, error, createCheckoutSession } = useSubscription();
+  const { subscription, isLoading, error, createCheckoutSession, restorePurchases } = useSubscription();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedYearly, setSelectedYearly] = useState(false);
   const router = useRouter();
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     console.log("[Pricing] 登録ボタンクリック", { plan, selectedYearly });
-    
+
     if (plan === SubscriptionPlan.FREE) {
       console.log("[Pricing] 無料プランはスキップ");
       return;
@@ -29,12 +29,12 @@ export default function PricingPage() {
     try {
       console.log("[Pricing] createCheckoutSession呼び出し直前");
       const checkoutUrl = await createCheckoutSession(plan, selectedYearly);
-      console.log("[Pricing] createCheckoutSession完了", { 
-        hasUrl: !!checkoutUrl, 
+      console.log("[Pricing] createCheckoutSession完了", {
+        hasUrl: !!checkoutUrl,
         urlType: typeof checkoutUrl,
         url: checkoutUrl ? checkoutUrl.substring(0, 50) + "..." : "null"
       });
-      
+
       if (checkoutUrl) {
         console.log("[Pricing] Checkoutページにリダイレクト");
         window.location.href = checkoutUrl;
@@ -43,7 +43,7 @@ export default function PricingPage() {
         console.error("[Pricing] Checkoutセッション作成失敗: URLがnull");
         const errorMessage = error || subscription?.error || "不明なエラーが発生しました";
         const friendlyMessage = getUserFriendlyErrorMessage(new Error(errorMessage));
-        
+
         alert(
           `決済セッションの作成に失敗しました\n\n` +
           `${friendlyMessage}\n\n` +
@@ -56,7 +56,7 @@ export default function PricingPage() {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       const friendlyMessage = getUserFriendlyErrorMessage(error);
-      
+
       console.error("[Pricing] エラー発生:", error);
       alert(
         `エラーが発生しました\n\n` +
@@ -110,21 +110,19 @@ export default function PricingPage() {
           <div className="bg-white rounded-lg p-1 shadow-sm inline-flex">
             <button
               onClick={() => setSelectedYearly(false)}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                !selectedYearly
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${!selectedYearly
                   ? "bg-purple-600 text-white"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               月額
             </button>
             <button
               onClick={() => setSelectedYearly(true)}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                selectedYearly
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${selectedYearly
                   ? "bg-purple-600 text-white"
                   : "text-gray-600 hover:text-gray-900"
-              }`}
+                }`}
             >
               年額
               {premiumConfig.yearlyPrice && (
@@ -192,7 +190,7 @@ export default function PricingPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                過去問: 直近{freeConfig.features.pastExamYears}年分
+                AI予想問題（{freeConfig.features.questionLimit}問まで）
               </li>
               <li className="flex items-center">
                 <svg
@@ -225,11 +223,10 @@ export default function PricingPage() {
             </ul>
 
             <button
-              className={`w-full py-3 px-6 rounded-lg font-medium ${
-                currentPlan === SubscriptionPlan.FREE
+              className={`w-full py-3 px-6 rounded-lg font-medium ${currentPlan === SubscriptionPlan.FREE
                   ? "bg-gray-500 text-white cursor-not-allowed"
                   : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-              }`}
+                }`}
               disabled={currentPlan === SubscriptionPlan.FREE}
             >
               {currentPlan === SubscriptionPlan.FREE ? "現在のプラン" : "ダウングレード"}
@@ -310,7 +307,7 @@ export default function PricingPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                無制限の過去問演習
+                無制限のAI予想問題
               </li>
               <li className="flex items-center">
                 <svg
@@ -331,19 +328,27 @@ export default function PricingPage() {
             <button
               onClick={() => handleSubscribe(SubscriptionPlan.PREMIUM)}
               disabled={isProcessing || isLoading || currentPlan === SubscriptionPlan.PREMIUM}
-              className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                currentPlan === SubscriptionPlan.PREMIUM
+              className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${currentPlan === SubscriptionPlan.PREMIUM
                   ? "bg-gray-500 text-white cursor-not-allowed"
                   : "bg-purple-600 hover:bg-purple-700 text-white"
-              }`}
+                }`}
             >
               {isProcessing
                 ? "処理中..."
                 : currentPlan === SubscriptionPlan.PREMIUM
-                ? "現在のプラン"
-                : `${selectedYearly ? "年額" : "月額"}プランに登録`}
+                  ? "現在のプラン"
+                  : `${selectedYearly ? "年額" : "月額"}プランに登録`}
             </button>
           </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <button
+            onClick={restorePurchases}
+            className="text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            購入を復元する
+          </button>
         </div>
 
         {/* 詳細なプラン比較表 */}
@@ -386,12 +391,12 @@ export default function PricingPage() {
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 text-sm text-gray-900">過去問年度</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">AI予想問題数</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-600">
-                    直近{freeConfig.features.pastExamYears}年分
+                    {freeConfig.features.questionLimit}問まで
                   </td>
                   <td className="px-6 py-4 text-sm text-center font-semibold text-green-600">
-                    全年度
+                    無制限
                   </td>
                 </tr>
                 <tr className="bg-gray-50">

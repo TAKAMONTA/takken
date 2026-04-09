@@ -1,8 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useIsIOSApp } from "@/lib/use-is-ios-app";
+import { getAppPublicBaseUrl } from "@/lib/app-public-base-url";
 
 export default function SubscriptionPage() {
+  const isIOSApp = useIsIOSApp();
+  const publicBase = getAppPublicBaseUrl();
+  const termsUrl = `${publicBase}/settings/terms`;
+  const privacyUrl = `${publicBase}/settings/privacy`;
+  const appleEulaUrl =
+    "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -33,7 +41,7 @@ export default function SubscriptionPage() {
               </h3>
               <p className="text-sm text-blue-800">
                 プレミアムプランは
-                <strong>Web版・iOS/Androidアプリ</strong>
+                <strong>{isIOSApp ? "Web版・iOSアプリ" : "Web版・iOS/Androidアプリ"}</strong>
                 でご利用いただけます。
                 <br />
                 Stripe経由で安全に決済できます。
@@ -57,7 +65,7 @@ export default function SubscriptionPage() {
             </h3>
             <p className="text-gray-600 mb-4">基本機能をご利用いただけます</p>
             <div className="text-sm text-gray-500">
-              AI機能: 月20回まで / 問題演習: 300問まで / 過去問: 直近2年分 / 広告表示あり
+              AI機能: 月20回まで / AI予想問題: 300問まで / 広告表示あり
             </div>
           </div>
         </div>
@@ -88,7 +96,7 @@ export default function SubscriptionPage() {
               <div className="w-5 h-5 rounded-full flex items-center justify-center bg-purple-100">
                 <i className="ri-check-line text-sm text-purple-600"></i>
               </div>
-              <span className="text-sm text-gray-900">無制限の過去問演習</span>
+              <span className="text-sm text-gray-900">無制限のAI予想問題</span>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -115,10 +123,10 @@ export default function SubscriptionPage() {
 
           <div className="bg-purple-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-900 font-medium mb-1">
-              月額 980円（税込）
+              月額 1,000円（税込）
             </p>
             <p className="text-xs text-purple-700 mb-2">
-              Web版・iOS/Androidアプリでご利用いただけます
+              {isIOSApp ? "Web版・iOSアプリでご利用いただけます" : "Web版・iOS/Androidアプリでご利用いただけます"}
             </p>
             <Link
               href="/subscription/pricing"
@@ -126,6 +134,44 @@ export default function SubscriptionPage() {
             >
               料金プラン詳細を見る
             </Link>
+          </div>
+
+          {/* Guideline 3.1.2(c): アプリ内でのサブスク情報・法的情報リンク */}
+          <div className="mt-4 pt-4 border-t border-purple-200 space-y-2 text-xs text-purple-900">
+            <p className="font-semibold text-sm text-purple-950">
+              自動更新サブスクリプション
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-purple-800">
+              <li>名称: プレミアム（月額 / 年額 ※アプリ内表示）</li>
+              <li>期間: 1か月 / 1年</li>
+              <li>価格: 登録時に App Store 上で表示される金額（税込）</li>
+            </ul>
+            <p className="flex flex-wrap gap-x-3 gap-y-1">
+              <a
+                href={termsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-700 underline font-medium"
+              >
+                利用規約
+              </a>
+              <a
+                href={privacyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-700 underline font-medium"
+              >
+                プライバシーポリシー
+              </a>
+              <a
+                href={appleEulaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-700 underline font-medium"
+              >
+                Apple 標準利用規約（EULA）
+              </a>
+            </p>
           </div>
         </div>
 
@@ -145,8 +191,7 @@ export default function SubscriptionPage() {
                   モバイルアプリをダウンロード
                 </p>
                 <p className="text-xs text-gray-600">
-                  App Store（iOS）またはGoogle
-                  Play（Android）から「宅建合格ロード」をダウンロード
+                  {isIOSApp ? "App Store（iOS）から「宅建合格ロード」をダウンロード" : "App Store（iOS）またはGoogle Play（Android）から「宅建合格ロード」をダウンロード"}
                 </p>
               </div>
             </div>
@@ -195,17 +240,19 @@ export default function SubscriptionPage() {
             </div>
           </a>
 
-          <a
-            href="https://play.google.com/store/apps/details?id=app.takkenroad"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full bg-green-600 text-white py-4 px-6 rounded-lg font-medium text-center hover:bg-green-700 transition-colors"
-          >
-            <div className="flex items-center justify-center gap-2">
-              <i className="ri-google-play-fill text-2xl"></i>
-              <span>Google Playからダウンロード</span>
-            </div>
-          </a>
+          {!isIOSApp && (
+            <a
+              href="https://play.google.com/store/apps/details?id=app.takkenroad"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-green-600 text-white py-4 px-6 rounded-lg font-medium text-center hover:bg-green-700 transition-colors"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <i className="ri-google-play-fill text-2xl"></i>
+                <span>Google Playからダウンロード</span>
+              </div>
+            </a>
+          )}
         </div>
 
         {/* FAQ */}

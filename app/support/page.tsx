@@ -2,9 +2,22 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useIsIOSApp } from "@/lib/use-is-ios-app";
+
+/** iOSアプリ内ではAndroid/Google Play表記を削除（Guideline 2.3.10対応） */
+function answerForPlatform(text: string, isIOSApp: boolean): string {
+  if (!isIOSApp) return text;
+  return text
+    .replace(/モバイルアプリ版（iOS\/Android）/g, "モバイルアプリ版（iOS）")
+    .replace(/App StoreまたはGoogle Play/g, "App Store")
+    .replace(/App StoreまたはGoogle Playで/g, "App Storeで")
+    .replace(/。Android版：Google Play[^。]+解約してください。/g, "。")
+    .replace(/AppleまたはGoogleのサポート/g, "Appleのサポート");
+}
 
 export default function SupportPage() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const isIOSApp = useIsIOSApp();
 
   const faqs = [
     {
@@ -17,11 +30,11 @@ export default function SupportPage() {
         },
         {
           q: "プレミアムプランの料金は？",
-          a: "月額980円（税込）です。詳細な価格はApp StoreまたはGoogle Playでご確認ください。無料トライアル期間が提供される場合があります。",
+          a: "月額1,000円（税込）です。詳細な価格はApp StoreまたはGoogle Playでご確認ください。無料トライアル期間が提供される場合があります。",
         },
         {
           q: "無料版との違いは何ですか？",
-          a: "プレミアムプラン（モバイルアプリ版）では、AI機能が無制限、広告非表示、全年度の過去問アクセス、詳細な学習分析などがご利用いただけます。Web版無料プランではAI機能は月5回まで、広告表示あり、機能に制限があります。",
+          a: "プレミアムプランでは、AI機能が無制限、広告非表示、全AI予想問題へのアクセス、詳細な学習分析などがご利用いただけます。無料プランではAI機能は月20回まで、問題数300問まで、広告表示ありとなります。",
         },
         {
           q: "解約方法を教えてください",
@@ -38,8 +51,8 @@ export default function SupportPage() {
       question: "使い方について",
       items: [
         {
-          q: "過去問はどのくらい収録されていますか？",
-          a: "過去7年分（令和3年〜令和8年度）の本試験問題を収録しています。無料版では直近2年分のみご利用いただけます。プレミアムプランでは10年分以上にアクセスできます。",
+          q: "問題はどのくらい収録されていますか？",
+          a: "AIが宅建試験の傾向を分析して作成した予想問題を多数収録しています。無料プランでは300問まで、プレミアムプランでは全問題に無制限でアクセスできます。",
         },
         {
           q: "オフラインでも使えますか？",
@@ -190,9 +203,8 @@ export default function SupportPage() {
                     {section.question}
                   </span>
                   <i
-                    className={`ri-arrow-down-s-line text-xl text-gray-600 transition-transform ${
-                      activeSection === section.id ? "rotate-180" : ""
-                    }`}
+                    className={`ri-arrow-down-s-line text-xl text-gray-600 transition-transform ${activeSection === section.id ? "rotate-180" : ""
+                      }`}
                   ></i>
                 </button>
 
@@ -204,7 +216,7 @@ export default function SupportPage() {
                           Q. {item.q}
                         </p>
                         <p className="text-sm text-gray-600 pl-4">
-                          A. {item.a}
+                          A. {answerForPlatform(item.a, isIOSApp)}
                         </p>
                       </div>
                     ))}
