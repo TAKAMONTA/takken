@@ -336,8 +336,8 @@ export async function verifyRequestAuth(request: Request): Promise<string> {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       
-      // 開発環境では、エラーが発生しても許可（ただし、明示的なフラグがある場合のみ）
-      if (!isProduction && allowDevBypass) {
+      // エラーが発生しても、明示的なバイパスフラグがある場合は許可
+      if (!isProduction || allowDevBypass) {
         logger.debug("ローカルストレージ認証を使用（開発環境: エラーが発生しましたが許可）", { 
           userId: `${userIdHeader.substring(0, 8)}...`,
           error: err.message,
