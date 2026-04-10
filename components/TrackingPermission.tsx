@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { AppTrackingTransparency } from 'capacitor-plugin-app-tracking-transparency';
 import { logger } from '@/lib/logger';
 
 /**
@@ -18,6 +17,8 @@ export default function TrackingPermission() {
       }
 
       try {
+        // iOS環境でのみ動的にインポート
+        const { AppTrackingTransparency } = await import('capacitor-plugin-app-tracking-transparency');
         const status = await AppTrackingTransparency.getStatus();
         logger.info('Current tracking status:', status);
 

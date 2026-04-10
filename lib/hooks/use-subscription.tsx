@@ -7,7 +7,6 @@ import { logger } from "@/lib/logger";
 import { getAuth } from "firebase/auth";
 import { fetchWithRetry, parseAPIError, getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 import { Capacitor } from "@capacitor/core";
-import InAppPurchase from "@/src/plugins/InAppPurchase";
 
 /**
  * サブスクリプション情報の型定義
@@ -115,6 +114,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       // iOSの場合はネイティブからアクティブなサブスクリプションを確認
       if (Capacitor.getPlatform() === 'ios') {
         try {
+          const { default: InAppPurchase } = await import("@/src/plugins/InAppPurchase");
           const { subscriptions } = await InAppPurchase.getActiveSubscriptions();
           const activeSub = subscriptions.find(s => s.isActive);
 
@@ -228,6 +228,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         }
 
         console.log("[NativePurchase] iOS 決済開始", { appleId });
+        const { default: InAppPurchase } = await import("@/src/plugins/InAppPurchase");
         let result;
         try {
           result = await InAppPurchase.purchaseSubscription({
@@ -443,6 +444,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     setIsLoading(true);
     try {
       console.log("[NativePurchase] 購入の復元開始");
+      const { default: InAppPurchase } = await import("@/src/plugins/InAppPurchase");
       await InAppPurchase.restorePurchases();
       await loadSubscription();
       console.log("[NativePurchase] 購入の復元完了");
