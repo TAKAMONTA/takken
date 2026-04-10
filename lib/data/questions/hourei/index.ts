@@ -12,6 +12,7 @@ import { houreiAdditionalQuestions_20251101_batch2 } from "./additional-2025-11-
 import { houreiAdditionalQuestions_20251101_batch3 } from "./additional-2025-11-01-batch3";
 import { houreiAdditionalQuestions_20251101_batch4 } from "./additional-2025-11-01-batch4";
 import { houreiAdditionalQuestions_20251101_batch5 } from "./additional-2025-11-01-batch5";
+import { houreiTrendAIQuestions } from "./trend-ai";
 
 export const houreiQuestions: Question[] = [
   ...houreiAIGenerated1,
@@ -24,6 +25,7 @@ export const houreiQuestions: Question[] = [
   ...houreiAdditionalQuestions_20251101_batch3,
   ...houreiAdditionalQuestions_20251101_batch4,
   ...houreiAdditionalQuestions_20251101_batch5,
+  ...houreiTrendAIQuestions,
 ];
 
 // 難易度別の問題数統計

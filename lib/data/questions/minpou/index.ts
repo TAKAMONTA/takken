@@ -47,6 +47,7 @@ import { minpouAdditionalQuestions_20251101_batch3 } from "./additional-2025-11-
 import { minpouAdditionalQuestions_20251101_batch4 } from "./additional-2025-11-01-batch4";
 import { minpouAdditionalQuestions_20251101_batch5 } from "./additional-2025-11-01-batch5";
 import { minpouAdditionalQuestions_20251101_batch6 } from "./additional-2025-11-01-batch6";
+import { kenriTrendAIQuestions } from "./trend-ai";
 
 // 基礎問題（肢別形式）を多肢選択形式に変換する関数
 function convertTrueFalseToQuestion(
@@ -115,6 +116,7 @@ export const minpouQuestions: Question[] = [
   ...minpouAdditionalQuestions_20251101_batch4,
   ...minpouAdditionalQuestions_20251101_batch5,
   ...minpouAdditionalQuestions_20251101_batch6,
+  ...kenriTrendAIQuestions,
 ];
 
 // 難易度別の問題数統計

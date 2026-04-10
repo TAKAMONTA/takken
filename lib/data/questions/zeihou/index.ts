@@ -11,6 +11,7 @@ import { zeihouAdditionalQuestions_20251101_batch1 } from "./additional-2025-11-
 import { zeihouAdditionalQuestions_20251101_batch2 } from "./additional-2025-11-01-batch2";
 import { zeihouAdditionalQuestions_20251101_batch3 } from "./additional-2025-11-01-batch3";
 import { zeihouAdditionalQuestions_20251101_batch4 } from "./additional-2025-11-01-batch4";
+import { zeiTrendAIQuestions } from "./trend-ai";
 
 export const zeihouQuestions: Question[] = [
   ...zeihouAIGenerated1,
@@ -22,6 +23,7 @@ export const zeihouQuestions: Question[] = [
   ...zeihouAdditionalQuestions_20251101_batch2,
   ...zeihouAdditionalQuestions_20251101_batch3,
   ...zeihouAdditionalQuestions_20251101_batch4,
+  ...zeiTrendAIQuestions,
 ];
 
 // 難易度別の問題数統計

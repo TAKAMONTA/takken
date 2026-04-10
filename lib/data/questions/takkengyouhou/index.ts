@@ -37,6 +37,9 @@ import { takkengyouhouAdvancedQuestions_businessRegulation } from "./generated-5
 import { takkengyouhouAdvancedQuestions_supervision_penalty } from "./generated-50/advanced-7";
 import { takkengyouhouAdvancedQuestions_RewardLimit } from "./generated-50/advanced-8";
 
+// 過去問傾向反映AI予想問題
+import { takkengyouhouTrendAIQuestions } from "./trend-ai";
+
 // 追加問題
 import { takkengyouhouAdditionalQuestions_20241026 } from "./additional-20241026";
 import { takkengyouhouAdditionalQuestions_20241219 } from "./additional-20241219";
@@ -113,6 +116,8 @@ export const takkengyouhouQuestions: Question[] = [
   ...takkengyouhouAdditionalQuestions_20251101_batch3,
   ...takkengyouhouAdditionalQuestions_20251101_batch4,
   ...takkengyouhouAdditionalQuestions_20251101_batch5,
+  // 過去問傾向反映AI予想問題
+  ...takkengyouhouTrendAIQuestions,
 ];
 
 // 難易度別の問題数統計
