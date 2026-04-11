@@ -151,3 +151,15 @@ extracted_answers.txt
 debug-*.json
 debug-ai-response.json
 .vercel
+
+# Local save files
+.env.local.save
+
+# Patch errors
+patch-package-error.json.gz
+
+# Xcode sub-project
+takken/
+
+# Claude local settings
+.claude/settings.local.json

@@ -12,6 +12,10 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     // Firebase認証状態を監視
@@ -23,7 +27,12 @@ export default function SettingsPage() {
         const { initializeFirebase } = await import(
           "../../lib/firebase-client"
         );
-        const { auth } = initializeFirebase();
+        const firebaseInstance = await Promise.resolve(initializeFirebase());
+        const { auth } = firebaseInstance;
+        if (!auth) {
+          setLoading(false);
+          return;
+        }
 
         unsubscribe = onAuthStateChanged(auth, (currentUser) => {
           if (!currentUser) {
@@ -62,9 +71,11 @@ export default function SettingsPage() {
     try {
       const { signOut } = await import("firebase/auth");
       const { initializeFirebase } = await import("../../lib/firebase-client");
-      const { auth } = initializeFirebase();
+      const { auth } = await Promise.resolve(initializeFirebase());
+      if (!auth) return;
 
       await signOut(auth);
+      localStorage.removeItem("takken_user");
       router.push("/");
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -87,6 +98,85 @@ export default function SettingsPage() {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
+    }
+  };
+
+  /** Guideline 5.1.1(v): アカウント削除（Firebase + Firestore ユーザードキュメント） */
+  const handleDeleteAccount = async () => {
+    setDeleteAccountError(null);
+    const ok = window.confirm(
+      "アカウントと保存された学習データを削除します。この操作は取り消せません。続行しますか？"
+    );
+    if (!ok) return;
+
+    setDeletingAccount(true);
+    try {
+      const { initializeFirebase } = await import("../../lib/firebase-client");
+      const firebaseInstance = await Promise.resolve(initializeFirebase());
+      const { auth, db } = firebaseInstance;
+      const user = auth?.currentUser;
+      if (!user || !db) {
+        setDeleteAccountError("ログイン状態を確認できませんでした。");
+        return;
+      }
+
+      const {
+        deleteUser,
+        EmailAuthProvider,
+        reauthenticateWithCredential,
+      } = await import("firebase/auth");
+      const { deleteDoc, doc } = await import("firebase/firestore");
+
+      try {
+        await deleteDoc(doc(db, "users", user.uid));
+      } catch {
+        // 未作成など
+      }
+
+      const tryDelete = async () => {
+        await deleteUser(user);
+      };
+
+      try {
+        await tryDelete();
+      } catch (err: unknown) {
+        const code =
+          typeof err === "object" && err !== null && "code" in err
+            ? String((err as { code: string }).code)
+            : "";
+        if (code === "auth/requires-recent-login" && user.email) {
+          const pw = window.prompt(
+            "アカウント削除のため、ログインに使用したパスワードを入力してください。"
+          );
+          if (!pw) {
+            setDeleteAccountError(
+              "パスワードが入力されなかったため削除を中止しました。"
+            );
+            return;
+          }
+          const cred = EmailAuthProvider.credential(user.email, pw);
+          await reauthenticateWithCredential(user, cred);
+          await tryDelete();
+        } else if (code === "auth/requires-recent-login") {
+          setDeleteAccountError(
+            "セキュリティのため、一度ログアウトしてから再度ログインし、すぐに「アカウントを削除」を実行してください。"
+          );
+          return;
+        } else {
+          throw err;
+        }
+      }
+
+      localStorage.removeItem("takken_user");
+      router.push("/");
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("アカウント削除エラー", err);
+      setDeleteAccountError(
+        "アカウントの削除に失敗しました。時間をおいて再度お試しください。"
+      );
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -219,6 +309,27 @@ export default function SettingsPage() {
               </svg>
             </Link>
           </div>
+        </div>
+
+        {/* アカウント削除（App Store 必須） */}
+        <div className="bg-white rounded-lg border border-red-100 p-4 mb-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">
+            アカウントの削除
+          </h2>
+          <p className="text-sm text-gray-600 mb-3">
+            アプリに登録したアカウントと、クラウド上の学習プロフィールを削除します。
+          </p>
+          {deleteAccountError && (
+            <p className="text-sm text-red-600 mb-3">{deleteAccountError}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="w-full border border-red-300 text-red-700 py-3 px-4 rounded-lg font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            {deletingAccount ? "処理中..." : "アカウントを削除"}
+          </button>
         </div>
 
         {/* ログアウトボタン */}

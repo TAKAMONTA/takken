@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signInWithEmailAndPassword, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, OAuthProvider } from "firebase/auth";
 import { logger } from "@/lib/logger";
+import { randomRawNonce, sha256Hex } from "@/lib/apple-nonce";
+import { persistTakkenSessionFromFirebaseUser } from "@/lib/auth-session";
 
 export default function Login() {
   const router = useRouter();
@@ -293,49 +295,49 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setErrors({});
 
     try {
-      // Dynamic import for client-side only
-      const { initializeFirebaseWithFallback } = await import(
-        "../../../lib/firebase-client"
-      );
+      const { Capacitor } = await import("@capacitor/core");
 
-      const firebaseInstance = await initializeFirebaseWithFallback();
-
-      // フォールバックモードの場合はローカルストレージ認証を使用
-      if (firebaseInstance.fallback) {
+      if (Capacitor.isNativePlatform()) {
         setErrors({
           general:
-            "Googleログインは現在利用できません。メールアドレスとパスワードでログインしてください。",
+            "Google ログインはiOSアプリでは現在ご利用いただけません。「Appleでログイン」またはメールアドレスでログインしてください。",
         });
         return;
       }
 
+      const { initializeFirebase } = await import(
+        "../../../lib/firebase-client"
+      );
+      const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+
+      const firebaseInstance = await Promise.resolve(initializeFirebase());
       const { auth } = firebaseInstance;
+      if (!auth) {
+        setErrors({
+          general:
+            "Googleログインを開始できません。しばらくしてからお試しください。",
+        });
+        return;
+      }
 
       const provider = new GoogleAuthProvider();
-      // モバイル（Capacitor/Cordova/Chrome Custom Tabs 等）では redirect のみ安定
-      const { signInWithRedirect } = await import("firebase/auth");
-      await signInWithRedirect(auth as any, provider);
-      // この後は再ロードされるため、続きの処理はリダイレクト結果側で行う
-      return;
+      const userCred = await signInWithPopup(auth as any, provider);
+      await persistTakkenSessionFromFirebaseUser(userCred.user, router);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       const errorObj = err as { code?: string; message?: string };
       logger.error("Google login error", err);
-      let errorMessage = "Googleログインに失敗しました";
 
+      let errorMessage = "Googleログインに失敗しました";
       if (errorObj.code === "auth/popup-closed-by-user") {
         errorMessage = "ログインがキャンセルされました";
       } else if (errorObj.code === "auth/popup-blocked") {
-        errorMessage =
-          "ポップアップがブロックされました。ポップアップを許可してください。";
-      } else if (errorObj.code === "auth/configuration-not-found") {
-        errorMessage =
-          "Firebaseの設定に問題があります。開発者にお問い合わせください。";
+        errorMessage = "ポップアップがブロックされました。ポップアップを許可してください。";
       } else if (errorObj.code === "auth/network-request-failed") {
-        errorMessage =
-          "ネットワークエラーが発生しました。インターネット接続を確認してください。";
+        errorMessage = "ネットワークエラーが発生しました。インターネット接続を確認してください。";
       } else if (errorObj.message) {
         errorMessage = `エラー: ${errorObj.message}`;
       }
@@ -346,54 +348,82 @@ export default function Login() {
     }
   };
 
-  // リダイレクト結果の処理（モバイル向け）
-  if (typeof window !== "undefined") {
-    (async () => {
-      try {
-        const { initializeFirebaseWithFallback } = await import(
-          "../../../lib/firebase-client"
-        );
-        const { firestoreService } = await import(
-          "../../../lib/firestore-service"
-        );
-        const { getRedirectResult } = await import("firebase/auth");
-        const firebaseInstance = await initializeFirebaseWithFallback();
-        if (firebaseInstance.fallback || !firebaseInstance.auth) return;
-        const result = await getRedirectResult(firebaseInstance.auth as any);
-        if (!result) return;
-        const user = result.user;
-        const userProfile = await firestoreService.getUserProfile(user.uid);
-        const userData = {
-          id: user.uid,
-          username: (
-            userProfile?.name ||
-            user.displayName ||
-            "ユーザー"
-          ).substring(0, 50),
-          name: userProfile?.name || user.displayName || "ユーザー",
-          email: user.email,
-          joinedAt: userProfile?.joinedAt || new Date().toISOString(),
-          streak: userProfile?.streak || {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastStudyDate: "",
-            studyDates: [],
-          },
-          progress: userProfile?.progress || {
-            totalQuestions: 0,
-            correctAnswers: 0,
-            studyTimeMinutes: 0,
-            categoryProgress: {},
-          },
-          learningRecords: userProfile?.learningRecords || [],
-        };
-        localStorage.setItem("takken_user", JSON.stringify(userData));
-        router.push("/dashboard");
-      } catch (e) {
-        // 無視（未リダイレクト時を含む）
+  /** Sign in with Apple（Guideline 4.8 / iPad 審査対応: iOS はネイティブ、Web はリダイレクト） */
+  const handleAppleLogin = async () => {
+    setLoading(true);
+    setErrors({});
+    try {
+      const { Capacitor } = await import("@capacitor/core");
+      const { initializeFirebase } = await import(
+        "../../../lib/firebase-client"
+      );
+      const firebaseInstance = await Promise.resolve(initializeFirebase());
+      const { auth } = firebaseInstance;
+      if (!auth) {
+        setErrors({
+          general:
+            "Appleログインを開始できません。しばらくしてからお試しください。",
+        });
+        return;
       }
-    })();
-  }
+
+      if (Capacitor.getPlatform() === "ios") {
+        const { SignInWithApple } = await import(
+          "@capacitor-community/apple-sign-in"
+        );
+        const { OAuthProvider, signInWithCredential } = await import(
+          "firebase/auth"
+        );
+        const rawNonce = randomRawNonce();
+        const hashedNonce = await sha256Hex(rawNonce);
+        const appleRes = await SignInWithApple.authorize({
+          clientId: "com.takkenroad.app",
+          redirectURI: "https://takken-d3a2b.firebaseapp.com/__/auth/handler",
+          scopes: "email name",
+          state: randomRawNonce(12),
+          nonce: hashedNonce,
+        });
+        const idToken = appleRes.response.identityToken;
+        if (!idToken) {
+          setErrors({
+            general:
+              "Apple から認証情報を取得できませんでした。もう一度お試しください。",
+          });
+          return;
+        }
+        const provider = new OAuthProvider("apple.com");
+        const credential = provider.credential({
+          idToken,
+          rawNonce,
+        });
+        const userCred = await signInWithCredential(auth, credential);
+        await persistTakkenSessionFromFirebaseUser(userCred.user, router, {
+          appleEmail: appleRes.response.email,
+          appleGivenName: appleRes.response.givenName,
+          appleFamilyName: appleRes.response.familyName,
+        });
+        return;
+      }
+
+      const provider = new OAuthProvider("apple.com");
+      provider.addScope("email");
+      provider.addScope("name");
+      const { signInWithRedirect } = await import("firebase/auth");
+      await signInWithRedirect(auth as any, provider);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      const errorObj = err as { code?: string; message?: string };
+      logger.error("Apple login error", err);
+      setErrors({
+        general:
+          errorObj.code === "auth/popup-closed-by-user"
+            ? "ログインがキャンセルされました"
+            : "Appleログインに失敗しました。しばらくしてからお試しください。",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -437,7 +467,10 @@ export default function Login() {
                     メールアドレス
                   </label>
                   <input
-                    type="email"
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     value={formData.email}
                     onChange={e =>
                       setFormData(prev => ({
@@ -486,11 +519,23 @@ export default function Login() {
                 <div className="flex-1 border-t border-border"></div>
               </div>
 
+              {/* Sign in with Apple（Guideline 4.8 対応：第三者が提供するログインと同等の選択肢として必須） */}
+              <button
+                type="button"
+                onClick={handleAppleLogin}
+                disabled={loading}
+                className="w-full py-4 text-base flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium bg-black text-white hover:bg-gray-800 border border-gray-800"
+              >
+                <i className="ri-apple-fill text-2xl" aria-hidden />
+                <span>Appleでログイン</span>
+              </button>
+
               {/* Google Login */}
               <button
+                type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full button-ghost py-4 text-base flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full button-ghost py-4 text-base flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed mt-3"
               >
                 <span className="text-2xl">🚀</span>
                 <span>Googleでログイン</span>

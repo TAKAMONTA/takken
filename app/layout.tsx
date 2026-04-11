@@ -3,6 +3,7 @@ import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
+import TrackingPermission from "@/components/TrackingPermission";
 
 export const metadata: Metadata = {
   title: "宅建合格ロード - AI予想問題で学ぶ",
@@ -65,7 +66,7 @@ export default function RootLayout({
         {/* Viewport for mobile optimization */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
 
         {/* AdSense Code Snippet */}
@@ -77,6 +78,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased bg-background text-foreground">
         <FirebaseInitializer />
+        <TrackingPermission />
         <SubscriptionProvider>
           {children}
           <PWAInstallPrompt />

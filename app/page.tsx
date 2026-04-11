@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
+import { useIsIOSApp } from "@/lib/use-is-ios-app";
 
 export default function Home() {
   const router = useRouter();
+  const isIOSApp = useIsIOSApp();
 
   useEffect(() => {
     // 認証状態をチェック
@@ -20,8 +22,8 @@ export default function Home() {
       } catch (error) {
         // localStorage が利用できない場合は無視
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.debug("LocalStorage not available", { 
-          error: err.message 
+        logger.debug("LocalStorage not available", {
+          error: err.message
         });
       }
     };
@@ -200,10 +202,10 @@ export default function Home() {
                     プレミアムプラン
                   </p>
                   <p className="text-sm text-gray-600 mb-2">
-                    Web版・iOS/Androidアプリで月額980円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます
+                    {isIOSApp ? "Web版・iOSアプリで月額1,000円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます" : "Web版・iOS/Androidアプリで月額1,000円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます"}
                   </p>
-                  <Link 
-                    href="/subscription/pricing" 
+                  <Link
+                    href="/subscription/pricing"
                     className="text-sm text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
                   >
                     料金プランを見る

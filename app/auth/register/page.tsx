@@ -286,7 +286,10 @@ export default function Register() {
                     メールアドレス *
                   </label>
                   <input
-                    type="email"
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}

@@ -150,6 +150,11 @@ export default function Profile() {
               <span className="font-medium">プライバシーポリシー</span>
               <i className="ri-arrow-right-line text-muted-foreground"></i>
             </Link>
+            <div className="w-full h-px bg-border"></div>
+            <Link href="/settings" className="flex justify-between items-center py-2">
+              <span className="font-medium">アカウント・通知・削除</span>
+              <i className="ri-arrow-right-line text-muted-foreground"></i>
+            </Link>
           </div>
         </section>
 
