@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -191,10 +191,13 @@ const practiceCategories = {
   },
 };
 
+type QuizLevel = "beginner" | "intermediate";
+
 function DetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("category");
+  const [selectedLevel, setSelectedLevel] = useState<QuizLevel>("beginner");
 
   const category = categoryId
     ? practiceCategories[categoryId as keyof typeof practiceCategories]
@@ -202,7 +205,7 @@ function DetailContent() {
 
   const handleStartQuiz = (subCategoryId: string) => {
     router.push(
-      `/practice/quiz?category=${categoryId}&subcategory=${subCategoryId}`
+      `/practice/quiz?category=${categoryId}&subcategory=${subCategoryId}&level=${selectedLevel}`
     );
   };
 
@@ -242,7 +245,97 @@ function DetailContent() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* シンプルな分野選択 */}
+        {/* レベル選択 */}
+        <div className="mb-6">
+          <h2 className="text-sm font-medium text-gray-500 mb-3">
+            学習レベルを選択
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {/* 初級 */}
+            <button
+              onClick={() => setSelectedLevel("beginner")}
+              className={`relative rounded-xl p-4 text-left transition-all border-2 ${
+                selectedLevel === "beginner"
+                  ? "border-emerald-500 bg-emerald-50 shadow-sm"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              {selectedLevel === "beginner" && (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              )}
+              <div className="text-2xl mb-1">🌱</div>
+              <div
+                className={`font-bold text-sm ${
+                  selectedLevel === "beginner"
+                    ? "text-emerald-700"
+                    : "text-gray-800"
+                }`}
+              >
+                初級
+              </div>
+              <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+                各問題の前にミニ授業付き。初めての方におすすめ
+              </div>
+            </button>
+
+            {/* 中級 */}
+            <button
+              onClick={() => setSelectedLevel("intermediate")}
+              className={`relative rounded-xl p-4 text-left transition-all border-2 ${
+                selectedLevel === "intermediate"
+                  ? "border-purple-500 bg-purple-50 shadow-sm"
+                  : "border-gray-200 bg-white hover:border-gray-300"
+              }`}
+            >
+              {selectedLevel === "intermediate" && (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              )}
+              <div className="text-2xl mb-1">🔥</div>
+              <div
+                className={`font-bold text-sm ${
+                  selectedLevel === "intermediate"
+                    ? "text-purple-700"
+                    : "text-gray-800"
+                }`}
+              >
+                中級
+              </div>
+              <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+                問題に直接挑戦。学習経験のある方向け
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* 分野選択 */}
         <div className="space-y-2">
           {category.subCategories.map((subCategory) => (
             <button

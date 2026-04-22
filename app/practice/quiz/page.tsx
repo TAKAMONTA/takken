@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { UserProfile } from "@/lib/types";
-// 植物育成機能は削除
 import { Question } from "@/lib/types/quiz";
 import { getQuestionsByCategory } from "@/lib/data/questions";
 import { learningAnalytics } from "@/lib/analytics";
@@ -21,6 +20,8 @@ import { soundEffects } from "@/lib/sound-effects";
 import AdSense from "@/components/AdSense";
 import { logger } from "@/lib/logger";
 import StudyInfoSection from "@/components/StudyInfoSection";
+import LessonScreen from "@/components/LessonScreen";
+import { getLessonForQuestion, getDefaultLesson } from "@/lib/data/lessons";
 
 function QuizContent() {
   const router = useRouter();
@@ -28,6 +29,9 @@ function QuizContent() {
   const categoryParam = searchParams.get("category");
   const subcategoryParam = searchParams.get("subcategory");
   const modeParam = searchParams.get("mode");
+  const levelParam = searchParams.get("level"); // "beginner" | "intermediate"
+
+  const isBeginnerMode = levelParam === "beginner";
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -41,7 +45,9 @@ function QuizContent() {
   // アニメーション用の状態
   const [showFeedback, setShowFeedback] = useState<boolean | null>(null);
   const [currentStreak, setCurrentStreak] = useState(0);
-  // 植物育成機能は削除
+
+  // 初級モード用：解説プレビュー表示状態
+  const [showLesson, setShowLesson] = useState(isBeginnerMode);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("takken_user");
@@ -61,40 +67,66 @@ function QuizContent() {
         const categoryQuestions = await getQuestionsByCategory(categoryParam);
 
         if (categoryQuestions.length === 0) {
-          // 問題が取得できない場合は、ダッシュボードに戻る
-          logger.warn("No questions available for category", { category: categoryParam });
+          logger.warn("No questions available for category", {
+            category: categoryParam,
+          });
           router.push("/dashboard");
           return;
         }
 
         let selectedQuestions = [...categoryQuestions];
 
-        // サブカテゴリが指定されている場合は、そのサブカテゴリの問題のみを選択
-        // 現在は全問題からランダムに10問選択（将来的にサブカテゴリフィルタリングを実装可能）
+        // 初級モードは「基礎」難易度を優先、中級は全難易度
+        if (isBeginnerMode) {
+          const basicQuestions = selectedQuestions.filter(
+            (q) => q.difficulty === "基礎"
+          );
+          // 基礎問題が十分あればそこから選ぶ
+          if (basicQuestions.length >= 5) {
+            selectedQuestions = basicQuestions;
+          }
+        }
+
         selectedQuestions = selectedQuestions
           .sort(() => Math.random() - 0.5)
           .slice(0, Math.min(10, selectedQuestions.length));
 
         setQuestions(selectedQuestions);
-        setTimeLeft(selectedQuestions.length * 120); // 1問2分
+
+        // 初級は時間制限を緩くする（授業時間分加算）
+        const timePerQuestion = isBeginnerMode ? 180 : 120; // 初級3分、中級2分
+        setTimeLeft(selectedQuestions.length * timePerQuestion);
         setStartTime(new Date());
+
+        // 初級モードの場合、最初の問題の前に解説を表示
+        if (isBeginnerMode && selectedQuestions.length > 0) {
+          setShowLesson(true);
+        }
       } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger.error("Error loading questions", err, { category: categoryParam });
+        const err =
+          error instanceof Error ? error : new Error(String(error));
+        logger.error("Error loading questions", err, {
+          category: categoryParam,
+        });
         router.push("/dashboard");
       }
     };
 
     loadQuestions();
-  }, [categoryParam, subcategoryParam, router]);
+  }, [categoryParam, subcategoryParam, router, isBeginnerMode]);
 
   useEffect(() => {
-    if (timeLeft > 0 && !isComplete) {
+    // レッスン表示中はタイマーを止める
+    if (timeLeft > 0 && !isComplete && !showLesson) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [timeLeft, isComplete]);
+  }, [timeLeft, isComplete, showLesson]);
+
+  const handleLessonComplete = () => {
+    setShowLesson(false);
+  };
 
   const handleAnswerSelect = (answerIndex: number) => {
     if (showExplanation) return;
@@ -139,8 +171,6 @@ function QuizContent() {
 
     const updatedUser = { ...user };
 
-    // 植物機能は削除
-
     // 学習履歴を更新（1問ずつ）
     if (!updatedUser.studyHistory) {
       updatedUser.studyHistory = [];
@@ -154,7 +184,7 @@ function QuizContent() {
     if (todayRecord) {
       todayRecord.questionsAnswered += 1;
       todayRecord.correctAnswers += isCorrect ? 1 : 0;
-      todayRecord.studyTimeMinutes += 1; // 1問あたり約1分として計算
+      todayRecord.studyTimeMinutes += 1;
     } else {
       updatedUser.studyHistory.push({
         date: today,
@@ -222,7 +252,7 @@ function QuizContent() {
         startTime: startTime || new Date(),
         endTime: new Date(),
         category: categoryParam || "unknown",
-        mode: modeParam || "practice",
+        mode: isBeginnerMode ? "beginner" : modeParam || "practice",
         questionsAnswered: 1,
         correctAnswers: isCorrect ? 1 : 0,
         timeSpent: 1,
@@ -245,9 +275,15 @@ function QuizContent() {
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
       setSelectedAnswer(null);
       setShowExplanation(false);
+
+      // 初級モード：次の問題の前に解説を表示
+      if (isBeginnerMode) {
+        setShowLesson(true);
+      }
     } else {
       setIsComplete(true);
       saveResults();
@@ -261,8 +297,6 @@ function QuizContent() {
     const studyTimeMinutes = startTime
       ? Math.round((new Date().getTime() - startTime.getTime()) / 1000 / 60)
       : 0;
-
-    // 植物機能は削除
 
     // ユーザーデータを更新
     const updatedUser = { ...user };
@@ -344,8 +378,6 @@ function QuizContent() {
     setUser(updatedUser);
     localStorage.setItem("takken_user", JSON.stringify(updatedUser));
 
-    // 植物状態の保存は不要
-
     // Analytics システムにも学習セッションを保存
     try {
       learningAnalytics.saveStudySession({
@@ -353,7 +385,7 @@ function QuizContent() {
         startTime: startTime || new Date(),
         endTime: new Date(),
         category: categoryParam || "unknown",
-        mode: modeParam || "practice",
+        mode: isBeginnerMode ? "beginner" : modeParam || "practice",
         questionsAnswered: questions.length,
         correctAnswers: correctCount,
         timeSpent: studyTimeMinutes,
@@ -379,11 +411,32 @@ function QuizContent() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const currentQuestion = questions[currentQuestionIndex];
+
   if (!user || questions.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-2xl font-bold text-gray-600">Loading...</div>
       </div>
+    );
+  }
+
+  // 初級モード：問題の前にミニ授業を10秒間プレビュー
+  if (showLesson && isBeginnerMode && currentQuestion) {
+    const structuredLesson =
+      getLessonForQuestion(
+        currentQuestion.category,
+        currentQuestion.topic
+      ) ?? getDefaultLesson(currentQuestion.category);
+    return (
+      <LessonScreen
+        explanation={currentQuestion.explanation}
+        lesson={structuredLesson}
+        duration={10}
+        onComplete={handleLessonComplete}
+        questionNumber={currentQuestionIndex + 1}
+        totalQuestions={questions.length}
+      />
     );
   }
 
@@ -406,6 +459,14 @@ function QuizContent() {
             <div className="text-4xl mb-4">
               {score >= 80 ? "🎉" : score >= 60 ? "😊" : "😅"}
             </div>
+
+            {/* レベルバッジ */}
+            {isBeginnerMode && (
+              <span className="inline-block bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full mb-3">
+                🌱 初級モード
+              </span>
+            )}
+
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               {correctCount}/{questions.length}問正解
             </h2>
@@ -414,12 +475,15 @@ function QuizContent() {
             </div>
             <p className="text-gray-600 mb-4">
               {score >= 80
-                ? "素晴らしい成績です！"
+                ? isBeginnerMode
+                  ? "素晴らしい！中級に挑戦してみましょう！"
+                  : "素晴らしい成績です！"
                 : score >= 60
                 ? "よく頑張りました！"
+                : isBeginnerMode
+                ? "授業の内容を思い出しながら復習しましょう！"
                 : "もう少し復習が必要です"}
             </p>
-            {/* 植物機能を削除したため成長表示は非表示 */}
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm">
@@ -440,7 +504,9 @@ function QuizContent() {
                     >
                       {index + 1}
                     </div>
-                    <div className="text-sm text-gray-700">問題{index + 1}</div>
+                    <div className="text-sm text-gray-700">
+                      問題{index + 1}
+                    </div>
                   </div>
                   <div
                     className={`text-sm font-bold ${
@@ -455,7 +521,16 @@ function QuizContent() {
           </div>
 
           <div className="space-y-3">
-            {/* 植物機能削除に伴い庭園リンクを削除 */}
+            {/* 初級で好成績なら中級への誘導 */}
+            {isBeginnerMode && score >= 70 && (
+              <Link
+                href={`/practice/quiz?category=${categoryParam}&subcategory=${subcategoryParam}&level=intermediate`}
+              >
+                <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button mb-2">
+                  🔥 中級に挑戦する
+                </button>
+              </Link>
+            )}
             <Link href="/practice">
               <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button">
                 もう一度挑戦する
@@ -472,8 +547,6 @@ function QuizContent() {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-
   if (!currentQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
@@ -482,8 +555,14 @@ function QuizContent() {
     );
   }
 
+  // テーマカラー（初級=エメラルド、中級=パープル）
+  const themeColor = isBeginnerMode ? "emerald" : "purple";
+  const bgGradient = isBeginnerMode
+    ? "from-emerald-50 to-blue-50"
+    : "from-blue-50 to-purple-50";
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
+    <div className={`min-h-screen bg-gradient-to-b ${bgGradient}`}>
       {/* ヘッダー */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4">
@@ -494,8 +573,15 @@ function QuizContent() {
               </div>
             </Link>
             <div className="text-center">
-              <div className="text-sm text-gray-500">
-                {currentQuestionIndex + 1} / {questions.length}
+              <div className="flex items-center justify-center gap-2">
+                {isBeginnerMode && (
+                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    初級
+                  </span>
+                )}
+                <div className="text-sm text-gray-500">
+                  {currentQuestionIndex + 1} / {questions.length}
+                </div>
               </div>
               <div className="text-xs text-gray-500">
                 残り時間: {formatTime(timeLeft)}
@@ -510,7 +596,9 @@ function QuizContent() {
       <div className="max-w-md mx-auto px-4 py-2">
         <div className="bg-gray-200 rounded-full h-2">
           <div
-            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+            className={`h-2 rounded-full transition-all duration-300 ${
+              isBeginnerMode ? "bg-emerald-500" : "bg-purple-500"
+            }`}
             style={{
               width: `${
                 ((currentQuestionIndex + 1) / questions.length) * 100
@@ -547,67 +635,71 @@ function QuizContent() {
             )}
           </div>
 
-          {/* 基礎レベル向け学習支援機能 */}
-          {currentQuestion.difficulty === "基礎" && !showExplanation && (
-            <div className="space-y-4 mb-6">
-              {/* 関連条文 */}
-              {currentQuestion.relatedArticles && (
-                <ArticleReference articles={currentQuestion.relatedArticles} />
-              )}
+          {/* 基礎レベル向け学習支援機能（中級モードのみ表示） */}
+          {!isBeginnerMode &&
+            currentQuestion.difficulty === "基礎" &&
+            !showExplanation && (
+              <div className="space-y-4 mb-6">
+                {/* 関連条文 */}
+                {currentQuestion.relatedArticles && (
+                  <ArticleReference articles={currentQuestion.relatedArticles} />
+                )}
 
-              {/* ヒント機能 */}
-              {currentQuestion.hints && (
-                <HintSystem
-                  hints={currentQuestion.hints}
-                  onHintUsed={(hintIndex) => {
-                    logger.debug(`ヒント${hintIndex + 1}を使用しました`, { 
-                      hintIndex, 
-                      questionId: currentQuestion.id 
-                    });
-                  }}
+                {/* ヒント機能 */}
+                {currentQuestion.hints && (
+                  <HintSystem
+                    hints={currentQuestion.hints}
+                    onHintUsed={(hintIndex) => {
+                      logger.debug(`ヒント${hintIndex + 1}を使用しました`, {
+                        hintIndex,
+                        questionId: currentQuestion.id,
+                      });
+                    }}
+                  />
+                )}
+
+                {/* 学習のコツ（問題個別 → 分野デフォルトにフォールバック） */}
+                {(() => {
+                  const domain = (
+                    currentQuestion.category || ""
+                  ).toLowerCase();
+                  const tipsFromQuestion =
+                    currentQuestion.studyTips &&
+                    currentQuestion.studyTips.length > 0
+                      ? currentQuestion.studyTips
+                      : undefined;
+                  const tipsFromDomain =
+                    !tipsFromQuestion &&
+                    (domain === "takkengyouhou" ||
+                      domain === "hourei" ||
+                      domain === "zeihou" ||
+                      domain === "minpou")
+                      ? getStudyTipsByDomain(
+                          domain as
+                            | "takkengyouhou"
+                            | "hourei"
+                            | "zeihou"
+                            | "minpou"
+                        )
+                      : [];
+                  const tipsToShow = tipsFromQuestion || tipsFromDomain;
+
+                  return tipsToShow && tipsToShow.length > 0 ? (
+                    <StudyTipDisplay studyTips={tipsToShow} />
+                  ) : null;
+                })()}
+
+                {/* AIヒントチャット */}
+                <AIHintChat
+                  question={currentQuestion.question}
+                  options={currentQuestion.options}
+                  category={currentQuestion.category}
+                  year={currentQuestion.year}
+                  difficulty={currentQuestion.difficulty}
+                  className="mt-4"
                 />
-              )}
-
-              {/* 学習のコツ（問題個別 → 分野デフォルトにフォールバック） */}
-              {(() => {
-                const domain = (currentQuestion.category || "").toLowerCase();
-                const tipsFromQuestion =
-                  currentQuestion.studyTips &&
-                  currentQuestion.studyTips.length > 0
-                    ? currentQuestion.studyTips
-                    : undefined;
-                const tipsFromDomain =
-                  !tipsFromQuestion &&
-                  (domain === "takkengyouhou" ||
-                    domain === "hourei" ||
-                    domain === "zeihou" ||
-                    domain === "minpou")
-                    ? getStudyTipsByDomain(
-                        domain as
-                          | "takkengyouhou"
-                          | "hourei"
-                          | "zeihou"
-                          | "minpou"
-                      )
-                    : [];
-                const tipsToShow = tipsFromQuestion || tipsFromDomain;
-
-                return tipsToShow && tipsToShow.length > 0 ? (
-                  <StudyTipDisplay studyTips={tipsToShow} />
-                ) : null;
-              })()}
-
-              {/* AIヒントチャット（ユーザーが行き詰まった時の対話型サポート） */}
-              <AIHintChat
-                question={currentQuestion.question}
-                options={currentQuestion.options}
-                category={currentQuestion.category}
-                year={currentQuestion.year}
-                difficulty={currentQuestion.difficulty}
-                className="mt-4"
-              />
-            </div>
-          )}
+              </div>
+            )}
 
           {/* 選択肢 */}
           <div className="space-y-3 mb-6">
@@ -624,7 +716,9 @@ function QuizContent() {
                       ? "border-red-500 bg-red-50"
                       : "border-gray-200"
                     : selectedAnswer === index
-                    ? "border-purple-500 bg-purple-50"
+                    ? isBeginnerMode
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-purple-500 bg-purple-50"
                     : "border-gray-200 hover:border-purple-300"
                 }`}
               >
@@ -638,13 +732,17 @@ function QuizContent() {
                           ? "border-red-500 bg-red-500 text-white"
                           : "border-gray-300"
                         : selectedAnswer === index
-                        ? "border-purple-500 bg-purple-500 text-white"
+                        ? isBeginnerMode
+                          ? "border-emerald-500 bg-emerald-500 text-white"
+                          : "border-purple-500 bg-purple-500 text-white"
                         : "border-gray-300"
                     }`}
                   >
                     {index + 1}
                   </div>
-                  <span className="text-sm text-gray-800 flex-1">{option}</span>
+                  <span className="text-sm text-gray-800 flex-1">
+                    {option}
+                  </span>
                 </div>
               </button>
             ))}
@@ -674,17 +772,27 @@ function QuizContent() {
               <button
                 onClick={handleAnswerSubmit}
                 disabled={selectedAnswer === null}
-                className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed !rounded-button"
+                className={`w-full text-white py-3 px-6 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed !rounded-button ${
+                  isBeginnerMode
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-purple-600 hover:bg-purple-700"
+                }`}
               >
                 回答する
               </button>
             ) : (
               <button
                 onClick={handleNextQuestion}
-                className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button"
+                className={`w-full text-white py-3 px-6 rounded-lg font-bold transition-colors !rounded-button ${
+                  isBeginnerMode
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-purple-600 hover:bg-purple-700"
+                }`}
               >
                 {currentQuestionIndex < questions.length - 1
-                  ? "次の問題へ"
+                  ? isBeginnerMode
+                    ? "次の授業へ"
+                    : "次の問題へ"
                   : "結果を見る"}
               </button>
             )}
