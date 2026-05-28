@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getMockExamQuestions } from "@/lib/data/mock-exam-questions";
 import { logger } from "@/lib/logger";
+import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
 // 植物機能は削除
 
 function MockExamQuizContent() {
@@ -25,59 +26,50 @@ function MockExamQuizContent() {
   // 植物機能は削除
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    } else {
-      router.push("/");
-      return;
-    }
+    let cancelled = false;
 
-    // モードに応じて問題を設定
-    let timeLimit = 120; // 分
+    const initialize = async () => {
+      const cachedUser = await requireCachedUserForCurrentAuth<any>(() =>
+        router.push("/auth/login")
+      );
+      if (!cachedUser || cancelled) return;
+      setUser(cachedUser);
 
-    switch (mode) {
-      case "speed_exam":
-        timeLimit = 90;
-        break;
-      case "review_exam":
-        timeLimit = 0; // 無制限
-        break;
-      default: // full_exam
-        timeLimit = 120;
-        break;
-    }
+      // モードに応じて問題を設定
+      let timeLimit = 120; // 分
 
-    // 令和7年度の実際の問題データを取得
-    const selectedQuestions = getMockExamQuestions(mode);
-    setQuestions(selectedQuestions);
-    setAnswers(new Array(selectedQuestions.length).fill(null));
+      switch (mode) {
+        case "speed_exam":
+          timeLimit = 90;
+          break;
+        case "review_exam":
+          timeLimit = 0; // 無制限
+          break;
+        default: // full_exam
+          timeLimit = 120;
+          break;
+      }
 
-    if (timeLimit > 0) {
-      const totalSeconds = timeLimit * 60;
-      setTimeLeft(totalSeconds);
-      setTotalTime(totalSeconds);
-    }
+      // 現在の試験年度向けの予想問題データを取得
+      const selectedQuestions = getMockExamQuestions(mode);
+      setQuestions(selectedQuestions);
+      setAnswers(new Array(selectedQuestions.length).fill(null));
 
-    setStartTime(new Date());
+      if (timeLimit > 0) {
+        const totalSeconds = timeLimit * 60;
+        setTimeLeft(totalSeconds);
+        setTotalTime(totalSeconds);
+      }
+
+      setStartTime(new Date());
+    };
+
+    initialize();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mode, router]);
-
-  useEffect(() => {
-    if (timeLeft > 0 && !isComplete && totalTime > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && totalTime > 0 && !isComplete) {
-      handleTimeUp();
-    }
-    return undefined;
-  }, [timeLeft, isComplete, totalTime]);
-
-  const handleTimeUp = () => {
-    setIsComplete(true);
-    setShowResults(true);
-    saveResults();
-  };
 
   const handleAnswerSelect = (questionIndex: number, answerIndex: number) => {
     const newAnswers = [...answers];
@@ -101,7 +93,7 @@ function MockExamQuizContent() {
     }
   };
 
-  const saveResults = () => {
+  const saveResults = useCallback(() => {
     if (!user) return;
 
     const correctAnswers = answers.map(
@@ -192,7 +184,7 @@ function MockExamQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
     // 植物状態の保存は不要
 
     logger.debug("模擬試験学習履歴を保存しました", {
@@ -201,7 +193,23 @@ function MockExamQuizContent() {
       studyTimeMinutes: studyTimeMinutes,
       currentStreak: updatedUser.streak.currentStreak,
     });
-  };
+  }, [answers, questions, startTime, user]);
+
+  const handleTimeUp = useCallback(() => {
+    setIsComplete(true);
+    setShowResults(true);
+    saveResults();
+  }, [saveResults]);
+
+  useEffect(() => {
+    if (timeLeft > 0 && !isComplete && totalTime > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && totalTime > 0 && !isComplete) {
+      handleTimeUp();
+    }
+    return undefined;
+  }, [timeLeft, isComplete, totalTime, handleTimeUp]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);

@@ -11,6 +11,8 @@ import { learningAnalytics } from "@/lib/analytics";
 import ExplanationDisplay from "@/components/ExplanationDisplay";
 import QuestionDisplay from "@/components/QuestionDisplay";
 import { logger } from "@/lib/logger";
+import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
+import QuestionMetaBadges from "@/components/QuestionMetaBadges";
 
 function QuickTestQuizContent() {
   const router = useRouter();
@@ -29,19 +31,14 @@ function QuickTestQuizContent() {
   // 植物機能は削除
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-
-      // 植物機能は削除
-    } else {
-      router.push("/");
-      return;
-    }
-
     // クイックテスト用の問題を取得
     const loadQuestions = async () => {
+      const cachedUser = await requireCachedUserForCurrentAuth<UserProfile>(() =>
+        router.push("/auth/login")
+      );
+      if (!cachedUser) return;
+      setUser(cachedUser);
+
       try {
         const quickTestQuestions = await getQuickTestQuestions(5);
 
@@ -100,7 +97,7 @@ function QuickTestQuizContent() {
 
     const updatedUser = { ...user };
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
   };
 
   const handleNextQuestion = () => {
@@ -153,7 +150,7 @@ function QuickTestQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
 
     // Analytics システムにも学習セッションを保存
     try {
@@ -322,15 +319,10 @@ function QuickTestQuizContent() {
       {/* 問題表示 */}
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          {/* 問題情報 */}
-          <div className="flex items-center justify-between mb-4 text-xs">
-            <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
-              クイックテスト
-            </span>
-            <span className="text-gray-500">
-              {currentQuestion.year} {currentQuestion.difficulty}
-            </span>
-          </div>
+          <QuestionMetaBadges
+            question={{ ...currentQuestion, source: currentQuestion.source || "クイックテスト" }}
+            className="mb-4"
+          />
 
           {/* 問題文 */}
           <div className="mb-6">
@@ -385,6 +377,9 @@ function QuickTestQuizContent() {
               isCorrect={selectedAnswer === currentQuestion.correctAnswer}
               correctAnswer={currentQuestion.correctAnswer}
               options={currentQuestion.options}
+              relatedArticles={currentQuestion.relatedArticles}
+              topic={currentQuestion.topic}
+              source={currentQuestion.source || "クイックテスト"}
               className="mb-6"
             />
           )}

@@ -6,6 +6,7 @@ import {
 } from "./types";
 import { Question } from "./types/quiz";
 import { logger } from "./logger";
+import { getCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
 import {
   FrequencyDataset,
   getFrequencyCount,
@@ -131,11 +132,8 @@ export async function saveStudyData(
   category: string
 ): Promise<void> {
   try {
-    // ローカルストレージから現在のユーザーデータを取得
-    const userDataStr = localStorage.getItem("takken_user");
-    if (!userDataStr) return;
-
-    const userData = JSON.parse(userDataStr);
+    const userData = await getCachedUserForCurrentAuth<any>();
+    if (!userData || userData.id !== userId) return;
 
     // 学習データを更新
     const updatedStreak = updateStudyStreak(
@@ -168,7 +166,7 @@ export async function saveStudyData(
       progress: updatedProgress,
     };
 
-    localStorage.setItem("takken_user", JSON.stringify(updatedUserData));
+    setCachedUser(updatedUserData);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("学習データの保存に失敗しました", err);

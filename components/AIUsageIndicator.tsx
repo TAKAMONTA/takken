@@ -4,10 +4,18 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSubscription } from "@/lib/hooks/use-subscription";
 import { SubscriptionPlan } from "@/lib/types/subscription";
+import { firestoreService } from "@/lib/firestore-service";
+import { getCurrentFirebaseUser } from "@/lib/auth-cache";
 
 interface AIUsageIndicatorProps {
   className?: string;
   showUpgradeButton?: boolean;
+}
+
+interface AIUsageEventDetail {
+  used?: number;
+  remaining?: number;
+  isPremium?: boolean;
 }
 
 /**
@@ -22,13 +30,40 @@ export default function AIUsageIndicator({
   const [currentUsage, setCurrentUsage] = useState(0);
 
   useEffect(() => {
-    // TODO: Firestoreから実際の使用回数を取得
-    // 現在は仮の値を使用
-    const userId = localStorage.getItem("takken_user");
-    if (userId) {
-      // firestoreService.getAIUsageCount(userId).then(setCurrentUsage);
-    }
-  }, []);
+    let cancelled = false;
+
+    const loadUsage = async () => {
+      if (isLoading || subscription?.plan === SubscriptionPlan.PREMIUM) {
+        return;
+      }
+
+      const firebaseUser = await getCurrentFirebaseUser();
+      if (!firebaseUser) {
+        return;
+      }
+
+      const usage = await firestoreService.getAIUsageCount(firebaseUser.uid, new Date());
+      if (!cancelled) {
+        setCurrentUsage(usage);
+      }
+    };
+
+    loadUsage();
+
+    const handleUsageUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<AIUsageEventDetail>).detail;
+      if (typeof detail?.used === "number") {
+        setCurrentUsage(detail.used);
+      }
+    };
+
+    window.addEventListener("takken:ai-usage-updated", handleUsageUpdate);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("takken:ai-usage-updated", handleUsageUpdate);
+    };
+  }, [isLoading, subscription?.plan]);
 
   if (isLoading) {
     return null;
@@ -158,10 +193,46 @@ export default function AIUsageIndicator({
  * シンプルなAI使用回数表示（コンパクト版）
  */
 export function AIUsageCompact({ className = "" }: { className?: string }) {
-  const { subscription, getFeatureLimit } = useSubscription();
+  const { subscription, getFeatureLimit, isLoading } = useSubscription();
   const aiLimit = getFeatureLimit("aiExplanationLimit");
   const isUnlimited = aiLimit === -1;
-  const currentUsage = 0; // TODO: 実際の使用回数
+  const [currentUsage, setCurrentUsage] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUsage = async () => {
+      if (isLoading || subscription?.plan === SubscriptionPlan.PREMIUM) {
+        return;
+      }
+
+      const firebaseUser = await getCurrentFirebaseUser();
+      if (!firebaseUser) {
+        return;
+      }
+
+      const usage = await firestoreService.getAIUsageCount(firebaseUser.uid, new Date());
+      if (!cancelled) {
+        setCurrentUsage(usage);
+      }
+    };
+
+    loadUsage();
+
+    const handleUsageUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<AIUsageEventDetail>).detail;
+      if (typeof detail?.used === "number") {
+        setCurrentUsage(detail.used);
+      }
+    };
+
+    window.addEventListener("takken:ai-usage-updated", handleUsageUpdate);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("takken:ai-usage-updated", handleUsageUpdate);
+    };
+  }, [isLoading, subscription?.plan]);
 
   if (isUnlimited) {
     return (
@@ -186,6 +257,3 @@ export function AIUsageCompact({ className = "" }: { className?: string }) {
     </span>
   );
 }
-
-
-

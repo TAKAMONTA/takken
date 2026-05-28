@@ -35,6 +35,12 @@ export default function PricingPage() {
         url: checkoutUrl ? checkoutUrl.substring(0, 50) + "..." : "null"
       });
 
+      if (checkoutUrl === "native-purchase-success") {
+        console.log("[Pricing] iOS ネイティブ決済完了");
+        router.push("/subscription/success?source=ios");
+        return;
+      }
+
       if (checkoutUrl) {
         console.log("[Pricing] Checkoutページにリダイレクト");
         window.location.href = checkoutUrl;
@@ -177,20 +183,6 @@ export default function PricingPage() {
                   />
                 </svg>
                 AI解説（{freeConfig.features.aiExplanationLimit === -1 ? "無制限" : `月${freeConfig.features.aiExplanationLimit}回まで`}）
-              </li>
-              <li className="flex items-center">
-                <svg
-                  className="w-5 h-5 text-green-500 mr-3"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                AI予想問題（{freeConfig.features.questionLimit}問まで）
               </li>
               <li className="flex items-center">
                 <svg
@@ -476,7 +468,7 @@ export default function PricingPage() {
                 返金はできますか？
               </h3>
               <p className="text-gray-600">
-                初回購入後7日以内であれば、返金に応じます。お問い合わせページからご連絡ください。
+                iOSアプリ版の返金はAppleの返金リクエストから申請してください。Web版の決済についてはサポートページからお問い合わせください。
               </p>
             </div>
           </div>

@@ -79,7 +79,7 @@ export default function Dashboard() {
 
     const initAuth = async () => {
       try {
-        // まずローカルストレージからユーザー情報を確認
+        // localStorageは表示キャッシュとしてだけ使い、ログイン判定はFirebase Authで行う。
         const localUserData = localStorage.getItem("takken_user");
         logger.debug("Dashboard Auth Debug", {
           environment: process.env.NODE_ENV,
@@ -89,35 +89,23 @@ export default function Dashboard() {
             typeof window !== "undefined" ? window.location.href : "server",
         });
 
-        if (localUserData) {
-          try {
-            const userData = JSON.parse(localUserData);
-            logger.debug("Local user data found", {
-              id: userData.id,
-              name: userData.name,
-              email: userData.email,
-            });
-            setUser(userData);
-            setLoading(false);
-            return;
-          } catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error("Error parsing local user data", err);
-            localStorage.removeItem("takken_user");
-          }
-        }
-
-        // Firebase認証も試行
         const { onAuthStateChanged } = await import("firebase/auth");
-        const { initializeFirebase } = await import(
+        const { initializeFirebaseWithFallback } = await import(
           "../../lib/firebase-client"
         );
         const { firestoreService } = await import(
           "../../lib/firestore-service"
         );
-        const { auth } = initializeFirebase();
+        const firebase = await initializeFirebaseWithFallback();
 
-        unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+        if (firebase.fallback || !firebase.auth) {
+          logger.warn("Firebase Auth is unavailable; redirecting to login");
+          router.push("/auth/login");
+          setLoading(false);
+          return;
+        }
+
+        unsubscribe = onAuthStateChanged(firebase.auth, async firebaseUser => {
           logger.debug("Firebase Auth State Changed", {
             hasFirebaseUser: !!firebaseUser,
             firebaseUserUid: firebaseUser?.uid,
@@ -184,15 +172,16 @@ export default function Dashboard() {
             } catch (error) {
               const err = error instanceof Error ? error : new Error(String(error));
               logger.error("Error loading user profile", err, { userId: firebaseUser?.uid });
-              // Firebaseエラーの場合はローカルストレージ認証にフォールバック
               const localUserData = localStorage.getItem("takken_user");
               if (localUserData) {
                 try {
                   const userData = JSON.parse(localUserData);
-                  setUser(userData);
-                  setLoading(false);
-                  logger.debug("Fallback to local user data", { userId: userData.id });
-                  return;
+                  if (userData.id === firebaseUser.uid) {
+                    setUser(userData);
+                    setLoading(false);
+                    logger.debug("Using cached profile for authenticated Firebase user", { userId: userData.id });
+                    return;
+                  }
                 } catch (parseError) {
                   const parseErr = parseError instanceof Error ? parseError : new Error(String(parseError));
                   logger.error("Error parsing local user data", parseErr);
@@ -203,24 +192,8 @@ export default function Dashboard() {
               return;
             }
           } else {
-            // Firebase認証されていない場合、ローカルストレージを再確認
-            logger.debug("Firebase user not found, checking localStorage again");
-            const localUserData = localStorage.getItem("takken_user");
-            if (localUserData) {
-              try {
-                const userData = JSON.parse(localUserData);
-                setUser(userData);
-                setLoading(false);
-                logger.debug("Using localStorage user data", { userId: userData.id });
-                return;
-              } catch (error) {
-                const err = error instanceof Error ? error : new Error(String(error));
-                logger.error("Error parsing local user data", err);
-                localStorage.removeItem("takken_user");
-              }
-            }
-            // どちらの認証も失敗した場合はログインページへ
             logger.debug("No authentication found, redirecting to login");
+            localStorage.removeItem("takken_user");
             router.push("/auth/login");
             return;
           }
@@ -229,20 +202,6 @@ export default function Dashboard() {
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         logger.error("Error initializing auth", err);
-        // Firebase初期化エラーの場合はローカルストレージ認証にフォールバック
-        const localUserData = localStorage.getItem("takken_user");
-        if (localUserData) {
-          try {
-            const userData = JSON.parse(localUserData);
-            setUser(userData);
-            setLoading(false);
-            return;
-          } catch (parseError) {
-            const parseErr = parseError instanceof Error ? parseError : new Error(String(parseError));
-            logger.error("Error parsing local user data", parseErr);
-            localStorage.removeItem("takken_user");
-          }
-        }
         router.push("/auth/login");
         setLoading(false);
       }
@@ -510,7 +469,7 @@ export default function Dashboard() {
               </Link>
             </div>
             <p className="text-xs text-gray-400">
-              © 2025 宅建合格ロード. All rights reserved.
+              © {new Date().getFullYear()} 宅建合格ロード. All rights reserved.
             </p>
           </div>
         </footer>

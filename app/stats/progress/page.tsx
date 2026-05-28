@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
+import { getDaysUntilExam, takkenExamConfig } from '@/lib/exam-config';
 // 分野情報を定義
 const categories = [
   { id: 'takkengyouhou', name: '宅建業法', icon: '🏢', target: 18, total: 0 },
@@ -17,14 +19,23 @@ export default function Progress() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    } else {
-      router.push('/');
-    }
-    setLoading(false);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((cachedUser) => {
+        if (!cancelled && cachedUser) {
+          setUser(cachedUser);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const getProgressData = () => {
@@ -36,7 +47,7 @@ export default function Progress() {
           studyHours: 0,
           studyDays: 0,
           streak: 0,
-          targetDate: '2025年10月19日'
+          targetDate: takkenExamConfig.examDateLabel
         },
         categories: {
           takkengyouhou: { solved: 0, correct: 0, rate: 0, time: 0 },
@@ -94,7 +105,7 @@ export default function Progress() {
         studyHours: Math.round(totalStats.totalStudyTime / 60),
         studyDays: studyHistory.length,
         streak: user.streak?.currentStreak || 0,
-        targetDate: '2025年10月19日'
+        targetDate: takkenExamConfig.examDateLabel
       },
       categories: calculatedCategoryStats,
       recentProgress: studyHistory.slice(-7).reverse()
@@ -110,7 +121,7 @@ export default function Progress() {
   }
 
   const progress = getProgressData();
-  const daysUntilExam = Math.ceil((new Date('2025-10-19').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  const daysUntilExam = getDaysUntilExam();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
@@ -130,7 +141,9 @@ export default function Progress() {
           <div className="text-center">
             <div className="text-4xl mb-2">📅</div>
             <h2 className="text-2xl font-bold mb-2">試験まであと{daysUntilExam}日</h2>
-            <p className="text-sm opacity-90">試験日: {progress.overall.targetDate}</p>
+            <p className="text-sm opacity-90">
+              {takkenExamConfig.eraYearLabel} 試験日: {progress.overall.targetDate}（{takkenExamConfig.statusLabel}）
+            </p>
           </div>
           <div className="grid grid-cols-4 gap-4 mt-6">
             <div className="text-center">

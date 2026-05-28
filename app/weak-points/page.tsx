@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { requireCachedUserForCurrentAuth } from "@/lib/auth-cache";
 
 const weaknessData: any[] = [];
 
@@ -44,14 +45,23 @@ export default function WeakPoints() {
   const [selectedMethod, setSelectedMethod] = useState<string>("");
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    } else {
-      router.push("/");
-    }
-    setLoading(false);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push("/auth/login"))
+      .then((cachedUser) => {
+        if (!cancelled && cachedUser) {
+          setUser(cachedUser);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const handleStartWeakPointStudy = () => {

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
+import { getExamMilestones, takkenExamConfig } from '@/lib/exam-config';
 
 const defaultSchedule = {
   weeklyGoals: [
@@ -14,11 +16,7 @@ const defaultSchedule = {
     { day: '土', hours: 3, focus: '総合演習', completed: false },
     { day: '日', hours: 3, focus: '模擬試験', completed: false }
   ],
-  milestones: [
-    { date: '2025-08-31', title: '基礎学習完了', description: '全分野の基本問題を80%以上の正答率で解けるようになる', completed: false },
-    { date: '2025-09-30', title: '応用学習完了', description: '過去問を70%以上の正答率で解けるようになる', completed: false },
-    { date: '2025-10-12', title: '総仕上げ完了', description: '模擬試験で80%以上の得点を安定して取れるようになる', completed: false }
-  ]
+  milestones: getExamMilestones()
 };
 
 export default function Schedule() {
@@ -28,20 +26,37 @@ export default function Schedule() {
   const [schedule, setSchedule] = useState(defaultSchedule);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((userData) => {
+        if (!userData || cancelled) {
+          return;
+        }
+
       setUser(userData);
 
       // ローカルストレージからスケジュールを読み込む
       const savedSchedule = localStorage.getItem('takken_schedule');
       if (savedSchedule) {
-        setSchedule(JSON.parse(savedSchedule));
-      }
-    } else {
-      router.push('/');
-    }
-    setLoading(false);
+          const parsedSchedule = JSON.parse(savedSchedule);
+          const savedYear = Number(String(parsedSchedule.milestones?.[0]?.date || '').slice(0, 4));
+          if (savedYear === takkenExamConfig.targetYear) {
+            setSchedule(parsedSchedule);
+          } else {
+            localStorage.removeItem('takken_schedule');
+          }
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const saveSchedule = (newSchedule: typeof defaultSchedule) => {
@@ -85,6 +100,18 @@ export default function Schedule() {
       </div>
 
       <div className="max-w-md mx-auto px-6 py-8 space-y-6">
+        <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-5 shadow-lg border border-gray-100">
+          <div className="text-sm font-bold text-indigo-800 mb-1">
+            {takkenExamConfig.eraYearLabel} {takkenExamConfig.examName}
+          </div>
+          <div className="text-sm text-gray-700">
+            試験日: {takkenExamConfig.examDateLabel}（{takkenExamConfig.statusLabel}）
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            申込: {takkenExamConfig.internetApplicationLabel}
+          </div>
+        </div>
+
         {/* 今日の学習予定 */}
         {todaySchedule && (
           <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 text-white shadow-lg">

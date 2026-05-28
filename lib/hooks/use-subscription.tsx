@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 import { SubscriptionPlan, SubscriptionStatus, PLAN_CONFIGS } from "@/lib/types/subscription";
 import { firestoreService } from "@/lib/firestore-service";
 import { logger } from "@/lib/logger";
-import { getAuth } from "firebase/auth";
 import { fetchWithRetry, parseAPIError, getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 import { Capacitor } from "@capacitor/core";
+import type { User } from "firebase/auth";
 
 /**
  * サブスクリプション情報の型定義
@@ -58,47 +58,46 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * 現在のユーザーIDを取得
+   * Firebase Authの現在ユーザーを取得する。
+   * localStorageのtakken_userは表示キャッシュなので、課金・権限制御には使わない。
    */
-  const getCurrentUserId = (): string | null => {
+  const getCurrentFirebaseUser = useCallback(async (): Promise<User | null> => {
     try {
-      // まずローカルストレージから取得（より堅牢）
-      const userData = localStorage.getItem("takken_user");
-      if (userData) {
-        const user = JSON.parse(userData);
-        return user.id;
+      const { initializeFirebaseWithFallback } = await import("@/lib/firebase-client");
+      const firebase = await initializeFirebaseWithFallback();
+
+      if (firebase.fallback || !firebase.auth) {
+        return null;
       }
 
-      // ローカルストレージにない場合、Firebase認証から取得
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (user) {
-          return user.uid;
-        }
-      } catch (firebaseError) {
-        // Firebase App が初期化されていない場合はスキップ
-        console.warn("[getCurrentUserId] Firebase未初期化:", firebaseError);
+      if (firebase.auth.currentUser) {
+        return firebase.auth.currentUser;
       }
 
-      return null;
+      const { onAuthStateChanged } = await import("firebase/auth");
+      return await new Promise<User | null>((resolve) => {
+        const unsubscribe = onAuthStateChanged(firebase.auth, (user) => {
+          unsubscribe();
+          resolve(user);
+        });
+      });
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error("ユーザーID取得エラー", error);
+      logger.error("Firebaseユーザー取得エラー", error);
       return null;
     }
-  };
+  }, []);
 
   /**
    * サブスクリプション情報を取得
    */
-  const loadSubscription = async () => {
+  const loadSubscription = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const userId = getCurrentUserId();
-      if (!userId) {
+      const firebaseUser = await getCurrentFirebaseUser();
+      if (!firebaseUser) {
         // ユーザーがログインしていない場合は無料プランとして扱う
         setSubscription({
           plan: SubscriptionPlan.FREE,
@@ -110,6 +109,8 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         setIsLoading(false);
         return;
       }
+
+      const userId = firebaseUser.uid;
 
       // iOSの場合はネイティブからアクティブなサブスクリプションを確認
       if (Capacitor.getPlatform() === 'ios') {
@@ -191,30 +192,31 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [getCurrentFirebaseUser]);
 
   /**
    * サブスクリプション情報をリフレッシュ
    */
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async () => {
     await loadSubscription();
-  };
+  }, [loadSubscription]);
 
   /**
    * Checkoutセッションを作成
    */
-  const createCheckoutSession = async (
+  const createCheckoutSession = useCallback(async (
     plan: SubscriptionPlan,
     yearly = false
   ): Promise<string | null> => {
     try {
       console.log("[Checkout] セッション作成開始", { plan, yearly });
 
-      const userId = getCurrentUserId();
-      console.log("[Checkout] ユーザーID取得", { userId: userId ? `${userId.substring(0, 8)}...` : "なし" });
+      const firebaseUser = await getCurrentFirebaseUser();
+      const userId = firebaseUser?.uid || null;
+      console.log("[Checkout] Firebaseユーザー取得", { userId: userId ? `${userId.substring(0, 8)}...` : "なし" });
 
-      if (!userId) {
-        console.error("[Checkout] エラー: ユーザーIDが取得できませんでした");
+      if (!firebaseUser || !userId) {
+        console.error("[Checkout] エラー: Firebase認証ユーザーが取得できませんでした");
         throw new Error("ログインが必要です");
       }
 
@@ -262,39 +264,15 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         "Content-Type": "application/json",
       };
 
-      // Firebase認証トークンを取得（未初期化の場合はスキップ）
-      let user = null;
+      // Firebase認証トークンを取得
       try {
-        const auth = getAuth();
-        user = auth.currentUser;
-        console.log("[Checkout] Firebase認証ユーザー", { hasUser: !!user });
-
-        // Firebase認証ユーザーがいない場合、認証状態を再確認
-        if (!user) {
-          // 少し待ってから再確認（認証状態の同期を待つ）
-          console.log("[Checkout] 認証状態の再確認を待機中...");
-          await new Promise(resolve => setTimeout(resolve, 500));
-          user = auth.currentUser;
-          console.log("[Checkout] 再確認後のFirebase認証ユーザー", { hasUser: !!user });
-        }
-
-        if (user) {
-          // Firebase認証ユーザーがいる場合はトークンを使用
-          console.log("[Checkout] Firebase IDトークンを取得中...");
-          const token = await user.getIdToken();
-          headers.Authorization = `Bearer ${token}`;
-          console.log("[Checkout] Firebase IDトークン取得完了", { tokenLength: token.length });
-        }
+        console.log("[Checkout] Firebase IDトークンを取得中...");
+        const token = await firebaseUser.getIdToken();
+        headers.Authorization = `Bearer ${token}`;
+        console.log("[Checkout] Firebase IDトークン取得完了", { tokenLength: token.length });
       } catch (firebaseError) {
-        // Firebase App が初期化されていない場合はスキップ
-        console.warn("[Checkout] Firebase未初期化、ローカルストレージ認証を使用", firebaseError);
-      }
-
-      if (!user) {
-        // ローカルストレージ認証の場合は、userIdをヘッダーに含める
-        headers["X-User-Id"] = userId;
-        console.log("[Checkout] ローカルストレージ認証を使用", { userId });
-        logger.debug("ローカルストレージ認証を使用してCheckoutセッションを作成", { userId });
+        console.warn("[Checkout] Firebase IDトークン取得失敗", firebaseError);
+        throw new Error("認証情報の取得に失敗しました。再ログインしてください。");
       }
 
       const requestBody = {
@@ -373,7 +351,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       setError(friendlyMessage);
       return null;
     }
-  };
+  }, [getCurrentFirebaseUser, loadSubscription]);
 
   /**
    * 機能へのアクセス権があるかチェック
@@ -438,7 +416,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   /**
    * 購入を復元
    */
-  const restorePurchases = async () => {
+  const restorePurchases = useCallback(async () => {
     if (Capacitor.getPlatform() !== 'ios') return;
 
     setIsLoading(true);
@@ -455,12 +433,12 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [loadSubscription]);
 
   // 初期化時にサブスクリプション情報を読み込む
   useEffect(() => {
     loadSubscription();
-  }, []);
+  }, [loadSubscription]);
 
   const value: SubscriptionContextType = {
     subscription,
@@ -494,9 +472,6 @@ export function useSubscription(): SubscriptionContextType {
 
   return context;
 }
-
-
-
 
 
 

@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { takkenExamConfig } from '@/lib/exam-config';
 import { firestoreService } from '@/lib/firestore-service';
+import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
 
 const examModes = [
   {
@@ -76,15 +78,26 @@ export default function MockExam() {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((userData) => {
+        if (!userData || cancelled) {
+          return;
+        }
+
       setUser(userData);
-      fetchMockExamData(userData.uid);
-    } else {
-      router.push('/');
-    }
-    setLoading(false);
+      fetchMockExamData(userData.id);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const fetchMockExamData = async (userId: string) => {
@@ -169,18 +182,18 @@ export default function MockExam() {
               <i className="ri-arrow-left-line text-xl"></i>
             </div>
           </Link>
-          <h1 className="text-xl font-bold text-gray-800">令和7年度予想模試</h1>
+          <h1 className="text-xl font-bold text-gray-800">{takkenExamConfig.eraYearLabel}予想模試</h1>
         </div>
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-20 pb-6 space-y-6">
-        {/* 令和7年度予想問題情報 */}
+        {/* 予想問題情報 */}
         <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-xl p-6 text-white">
           <div className="text-center">
             <div className="text-3xl mb-2">🎯</div>
-            <h2 className="font-bold text-lg mb-2">令和7年度予想模試</h2>
+            <h2 className="font-bold text-lg mb-2">{takkenExamConfig.eraYearLabel}予想模試</h2>
             <p className="text-sm opacity-90 mb-4">
-              最新の法改正を反映した2025年度予想問題
+              最新の法改正を反映した{takkenExamConfig.targetYear}年度予想問題
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-white/20 rounded-lg p-3">
@@ -285,9 +298,9 @@ export default function MockExam() {
           </div>
         )}
 
-        {/* 令和7年度予想問題の特徴 */}
+        {/* 予想問題の特徴 */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 className="font-bold text-sm text-blue-800 mb-2">✨ 令和7年度予想問題の特徴</h3>
+          <h3 className="font-bold text-sm text-blue-800 mb-2">✨ {takkenExamConfig.eraYearLabel}予想問題の特徴</h3>
           <ul className="text-xs text-blue-700 space-y-1">
             <li>• 令和6年7月・令和7年4月施行の最新法改正を反映</li>
             <li>• 宅建業法の免許申請手続きの変更に対応</li>

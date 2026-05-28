@@ -101,7 +101,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     name: 'プレミアムプラン',
     description: '全機能を無制限で利用できます',
     price: 1000,
-    yearlyPrice: 9000, // 3ヶ月分お得
+    yearlyPrice: 8000,
     popular: true,
     applePriceId: 'com.takamonta.takken.premium.monthly',
     appleYearlyPriceId: 'com.takamonta.takken.premium.yearly',

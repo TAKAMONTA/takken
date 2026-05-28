@@ -4,9 +4,10 @@
 
 ## ✅ 完了した実装
 
-### 1. Stripe決済システム
-- ✅ Checkoutセッション作成API実装完了
-- ✅ Webhook処理実装完了
+### 1. 決済システム
+- ✅ Web版: Stripe Checkoutセッション作成API実装完了
+- ✅ Web版: Stripe Webhook処理実装完了
+- ✅ iOS版: App Storeアプリ内課金の商品IDと価格表示を統一
 - ✅ 実際のカードでの決済テスト成功
 - ✅ 本番環境で正常動作確認済み
 
@@ -17,7 +18,7 @@
 - ✅ Firebase未初期化エラーの回避
 
 ### 3. サブスクリプション機能
-- ✅ プレミアムプラン（月額/年額）の実装
+- ✅ プレミアムプラン（月額1,000円/年額9,000円）の実装
 - ✅ 機能制限システムの実装
 - ✅ サブスクリプション状態管理
 
@@ -26,20 +27,21 @@
 ### 動作確認済み
 - ✅ クライアント側認証（ローカルストレージ + Firebase）
 - ✅ サーバー側認証（Firebase Admin SDK + ローカルストレージ認証）
-- ✅ Stripe Checkoutセッション作成
-- ✅ Stripe決済処理（実際のカードで成功）
+- ✅ Web版Stripe Checkoutセッション作成
+- ✅ Web版Stripe決済処理（実際のカードで成功）
+- ✅ iOS版App Storeアプリ内課金の商品ID設定
 
 ### 本番環境
 - ✅ Vercelデプロイ成功
 - ✅ 環境変数設定完了
-- ✅ Stripeライブモードで動作中
+- ✅ Web版Stripeライブモードで動作中
 
 ## 📝 技術スタック
 
 - **フレームワーク**: Next.js 14 (App Router)
 - **言語**: TypeScript
 - **バックエンド**: Firebase (Auth, Firestore, Functions)
-- **決済**: Stripe
+- **決済**: Stripe（Web版）, App Store In-App Purchase（iOS版）
 - **デプロイ**: Vercel
 
 ## 🚀 次のステップ（オプション）
@@ -51,6 +53,5 @@
 ---
 
 **状態**: ✅ 本番運用可能
-
 
 

@@ -22,6 +22,8 @@ import { logger } from "@/lib/logger";
 import StudyInfoSection from "@/components/StudyInfoSection";
 import LessonScreen from "@/components/LessonScreen";
 import { getLessonForQuestion, getDefaultLesson } from "@/lib/data/lessons";
+import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
+import QuestionMetaBadges from "@/components/QuestionMetaBadges";
 
 function QuizContent() {
   const router = useRouter();
@@ -50,17 +52,14 @@ function QuizContent() {
   const [showLesson, setShowLesson] = useState(isBeginnerMode);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    } else {
-      router.push("/");
-      return;
-    }
-
     // 問題を動的に取得
     const loadQuestions = async () => {
+      const cachedUser = await requireCachedUserForCurrentAuth<UserProfile>(() =>
+        router.push("/auth/login")
+      );
+      if (!cachedUser) return;
+      setUser(cachedUser);
+
       if (!categoryParam) return;
 
       try {
@@ -243,7 +242,7 @@ function QuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
 
     // Analytics システムにも1問ずつ保存
     try {
@@ -376,7 +375,7 @@ function QuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
 
     // Analytics システムにも学習セッションを保存
     try {
@@ -611,15 +610,7 @@ function QuizContent() {
       {/* 問題表示 */}
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          {/* 問題情報 */}
-          <div className="flex items-center justify-between mb-4 text-xs">
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-              {currentQuestion.category}
-            </span>
-            <span className="text-gray-500">
-              {currentQuestion.year} {currentQuestion.difficulty}
-            </span>
-          </div>
+          <QuestionMetaBadges question={currentQuestion} className="mb-4" />
 
           {/* 問題文 */}
           <div className="mb-6">
@@ -755,6 +746,9 @@ function QuizContent() {
               isCorrect={selectedAnswer === currentQuestion.correctAnswer}
               correctAnswer={currentQuestion.correctAnswer}
               options={currentQuestion.options}
+              relatedArticles={currentQuestion.relatedArticles}
+              topic={currentQuestion.topic}
+              source={currentQuestion.source}
               className="mb-6"
             />
           )}

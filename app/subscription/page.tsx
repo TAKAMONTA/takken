@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useIsIOSApp } from "@/lib/use-is-ios-app";
 import { getAppPublicBaseUrl } from "@/lib/app-public-base-url";
+import { PLAN_CONFIGS, SubscriptionPlan } from "@/lib/types/subscription";
 
 export default function SubscriptionPage() {
   const isIOSApp = useIsIOSApp();
+  const freeConfig = PLAN_CONFIGS[SubscriptionPlan.FREE];
+  const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
+  const monthlyPrice = premiumConfig.price.toLocaleString();
+  const yearlyPrice = premiumConfig.yearlyPrice?.toLocaleString();
   const publicBase = getAppPublicBaseUrl();
   const termsUrl = `${publicBase}/settings/terms`;
   const privacyUrl = `${publicBase}/settings/privacy`;
@@ -41,10 +46,12 @@ export default function SubscriptionPage() {
               </h3>
               <p className="text-sm text-blue-800">
                 プレミアムプランは
-                <strong>{isIOSApp ? "Web版・iOSアプリ" : "Web版・iOS/Androidアプリ"}</strong>
+                <strong>Web版・iOSアプリ</strong>
                 でご利用いただけます。
                 <br />
-                Stripe経由で安全に決済できます。
+                {isIOSApp
+                  ? "iOSアプリではApp Storeのアプリ内課金で安全に決済できます。"
+                  : "Web版ではStripe経由で安全に決済できます。"}
               </p>
             </div>
           </div>
@@ -65,7 +72,7 @@ export default function SubscriptionPage() {
             </h3>
             <p className="text-gray-600 mb-4">基本機能をご利用いただけます</p>
             <div className="text-sm text-gray-500">
-              AI機能: 月20回まで / AI予想問題: 300問まで / 広告表示あり
+              AI機能: 月{freeConfig.features.aiExplanationLimit}回まで / AI予想問題: {freeConfig.features.questionLimit}問まで / 広告表示あり
             </div>
           </div>
         </div>
@@ -117,16 +124,18 @@ export default function SubscriptionPage() {
               <div className="w-5 h-5 rounded-full flex items-center justify-center bg-purple-100">
                 <i className="ri-check-line text-sm text-purple-600"></i>
               </div>
-              <span className="text-sm text-gray-900">優先サポート</span>
+              <span className="text-sm text-gray-900">カスタム学習プラン</span>
             </div>
           </div>
 
           <div className="bg-purple-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-900 font-medium mb-1">
-              月額 1,000円（税込）
+              月額 {monthlyPrice}円（税込）
             </p>
             <p className="text-xs text-purple-700 mb-2">
-              {isIOSApp ? "Web版・iOSアプリでご利用いただけます" : "Web版・iOS/Androidアプリでご利用いただけます"}
+              {yearlyPrice
+                ? `年額 ${yearlyPrice}円（税込）も選択できます`
+                : "Web版・iOSアプリでご利用いただけます"}
             </p>
             <Link
               href="/subscription/pricing"
@@ -144,7 +153,11 @@ export default function SubscriptionPage() {
             <ul className="list-disc list-inside space-y-1 text-purple-800">
               <li>名称: プレミアム（月額 / 年額 ※アプリ内表示）</li>
               <li>期間: 1か月 / 1年</li>
-              <li>価格: 登録時に App Store 上で表示される金額（税込）</li>
+              <li>
+                価格: 月額 {monthlyPrice}円
+                {yearlyPrice ? ` / 年額 ${yearlyPrice}円` : ""}
+                （税込、最終価格は登録時の決済画面で確認できます）
+              </li>
             </ul>
             <p className="flex flex-wrap gap-x-3 gap-y-1">
               <a
@@ -191,7 +204,7 @@ export default function SubscriptionPage() {
                   モバイルアプリをダウンロード
                 </p>
                 <p className="text-xs text-gray-600">
-                  {isIOSApp ? "App Store（iOS）から「宅建合格ロード」をダウンロード" : "App Store（iOS）またはGoogle Play（Android）から「宅建合格ロード」をダウンロード"}
+                  App Store（iOS）から「宅建合格ロード」をダウンロード
                 </p>
               </div>
             </div>
@@ -239,20 +252,6 @@ export default function SubscriptionPage() {
               <span>App Storeからダウンロード</span>
             </div>
           </a>
-
-          {!isIOSApp && (
-            <a
-              href="https://play.google.com/store/apps/details?id=app.takkenroad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full bg-green-600 text-white py-4 px-6 rounded-lg font-medium text-center hover:bg-green-700 transition-colors"
-            >
-              <div className="flex items-center justify-center gap-2">
-                <i className="ri-google-play-fill text-2xl"></i>
-                <span>Google Playからダウンロード</span>
-              </div>
-            </a>
-          )}
         </div>
 
         {/* FAQ */}

@@ -2,6 +2,7 @@
 // 静的エクスポート環境でもFirebase Functionsを使用可能
 
 import { getAuth } from "firebase/auth";
+import { parseAPIError } from "@/lib/api-error-handler";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -72,11 +73,20 @@ class FirebaseFunctionsAIClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "API request failed");
+      const errorData = await response.json().catch(() => ({}));
+      throw parseAPIError(response, errorData);
     }
 
-    return await response.json();
+    const result = await response.json();
+    if (typeof window !== "undefined" && result?.usage) {
+      window.dispatchEvent(
+        new CustomEvent("takken:ai-usage-updated", {
+          detail: result.usage,
+        })
+      );
+    }
+
+    return result;
   }
 
   async chat(

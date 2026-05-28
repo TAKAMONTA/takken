@@ -51,8 +51,8 @@ const ENV_CONFIGS: EnvConfig[] = [
   },
   {
     key: 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID',
-    description: 'Firebase Measurement ID',
-    required: true,
+    description: 'Firebase Measurement ID（Analyticsを使用する場合のみ）',
+    required: false,
   },
 
   // 暗号化キー（必須、32文字以上）
@@ -77,6 +77,35 @@ const ENV_CONFIGS: EnvConfig[] = [
   {
     key: 'GOOGLE_AI_API_KEY',
     description: 'Google AI APIキー',
+    required: false,
+  },
+
+  // Stripe Web課金設定（Web課金を使用する場合は必須）
+  {
+    key: 'STRIPE_SECRET_KEY',
+    description: 'Stripe Secret Key',
+    required: false,
+  },
+  {
+    key: 'STRIPE_WEBHOOK_SECRET',
+    description: 'Stripe Webhook Secret',
+    required: false,
+  },
+  {
+    key: 'STRIPE_PRICE_ID_PREMIUM_MONTHLY',
+    description: 'Stripe プレミアム月額 Price ID',
+    required: false,
+  },
+  {
+    key: 'STRIPE_PRICE_ID_PREMIUM_YEARLY',
+    description: 'Stripe プレミアム年額 Price ID',
+    required: false,
+  },
+
+  // Firebase Admin SDK（API Routes / Stripe Webhookで使用）
+  {
+    key: 'FIREBASE_SERVICE_ACCOUNT_KEY',
+    description: 'Firebase Admin SDK サービスアカウントJSON',
     required: false,
   },
 
@@ -154,6 +183,18 @@ export function validateEnvironment(): void {
       '⚠️  AI APIキーが設定されていません。AI機能を使用する場合は、' +
       'OPENAI_API_KEY、ANTHROPIC_API_KEY、GOOGLE_AI_API_KEYのいずれかを設定してください。'
     );
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.ALLOW_DEV_BYPASS_AUTH === 'true') {
+      errors.push('❌ ALLOW_DEV_BYPASS_AUTH は本番環境で true にできません');
+    }
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH === 'true') {
+      errors.push('❌ NEXT_PUBLIC_SKIP_AUTH は本番環境で true にできません');
+    }
+    if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')) {
+      errors.push('❌ NEXT_PUBLIC_APP_URL は本番環境では https:// で始まるURLを設定してください');
+    }
   }
 
   // エラーがある場合は例外を投げる

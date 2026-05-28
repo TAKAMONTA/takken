@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -237,11 +247,12 @@ class AIClient {
     }
 }
 const aiClient = new AIClient();
+const FREE_AI_MONTHLY_LIMIT = 20;
 // コスト計算関数
 function calculateCost(provider, tokens) {
     const costPerToken = {
-        OpenAI: 0.00003,
-        Anthropic: 0.000015,
+        OpenAI: 0.00003, // GPT-4o-mini の概算
+        Anthropic: 0.000015, // Claude-3 Haiku の概算
         "Google AI": 0.00001, // Gemini Pro の概算
     };
     return (costPerToken[provider] || 0.00002) * tokens;
@@ -259,6 +270,159 @@ async function verifyAuthToken(authHeader) {
     catch (error) {
         throw new Error("Invalid token");
     }
+}
+function getUsageDocId(userId, date) {
+    return `${userId}_${date.getFullYear()}_${date.getMonth()}`;
+}
+function getNextMonthStart(date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+function toDate(value) {
+    if (!value)
+        return null;
+    if (value instanceof Date)
+        return value;
+    if (typeof value.toDate === "function")
+        return value.toDate();
+    return null;
+}
+async function hasPremiumAccess(userId) {
+    const subscriptionSnap = await admin
+        .firestore()
+        .collection("subscriptions")
+        .doc(userId)
+        .get();
+    if (!subscriptionSnap.exists) {
+        return false;
+    }
+    const data = subscriptionSnap.data() || {};
+    const isActiveStatus = data.status === "active" || data.status === "trialing";
+    if (!isActiveStatus) {
+        return false;
+    }
+    const endDate = toDate(data.currentPeriodEnd) || toDate(data.endDate);
+    return !endDate || endDate > new Date();
+}
+async function checkAIUsage(userId) {
+    var _a;
+    const now = new Date();
+    const resetAt = getNextMonthStart(now);
+    if (await hasPremiumAccess(userId)) {
+        return {
+            allowed: true,
+            isPremium: true,
+            limit: -1,
+            used: 0,
+            remaining: -1,
+            resetAt,
+        };
+    }
+    const usageRef = admin
+        .firestore()
+        .collection("ai_usage")
+        .doc(getUsageDocId(userId, now));
+    const usageSnap = await usageRef.get();
+    const currentCount = usageSnap.exists
+        ? Number(((_a = usageSnap.data()) === null || _a === void 0 ? void 0 : _a.count) || 0)
+        : 0;
+    if (currentCount >= FREE_AI_MONTHLY_LIMIT) {
+        return {
+            allowed: false,
+            isPremium: false,
+            limit: FREE_AI_MONTHLY_LIMIT,
+            used: currentCount,
+            remaining: 0,
+            resetAt,
+        };
+    }
+    return {
+        allowed: true,
+        isPremium: false,
+        limit: FREE_AI_MONTHLY_LIMIT,
+        used: currentCount,
+        remaining: Math.max(0, FREE_AI_MONTHLY_LIMIT - currentCount),
+        resetAt,
+    };
+}
+async function commitAIUsage(userId) {
+    const now = new Date();
+    const resetAt = getNextMonthStart(now);
+    if (await hasPremiumAccess(userId)) {
+        return {
+            allowed: true,
+            isPremium: true,
+            limit: -1,
+            used: 0,
+            remaining: -1,
+            resetAt,
+        };
+    }
+    const usageRef = admin
+        .firestore()
+        .collection("ai_usage")
+        .doc(getUsageDocId(userId, now));
+    return await admin.firestore().runTransaction(async (transaction) => {
+        var _a;
+        const usageSnap = await transaction.get(usageRef);
+        const currentCount = usageSnap.exists
+            ? Number(((_a = usageSnap.data()) === null || _a === void 0 ? void 0 : _a.count) || 0)
+            : 0;
+        if (currentCount >= FREE_AI_MONTHLY_LIMIT) {
+            return {
+                allowed: false,
+                isPremium: false,
+                limit: FREE_AI_MONTHLY_LIMIT,
+                used: currentCount,
+                remaining: 0,
+                resetAt,
+            };
+        }
+        const nextCount = currentCount + 1;
+        transaction.set(usageRef, {
+            userId,
+            year: now.getFullYear(),
+            month: now.getMonth(),
+            count: admin.firestore.FieldValue.increment(1),
+            lastUsed: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return {
+            allowed: true,
+            isPremium: false,
+            limit: FREE_AI_MONTHLY_LIMIT,
+            used: nextCount,
+            remaining: Math.max(0, FREE_AI_MONTHLY_LIMIT - nextCount),
+            resetAt,
+        };
+    });
+}
+function usagePayload(decision) {
+    return {
+        limit: decision.limit,
+        used: decision.used,
+        remaining: decision.remaining,
+        isPremium: decision.isPremium,
+        resetAt: decision.resetAt.toISOString(),
+    };
+}
+function setUsageHeaders(res, decision) {
+    res.set("X-AIUsage-Limit", String(decision.limit));
+    res.set("X-AIUsage-Used", String(decision.used));
+    res.set("X-AIUsage-Remaining", String(decision.remaining));
+    res.set("X-AIUsage-Reset", String(Math.floor(decision.resetAt.getTime() / 1000)));
+    res.set("X-AIUsage-Premium", decision.isPremium ? "true" : "false");
+}
+function sendUsageLimitResponse(res, decision) {
+    setUsageHeaders(res, decision);
+    return res.status(402).json({
+        error: "今月のAI機能使用回数に達しました。プレミアムプランにアップグレードすると無制限で利用できます。",
+        usage: usagePayload(decision),
+    });
+}
+function isAuthError(error) {
+    return (typeof (error === null || error === void 0 ? void 0 : error.message) === "string" &&
+        (error.message.includes("Invalid authorization header") ||
+            error.message.includes("Invalid token")));
 }
 // AI Chat API
 exports.aiChat = functions.https.onRequest(async (req, res) => {
@@ -282,7 +446,16 @@ exports.aiChat = functions.https.onRequest(async (req, res) => {
                     .status(400)
                     .json({ error: "有効なメッセージが含まれていません" });
             }
+            const usageDecision = await checkAIUsage(userId);
+            if (!usageDecision.allowed) {
+                return sendUsageLimitResponse(res, usageDecision);
+            }
             const response = await aiClient.chat(validMessages, options);
+            const committedUsage = await commitAIUsage(userId);
+            if (!committedUsage.allowed) {
+                return sendUsageLimitResponse(res, committedUsage);
+            }
+            setUsageHeaders(res, committedUsage);
             // 使用量をFirestoreに記録
             await admin
                 .firestore()
@@ -315,10 +488,14 @@ exports.aiChat = functions.https.onRequest(async (req, res) => {
             return res.json({
                 success: true,
                 data: response,
+                usage: usagePayload(committedUsage),
             });
         }
         catch (error) {
             console.error("AI Chat API error:", error);
+            if (isAuthError(error)) {
+                return res.status(401).json({ error: "認証が必要です" });
+            }
             if ((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes("API key not configured")) {
                 return res.status(503).json({ error: "AI APIが設定されていません" });
             }
@@ -338,21 +515,34 @@ exports.aiExplanation = functions.https.onRequest(async (req, res) => {
             return res.status(405).json({ error: "Method not allowed" });
         }
         try {
-            await verifyAuthToken(req.headers.authorization || "");
+            const userId = await verifyAuthToken(req.headers.authorization || "");
             const { question, correctAnswer, userAnswer } = req.body;
             if (!question || !correctAnswer || !userAnswer) {
                 return res
                     .status(400)
                     .json({ error: "question, correctAnswer, userAnswerが必要です" });
             }
+            const usageDecision = await checkAIUsage(userId);
+            if (!usageDecision.allowed) {
+                return sendUsageLimitResponse(res, usageDecision);
+            }
             const explanation = await aiClient.generateQuestionExplanation(question, correctAnswer, userAnswer);
+            const committedUsage = await commitAIUsage(userId);
+            if (!committedUsage.allowed) {
+                return sendUsageLimitResponse(res, committedUsage);
+            }
+            setUsageHeaders(res, committedUsage);
             return res.json({
                 success: true,
                 explanation,
+                usage: usagePayload(committedUsage),
             });
         }
         catch (error) {
             console.error("AI Explanation API error:", error);
+            if (isAuthError(error)) {
+                return res.status(401).json({ error: "認証が必要です" });
+            }
             return res
                 .status(500)
                 .json({ error: "解説の生成中にエラーが発生しました" });
@@ -366,21 +556,34 @@ exports.aiMotivation = functions.https.onRequest(async (req, res) => {
             return res.status(405).json({ error: "Method not allowed" });
         }
         try {
-            await verifyAuthToken(req.headers.authorization || "");
+            const userId = await verifyAuthToken(req.headers.authorization || "");
             const { streak, recentPerformance } = req.body;
             if (typeof streak !== "number" || typeof recentPerformance !== "number") {
                 return res
                     .status(400)
                     .json({ error: "streakとrecentPerformance（数値）が必要です" });
             }
+            const usageDecision = await checkAIUsage(userId);
+            if (!usageDecision.allowed) {
+                return sendUsageLimitResponse(res, usageDecision);
+            }
             const message = await aiClient.generateMotivationalMessage(streak, recentPerformance);
+            const committedUsage = await commitAIUsage(userId);
+            if (!committedUsage.allowed) {
+                return sendUsageLimitResponse(res, committedUsage);
+            }
+            setUsageHeaders(res, committedUsage);
             return res.json({
                 success: true,
                 message,
+                usage: usagePayload(committedUsage),
             });
         }
         catch (error) {
             console.error("AI Motivation API error:", error);
+            if (isAuthError(error)) {
+                return res.status(401).json({ error: "認証が必要です" });
+            }
             return res
                 .status(500)
                 .json({ error: "メッセージの生成中にエラーが発生しました" });
@@ -394,21 +597,34 @@ exports.aiRecommendations = functions.https.onRequest(async (req, res) => {
             return res.status(405).json({ error: "Method not allowed" });
         }
         try {
-            await verifyAuthToken(req.headers.authorization || "");
+            const userId = await verifyAuthToken(req.headers.authorization || "");
             const { userProgress, weakAreas } = req.body;
             if (!userProgress || !weakAreas || !Array.isArray(weakAreas)) {
                 return res
                     .status(400)
                     .json({ error: "userProgressとweakAreasが必要です" });
             }
+            const usageDecision = await checkAIUsage(userId);
+            if (!usageDecision.allowed) {
+                return sendUsageLimitResponse(res, usageDecision);
+            }
             const recommendations = await aiClient.generateStudyRecommendations(userProgress, weakAreas);
+            const committedUsage = await commitAIUsage(userId);
+            if (!committedUsage.allowed) {
+                return sendUsageLimitResponse(res, committedUsage);
+            }
+            setUsageHeaders(res, committedUsage);
             return res.json({
                 success: true,
                 recommendations,
+                usage: usagePayload(committedUsage),
             });
         }
         catch (error) {
             console.error("AI Recommendations API error:", error);
+            if (isAuthError(error)) {
+                return res.status(401).json({ error: "認証が必要です" });
+            }
             return res
                 .status(500)
                 .json({ error: "推奨事項の生成中にエラーが発生しました" });

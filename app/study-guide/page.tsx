@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
+import { takkenExamConfig } from '@/lib/exam-config';
 import { studyStrategy2025 } from '@/lib/data/study-strategy';
 
 const studyGuideData = {
   overview: {
     title: '宅建士試験の概要',
-    examDate: '2025年10月19日（日）',
+    examDate: takkenExamConfig.examDateLabel,
     totalHours: '200〜300時間',
     passingScore: '35点前後（50点満点）',
     targetScore: '38点',
@@ -183,16 +185,24 @@ export default function StudyGuide() {
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    // const savedUser = localStorage.getItem('takken_rpg_user');
-    // if (savedUser) {
-    //   const userData = JSON.parse(savedUser);
-    //   setUser(userData);
-    // } else {
-    //   router.push('/');
-    // }
-    setUser({ name: 'Test User' }); // 仮のユーザーを設定
-    setLoading(false);
-  }, []); // routerを依存配列から削除
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((userData) => {
+        if (!cancelled && userData) {
+          setUser(userData);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   if (loading) {
     return (
@@ -202,20 +212,20 @@ export default function StudyGuide() {
     );
   }
 
-  // if (!user) { // ログインチェックを一時的に無効化
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
-  //       <div className="text-center">
-  //         <p className="text-gray-600 mb-4">ログインが必要です</p>
-  //         <Link href="/">
-  //           <button className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold">
-  //             ホームに戻る
-  //           </button>
-  //         </Link>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">ログインが必要です</p>
+          <Link href="/auth/login">
+            <button className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold">
+              ログインへ
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'overview', name: '試験概要', icon: '📋' },

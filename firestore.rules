@@ -17,10 +17,11 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // 有料会員かどうかを確認
+    // 有料会員かどうかを確認（アクティブなサブスクリプションのみ）
     function isPremiumUser() {
       return request.auth != null &&
-             exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid));
+             exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.status == "active";
     }
 
     // データサイズ制限の確認
@@ -35,9 +36,9 @@ service cloud.firestore {
 
     // 日付の妥当性確認
     function isValidTimestamp(ts) {
-      return ts is timestamp && 
+      return ts is timestamp &&
              ts > timestamp.date(2020, 1, 1) &&
-             ts < timestamp.date(2030, 12, 31);
+             ts < timestamp.date(2050, 12, 31);
     }
 
     // 問題データは認証済みユーザーのみ読み取り可能
@@ -119,6 +120,12 @@ service cloud.firestore {
     // 学習統計データ
     match /analytics/{userId} {
       allow read, write: if isAuthenticated() && isOwner(userId) && isValidDataSize(resource.data);
+    }
+
+    // AI使用回数（月次）
+    match /ai_usage/{usageId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if isAdmin();
     }
 
     // エラーログ（管理者のみアクセス可能）

@@ -1,11 +1,12 @@
 import { firestoreService } from './firestore-service';
 import InAppPurchase, { Product, Transaction, Subscription } from '../src/plugins/InAppPurchase';
 import { logger } from './logger';
+import { PLAN_CONFIGS, SubscriptionPlan as AppSubscriptionPlan } from './types/subscription';
 
 /**
  * iOS In-App Purchase対応のサブスクリプション管理サービス
  * - iOSアプリでのみ利用可能
- * - Stripeは使用しない（2025年10月削除）
+ * - Web版のStripe決済とは別に、App Storeのアプリ内課金を扱う
  */
 export interface SubscriptionPlan {
   id: string;
@@ -27,13 +28,14 @@ export interface UserSubscription {
 
 export class SubscriptionService {
   private static instance: SubscriptionService;
+  private static readonly PREMIUM_CONFIG = PLAN_CONFIGS[AppSubscriptionPlan.PREMIUM];
   
   // サブスクリプションプラン定義
   public static readonly PLANS: SubscriptionPlan[] = [
     {
-      id: 'premium_monthly',
+      id: AppSubscriptionPlan.PREMIUM,
       name: 'プレミアムプラン（月額）',
-      price: 500,
+      price: SubscriptionService.PREMIUM_CONFIG.price,
       features: [
         'AI機能無制限利用',
         '広告完全非表示',
@@ -43,7 +45,7 @@ export class SubscriptionService {
         'プッシュ通知・学習リマインダー',
         'オフライン問題ダウンロード拡張'
       ],
-      productId: 'com.takken.study.premium.monthly'
+      productId: SubscriptionService.PREMIUM_CONFIG.applePriceId || 'com.takamonta.takken.premium.monthly'
     }
   ];
 

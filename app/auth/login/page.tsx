@@ -59,10 +59,8 @@ export default function Login() {
 
       const firebaseInstance = await initializeFirebaseWithFallback();
 
-      // フォールバックモードの場合はローカルストレージ認証を使用
       if (firebaseInstance.fallback) {
-        await handleLocalStorageLogin();
-        return;
+        throw new Error("Firebase authentication is unavailable");
       }
 
       const { auth } = firebaseInstance;
@@ -138,19 +136,16 @@ export default function Login() {
       const errorObj = err as { code?: string; message?: string };
       logger.error("Firebase login error", err);
 
-      // Firebaseが利用できない場合は、ローカルストレージのみで動作
       if (
         errorObj.code === "auth/configuration-not-found" ||
         errorObj.code === "auth/network-request-failed" ||
         errorObj.message?.includes("Firebase configuration")
       ) {
-        try {
-          await handleLocalStorageLogin();
-          return;
-        } catch (localStorageError) {
-          const localStorageErr = localStorageError instanceof Error ? localStorageError : new Error(String(localStorageError));
-          logger.error("LocalStorage fallback error", localStorageErr);
-        }
+        setErrors({
+          general:
+            "認証サービスに接続できません。時間をおいて再度お試しください。",
+        });
+        return;
       }
 
       // Firebase固有のエラーハンドリング
@@ -193,103 +188,6 @@ export default function Login() {
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ローカルストレージ認証の処理
-  const handleLocalStorageLogin = async () => {
-    try {
-      // ローカルストレージからユーザーを検索
-      const existingUsers = JSON.parse(
-        localStorage.getItem("takken_users") || "[]"
-      );
-      const foundUser = existingUsers.find(
-        (u: any) =>
-          u.email === formData.email.trim() && u.password === formData.password
-      );
-
-      if (foundUser) {
-        // ユーザーデータをローカルストレージに保存（サニタイズ）
-        const userData = {
-          id: foundUser.id,
-          username: (foundUser.username || "ユーザー").substring(0, 50),
-          name: foundUser.username || "ユーザー",
-          email: foundUser.email,
-          joinedAt: new Date().toISOString(),
-          streak: {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastStudyDate: "",
-            studyDates: [],
-          },
-          progress: {
-            totalQuestions: 0,
-            correctAnswers: 0,
-            studyTimeMinutes: 0,
-            categoryProgress: {},
-          },
-          learningRecords: [],
-        };
-        localStorage.setItem("takken_user", JSON.stringify(userData));
-        logger.info("LocalStorage login successful", {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-        });
-        logger.debug("Redirecting to dashboard");
-        router.push("/dashboard");
-      } else {
-        // 新規ユーザーを作成
-        const newUser = {
-          id: "user-" + Date.now(),
-          username: "ユーザー",
-          email: formData.email.trim(),
-        };
-
-        const userData = {
-          id: newUser.id,
-          username: newUser.username,
-          name: newUser.username,
-          email: newUser.email,
-          joinedAt: new Date().toISOString(),
-          streak: {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastStudyDate: "",
-            studyDates: [],
-          },
-          progress: {
-            totalQuestions: 0,
-            correctAnswers: 0,
-            studyTimeMinutes: 0,
-            categoryProgress: {},
-          },
-          learningRecords: [],
-        };
-
-        localStorage.setItem("takken_user", JSON.stringify(userData));
-        logger.info("New user created and saved", {
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-        });
-
-        // ユーザーを保存
-        existingUsers.push({
-          id: newUser.id,
-          email: formData.email.trim(),
-          password: formData.password,
-          username: newUser.username,
-        });
-        localStorage.setItem("takken_users", JSON.stringify(existingUsers));
-
-        logger.debug("Redirecting to dashboard");
-        router.push("/dashboard");
-      }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error("LocalStorage login error", err);
-      throw new Error("ローカルストレージ認証に失敗しました");
     }
   };
 
@@ -453,7 +351,7 @@ export default function Login() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 {/* General Error */}
                 {errors.general && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
@@ -467,7 +365,8 @@ export default function Login() {
                     メールアドレス
                   </label>
                   <input
-                    type="text"
+                    type="email"
+                    name="email"
                     inputMode="email"
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -490,6 +389,7 @@ export default function Login() {
                   </label>
                   <input
                     type="password"
+                    name="password"
                     value={formData.password}
                     onChange={e =>
                       setFormData(prev => ({

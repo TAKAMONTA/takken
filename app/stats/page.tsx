@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { learningAnalytics } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
+import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
 
 const menuItems = [
   { id: 'progress', title: '学習進捗', description: '分野別の進捗を確認', icon: 'ri-line-chart-line', link: '/stats/progress' },
@@ -20,9 +21,14 @@ export default function Stats() {
   const [studyStats, setStudyStats] = useState<any>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((userData) => {
+        if (!userData || cancelled) {
+          return;
+        }
+
       setUser(userData);
       
       // 学習統計を取得
@@ -60,10 +66,16 @@ export default function Stats() {
           categoryBreakdown: categoryStats
         });
       }
-    } else {
-      router.push('/');
-    }
-    setLoading(false);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (loading || !user) {

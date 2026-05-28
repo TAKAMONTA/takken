@@ -283,6 +283,16 @@ class AIClient {
 }
 
 const aiClient = new AIClient();
+const FREE_AI_MONTHLY_LIMIT = 20;
+
+interface AIUsageDecision {
+  allowed: boolean;
+  isPremium: boolean;
+  limit: number;
+  used: number;
+  remaining: number;
+  resetAt: Date;
+}
 
 // コスト計算関数
 function calculateCost(provider: string, tokens: number): number {
@@ -308,6 +318,187 @@ async function verifyAuthToken(authHeader: string): Promise<string> {
   } catch (error) {
     throw new Error("Invalid token");
   }
+}
+
+function getUsageDocId(userId: string, date: Date): string {
+  return `${userId}_${date.getFullYear()}_${date.getMonth()}`;
+}
+
+function getNextMonthStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
+function toDate(value: any): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === "function") return value.toDate();
+  return null;
+}
+
+async function hasPremiumAccess(userId: string): Promise<boolean> {
+  const subscriptionSnap = await admin
+    .firestore()
+    .collection("subscriptions")
+    .doc(userId)
+    .get();
+
+  if (!subscriptionSnap.exists) {
+    return false;
+  }
+
+  const data = subscriptionSnap.data() || {};
+  const isActiveStatus =
+    data.status === "active" || data.status === "trialing";
+
+  if (!isActiveStatus) {
+    return false;
+  }
+
+  const endDate = toDate(data.currentPeriodEnd) || toDate(data.endDate);
+  return !endDate || endDate > new Date();
+}
+
+async function checkAIUsage(userId: string): Promise<AIUsageDecision> {
+  const now = new Date();
+  const resetAt = getNextMonthStart(now);
+
+  if (await hasPremiumAccess(userId)) {
+    return {
+      allowed: true,
+      isPremium: true,
+      limit: -1,
+      used: 0,
+      remaining: -1,
+      resetAt,
+    };
+  }
+
+  const usageRef = admin
+    .firestore()
+    .collection("ai_usage")
+    .doc(getUsageDocId(userId, now));
+
+  const usageSnap = await usageRef.get();
+  const currentCount = usageSnap.exists
+    ? Number(usageSnap.data()?.count || 0)
+    : 0;
+
+  if (currentCount >= FREE_AI_MONTHLY_LIMIT) {
+    return {
+      allowed: false,
+      isPremium: false,
+      limit: FREE_AI_MONTHLY_LIMIT,
+      used: currentCount,
+      remaining: 0,
+      resetAt,
+    };
+  }
+
+  return {
+    allowed: true,
+    isPremium: false,
+    limit: FREE_AI_MONTHLY_LIMIT,
+    used: currentCount,
+    remaining: Math.max(0, FREE_AI_MONTHLY_LIMIT - currentCount),
+    resetAt,
+  };
+}
+
+async function commitAIUsage(userId: string): Promise<AIUsageDecision> {
+  const now = new Date();
+  const resetAt = getNextMonthStart(now);
+
+  if (await hasPremiumAccess(userId)) {
+    return {
+      allowed: true,
+      isPremium: true,
+      limit: -1,
+      used: 0,
+      remaining: -1,
+      resetAt,
+    };
+  }
+
+  const usageRef = admin
+    .firestore()
+    .collection("ai_usage")
+    .doc(getUsageDocId(userId, now));
+
+  return await admin.firestore().runTransaction(async transaction => {
+    const usageSnap = await transaction.get(usageRef);
+    const currentCount = usageSnap.exists
+      ? Number(usageSnap.data()?.count || 0)
+      : 0;
+
+    if (currentCount >= FREE_AI_MONTHLY_LIMIT) {
+      return {
+        allowed: false,
+        isPremium: false,
+        limit: FREE_AI_MONTHLY_LIMIT,
+        used: currentCount,
+        remaining: 0,
+        resetAt,
+      };
+    }
+
+    const nextCount = currentCount + 1;
+    transaction.set(
+      usageRef,
+      {
+        userId,
+        year: now.getFullYear(),
+        month: now.getMonth(),
+        count: admin.firestore.FieldValue.increment(1),
+        lastUsed: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return {
+      allowed: true,
+      isPremium: false,
+      limit: FREE_AI_MONTHLY_LIMIT,
+      used: nextCount,
+      remaining: Math.max(0, FREE_AI_MONTHLY_LIMIT - nextCount),
+      resetAt,
+    };
+  });
+}
+
+function usagePayload(decision: AIUsageDecision) {
+  return {
+    limit: decision.limit,
+    used: decision.used,
+    remaining: decision.remaining,
+    isPremium: decision.isPremium,
+    resetAt: decision.resetAt.toISOString(),
+  };
+}
+
+function setUsageHeaders(res: any, decision: AIUsageDecision) {
+  res.set("X-AIUsage-Limit", String(decision.limit));
+  res.set("X-AIUsage-Used", String(decision.used));
+  res.set("X-AIUsage-Remaining", String(decision.remaining));
+  res.set("X-AIUsage-Reset", String(Math.floor(decision.resetAt.getTime() / 1000)));
+  res.set("X-AIUsage-Premium", decision.isPremium ? "true" : "false");
+}
+
+function sendUsageLimitResponse(res: any, decision: AIUsageDecision) {
+  setUsageHeaders(res, decision);
+  return res.status(402).json({
+    error:
+      "今月のAI機能使用回数に達しました。プレミアムプランにアップグレードすると無制限で利用できます。",
+    usage: usagePayload(decision),
+  });
+}
+
+function isAuthError(error: any): boolean {
+  return (
+    typeof error?.message === "string" &&
+    (error.message.includes("Invalid authorization header") ||
+      error.message.includes("Invalid token"))
+  );
 }
 
 // AI Chat API
@@ -340,7 +531,17 @@ export const aiChat = functions.https.onRequest(async (req, res) => {
           .json({ error: "有効なメッセージが含まれていません" });
       }
 
+      const usageDecision = await checkAIUsage(userId);
+      if (!usageDecision.allowed) {
+        return sendUsageLimitResponse(res, usageDecision);
+      }
+
       const response = await aiClient.chat(validMessages, options);
+      const committedUsage = await commitAIUsage(userId);
+      if (!committedUsage.allowed) {
+        return sendUsageLimitResponse(res, committedUsage);
+      }
+      setUsageHeaders(res, committedUsage);
 
       // 使用量をFirestoreに記録
       await admin
@@ -384,9 +585,14 @@ export const aiChat = functions.https.onRequest(async (req, res) => {
       return res.json({
         success: true,
         data: response,
+        usage: usagePayload(committedUsage),
       });
     } catch (error: any) {
       console.error("AI Chat API error:", error);
+
+      if (isAuthError(error)) {
+        return res.status(401).json({ error: "認証が必要です" });
+      }
 
       if (error.message?.includes("API key not configured")) {
         return res.status(503).json({ error: "AI APIが設定されていません" });
@@ -412,7 +618,7 @@ export const aiExplanation = functions.https.onRequest(async (req, res) => {
     }
 
     try {
-      await verifyAuthToken(req.headers.authorization || "");
+      const userId = await verifyAuthToken(req.headers.authorization || "");
 
       const { question, correctAnswer, userAnswer } = req.body;
 
@@ -422,18 +628,32 @@ export const aiExplanation = functions.https.onRequest(async (req, res) => {
           .json({ error: "question, correctAnswer, userAnswerが必要です" });
       }
 
+      const usageDecision = await checkAIUsage(userId);
+      if (!usageDecision.allowed) {
+        return sendUsageLimitResponse(res, usageDecision);
+      }
+
       const explanation = await aiClient.generateQuestionExplanation(
         question,
         correctAnswer,
         userAnswer
       );
+      const committedUsage = await commitAIUsage(userId);
+      if (!committedUsage.allowed) {
+        return sendUsageLimitResponse(res, committedUsage);
+      }
+      setUsageHeaders(res, committedUsage);
 
       return res.json({
         success: true,
         explanation,
+        usage: usagePayload(committedUsage),
       });
     } catch (error: any) {
       console.error("AI Explanation API error:", error);
+      if (isAuthError(error)) {
+        return res.status(401).json({ error: "認証が必要です" });
+      }
       return res
         .status(500)
         .json({ error: "解説の生成中にエラーが発生しました" });
@@ -449,7 +669,7 @@ export const aiMotivation = functions.https.onRequest(async (req, res) => {
     }
 
     try {
-      await verifyAuthToken(req.headers.authorization || "");
+      const userId = await verifyAuthToken(req.headers.authorization || "");
 
       const { streak, recentPerformance } = req.body;
 
@@ -459,17 +679,31 @@ export const aiMotivation = functions.https.onRequest(async (req, res) => {
           .json({ error: "streakとrecentPerformance（数値）が必要です" });
       }
 
+      const usageDecision = await checkAIUsage(userId);
+      if (!usageDecision.allowed) {
+        return sendUsageLimitResponse(res, usageDecision);
+      }
+
       const message = await aiClient.generateMotivationalMessage(
         streak,
         recentPerformance
       );
+      const committedUsage = await commitAIUsage(userId);
+      if (!committedUsage.allowed) {
+        return sendUsageLimitResponse(res, committedUsage);
+      }
+      setUsageHeaders(res, committedUsage);
 
       return res.json({
         success: true,
         message,
+        usage: usagePayload(committedUsage),
       });
     } catch (error: any) {
       console.error("AI Motivation API error:", error);
+      if (isAuthError(error)) {
+        return res.status(401).json({ error: "認証が必要です" });
+      }
       return res
         .status(500)
         .json({ error: "メッセージの生成中にエラーが発生しました" });
@@ -485,7 +719,7 @@ export const aiRecommendations = functions.https.onRequest(async (req, res) => {
     }
 
     try {
-      await verifyAuthToken(req.headers.authorization || "");
+      const userId = await verifyAuthToken(req.headers.authorization || "");
 
       const { userProgress, weakAreas } = req.body;
 
@@ -495,17 +729,31 @@ export const aiRecommendations = functions.https.onRequest(async (req, res) => {
           .json({ error: "userProgressとweakAreasが必要です" });
       }
 
+      const usageDecision = await checkAIUsage(userId);
+      if (!usageDecision.allowed) {
+        return sendUsageLimitResponse(res, usageDecision);
+      }
+
       const recommendations = await aiClient.generateStudyRecommendations(
         userProgress,
         weakAreas
       );
+      const committedUsage = await commitAIUsage(userId);
+      if (!committedUsage.allowed) {
+        return sendUsageLimitResponse(res, committedUsage);
+      }
+      setUsageHeaders(res, committedUsage);
 
       return res.json({
         success: true,
         recommendations,
+        usage: usagePayload(committedUsage),
       });
     } catch (error: any) {
       console.error("AI Recommendations API error:", error);
+      if (isAuthError(error)) {
+        return res.status(401).json({ error: "認証が必要です" });
+      }
       return res
         .status(500)
         .json({ error: "推奨事項の生成中にエラーが発生しました" });

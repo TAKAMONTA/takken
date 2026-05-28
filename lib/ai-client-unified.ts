@@ -9,6 +9,7 @@ import {
   AIResponse,
 } from "./firebase-functions-client";
 import { firebaseFunctionsTestAIClient } from "./firebase-functions-test-client";
+import { parseAPIError } from "./api-error-handler";
 
 // 環境に応じたAI Clientの選択
 export class UnifiedAIClient {
@@ -119,38 +120,32 @@ export class UnifiedAIClient {
         "Content-Type": "application/json",
       };
       
-      // Firebase認証トークンまたはローカルストレージ認証のuserIdを取得
+      // API RoutesはFirebase IDトークンだけを認証情報として受け付ける。
       try {
-        const { getAuth } = await import("firebase/auth");
-        const auth = getAuth();
-        const user = auth.currentUser;
+        const { initializeFirebaseWithFallback } = await import("@/lib/firebase-client");
+        const firebase = await initializeFirebaseWithFallback();
+        let user = firebase.auth?.currentUser;
         
-        // ローカルストレージからuserIdを取得（常に送信）
-        const userData = localStorage.getItem("takken_user");
-        if (userData) {
-          try {
-            const localUser = JSON.parse(userData);
-            if (localUser.id) {
-              headers["X-User-Id"] = localUser.id;
-            }
-          } catch (parseError) {
-            // パースエラーは無視
-          }
+        if (!firebase.fallback && firebase.auth && !user) {
+          const { onAuthStateChanged } = await import("firebase/auth");
+          user = await new Promise((resolve) => {
+            const unsubscribe = onAuthStateChanged(firebase.auth, (authUser) => {
+              unsubscribe();
+              resolve(authUser);
+            });
+          });
         }
-        
-        if (user) {
-          try {
-            const token = await user.getIdToken();
-            headers.Authorization = `Bearer ${token}`;
-          } catch (tokenError) {
-            // トークン取得に失敗した場合は、X-User-Idのみを使用
-            console.warn("Firebase IDトークンの取得に失敗しました", tokenError);
-          }
+
+        if (firebase.fallback || !user) {
+          throw new Error("ログインが必要です");
         }
+
+        const token = await user.getIdToken();
+        headers.Authorization = `Bearer ${token}`;
       } catch (authError) {
-        // 認証情報の取得に失敗した場合でも続行
         const err = authError instanceof Error ? authError : new Error(String(authError));
         console.warn("認証情報の取得に失敗しました", err);
+        throw err;
       }
       
       const response = await fetch(endpoint, {
@@ -162,13 +157,17 @@ export class UnifiedAIClient {
       if (!response.ok) {
         // より詳細なエラーメッセージ
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || 
-          `API request failed: ${response.status} ${response.statusText}`
-        );
+        throw parseAPIError(response, errorData);
       }
 
       const result = await response.json();
+      if (typeof window !== "undefined" && result?.usage) {
+        window.dispatchEvent(
+          new CustomEvent("takken:ai-usage-updated", {
+            detail: result.usage,
+          })
+        );
+      }
       return (
         result.data ||
         result.explanation ||

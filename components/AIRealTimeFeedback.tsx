@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { aiAnalyticsService, AnswerPattern } from '@/lib/ai-analytics';
 import { logger } from '@/lib/logger';
 
@@ -33,13 +33,19 @@ export default function AIRealTimeFeedback({
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if (userAnswer && currentQuestion) {
-      generateFeedback();
-    }
-  }, [userAnswer, currentQuestion, timeSpent]);
+  const determineFeedbackType = useCallback((
+    response: any,
+    userAnswer: string,
+    question: any
+  ): 'positive' | 'neutral' | 'constructive' => {
+    const isCorrect = userAnswer === question.choices[question.correctAnswer - 1];
+    
+    if (isCorrect) return 'positive';
+    if (response.hint || response.strategy) return 'constructive';
+    return 'neutral';
+  }, []);
 
-  const generateFeedback = async () => {
+  const generateFeedback = useCallback(async () => {
     if (!userAnswer || !currentQuestion) return;
 
     setIsLoading(true);
@@ -79,19 +85,20 @@ export default function AIRealTimeFeedback({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    currentQuestion,
+    determineFeedbackType,
+    onFeedbackReceived,
+    previousAnswers,
+    timeSpent,
+    userAnswer,
+  ]);
 
-  const determineFeedbackType = (
-    response: any,
-    userAnswer: string,
-    question: any
-  ): 'positive' | 'neutral' | 'constructive' => {
-    const isCorrect = userAnswer === question.choices[question.correctAnswer - 1];
-    
-    if (isCorrect) return 'positive';
-    if (response.hint || response.strategy) return 'constructive';
-    return 'neutral';
-  };
+  useEffect(() => {
+    if (userAnswer && currentQuestion) {
+      generateFeedback();
+    }
+  }, [userAnswer, currentQuestion, generateFeedback]);
 
   const getFeedbackIcon = (type: string) => {
     switch (type) {

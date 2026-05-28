@@ -17,25 +17,29 @@ test.describe("ホームページ", () => {
 
   test("ヒーローセクションが表示される", async ({ page }) => {
     // ヒーローセクションの要素を確認
-    const heroTitle = page.locator("text=宅建合格への道のりを始めよう");
+    const heroTitle = page.locator("text=AI予想問題で宅建合格を目指そう");
     await expect(heroTitle).toBeVisible();
 
     const heroIcon = page.locator("text=🏠");
     await expect(heroIcon).toBeVisible();
 
     const heroDescription = page.locator(
-      "text=学習で植物を育てながら、楽しく宅建試験に合格しよう"
+      "text=AIが生成する高品質な予想問題で、最新の法改正や頻出トピックを徹底攻略！"
     );
     await expect(heroDescription).toBeVisible();
   });
 
-  test("機能カードが表示される", async ({ page }) => {
-    // 各機能カードの存在を確認
-    const features = ["試験特化", "性格診断", "進捗管理", "弱点克服"];
+  test("法的ページとサポート導線が表示される", async ({ page }) => {
+    const links = [
+      "特定商取引法に基づく表記",
+      "利用規約",
+      "プライバシーポリシー",
+      "サポート",
+    ];
 
-    for (const feature of features) {
-      const card = page.locator(`text=${feature}`);
-      await expect(card).toBeVisible({ timeout: 10000 });
+    for (const linkText of links) {
+      const link = page.locator(`text=${linkText}`).first();
+      await expect(link).toBeVisible({ timeout: 10000 });
     }
   });
 
@@ -51,7 +55,7 @@ test.describe("ホームページ", () => {
 
   test("新規登録ページへの遷移が機能する", async ({ page }) => {
     // 新規登録ボタンをクリック
-    const registerButton = page.locator("text=新規登録して始める");
+    const registerButton = page.locator('button:has-text("新規登録")');
     await expect(registerButton).toBeVisible({ timeout: 10000 });
     await registerButton.click();
 
@@ -71,7 +75,7 @@ test.describe("ホームページ", () => {
 
     // ボタンが正常に表示される
     const registerButton = page.locator(
-      'button:has-text("新規登録して始める")'
+      'button:has-text("新規登録")'
     );
     await expect(registerButton).toBeVisible();
   });

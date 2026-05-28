@@ -7,6 +7,7 @@ export enum APIErrorType {
   NETWORK = "network",
   AUTHENTICATION = "authentication",
   AUTHORIZATION = "authorization",
+  AI_USAGE_LIMIT = "ai_usage_limit",
   VALIDATION = "validation",
   SERVER = "server",
   TIMEOUT = "timeout",
@@ -76,6 +77,13 @@ export function parseAPIError(response: Response, responseData?: any): APIError 
       return new APIError(
         "この機能を利用する権限がありません",
         APIErrorType.AUTHORIZATION,
+        statusCode,
+        false
+      );
+    case 402:
+      return new APIError(
+        errorMessage || "今月のAI機能使用回数に達しました。",
+        APIErrorType.AI_USAGE_LIMIT,
         statusCode,
         false
       );
@@ -236,6 +244,5 @@ export function getUserFriendlyErrorMessage(error: Error | APIError): string {
 
   return error.message || "エラーが発生しました。しばらく待ってから再試行してください。";
 }
-
 
 

@@ -4,31 +4,48 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
-import { useIsIOSApp } from "@/lib/use-is-ios-app";
+import { PLAN_CONFIGS, SubscriptionPlan } from "@/lib/types/subscription";
 
 export default function Home() {
   const router = useRouter();
-  const isIOSApp = useIsIOSApp();
+  const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
+  const monthlyPrice = premiumConfig.price.toLocaleString();
 
   useEffect(() => {
-    // 認証状態をチェック
-    const checkAuthStatus = () => {
+    let unsubscribe: (() => void) | undefined;
+
+    const checkAuthStatus = async () => {
       try {
-        const userData = localStorage.getItem("takken_user");
-        if (userData) {
-          // ログイン済みの場合はダッシュボードにリダイレクト
-          router.push("/dashboard");
+        const { onAuthStateChanged } = await import("firebase/auth");
+        const { initializeFirebaseWithFallback } = await import(
+          "@/lib/firebase-client"
+        );
+        const firebase = await initializeFirebaseWithFallback();
+
+        if (firebase.fallback || !firebase.auth) {
+          return;
         }
+
+        unsubscribe = onAuthStateChanged(firebase.auth, (user) => {
+          if (user) {
+            router.push("/dashboard");
+          }
+        });
       } catch (error) {
-        // localStorage が利用できない場合は無視
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.debug("LocalStorage not available", {
+        logger.debug("Firebase auth check failed", {
           error: err.message
         });
       }
     };
 
     checkAuthStatus();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [router]);
   return (
     <div className="min-h-screen bg-background">
@@ -202,7 +219,7 @@ export default function Home() {
                     プレミアムプラン
                   </p>
                   <p className="text-sm text-gray-600 mb-2">
-                    {isIOSApp ? "Web版・iOSアプリで月額1,000円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます" : "Web版・iOS/Androidアプリで月額1,000円（税込）でAI機能無制限、広告非表示などの特典をご利用いただけます"}
+                    Web版・iOSアプリで月額{monthlyPrice}円（税込）から、AI機能無制限、広告非表示などの特典をご利用いただけます
                   </p>
                   <Link
                     href="/subscription/pricing"
@@ -282,7 +299,7 @@ export default function Home() {
               </a>
             </p>
             <p className="text-xs text-muted-foreground">
-              © 2025 宅建合格ロード. All rights reserved.
+              © {new Date().getFullYear()} 宅建合格ロード. All rights reserved.
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { requireCachedUserForCurrentAuth } from "@/lib/auth-cache";
 
 const practiceCategories = [
   { id: "takkengyouhou", name: "宅建業法" },
@@ -17,13 +18,23 @@ export default function Practice() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      router.push("/");
-    }
-    setLoading(false);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push("/auth/login"))
+      .then((cachedUser) => {
+        if (!cancelled && cachedUser) {
+          setUser(cachedUser);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (loading || !user) {

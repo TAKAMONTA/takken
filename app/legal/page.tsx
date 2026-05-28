@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useIsIOSApp } from "@/lib/use-is-ios-app";
+import { PLAN_CONFIGS, SubscriptionPlan } from "@/lib/types/subscription";
 
 export default function LegalPage() {
-  const isIOSApp = useIsIOSApp();
+  const freeConfig = PLAN_CONFIGS[SubscriptionPlan.FREE];
+  const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
+  const monthlyPrice = premiumConfig.price.toLocaleString();
+  const yearlyPrice = premiumConfig.yearlyPrice?.toLocaleString();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -38,8 +42,8 @@ export default function LegalPage() {
                 として提供されています。
                 <br />
                 プレミアムプランは
-                <strong>{isIOSApp ? "Web版・モバイルアプリ版（iOS）" : "Web版・モバイルアプリ版（iOS/Android）"}</strong>
-                でご利用いただけます。Web版はStripe経由、モバイルアプリ版は{isIOSApp ? "App Store（Apple）" : "App Store（Apple）またはGoogle Play（Google）"}を通じて決済を行います。
+                <strong>Web版・モバイルアプリ版（iOS）</strong>
+                でご利用いただけます。Web版はStripe経由、iOSアプリ版はApp Store（Apple）を通じて決済を行います。
               </p>
             </div>
           </div>
@@ -130,7 +134,7 @@ export default function LegalPage() {
                   </p>
                   <ul className="list-disc list-inside ml-8 mt-1 text-xs text-gray-600">
                     <li>AI予想問題演習（機能制限あり）</li>
-                    <li>AI解説機能（月5回まで）</li>
+                    <li>AI解説機能（月{freeConfig.features.aiExplanationLimit}回まで）</li>
                     <li>基本的な進捗管理</li>
                     <li>広告表示あり</li>
                   </ul>
@@ -138,7 +142,7 @@ export default function LegalPage() {
 
                 <div>
                   <p className="font-medium">
-                    ■ モバイルアプリ版（{isIOSApp ? "iOS" : "iOS/Android"}）
+                    ■ モバイルアプリ版（iOS）
                   </p>
                   <p className="ml-4 text-gray-600">
                     プレミアム機能を含む完全版（有料サブスクリプション）
@@ -161,13 +165,15 @@ export default function LegalPage() {
               <div className="space-y-2">
                 <p>■ Web版（無料プラン）：無料</p>
                 <p>
-                  ■ プレミアムプラン（Web版・モバイルアプリ版共通）：月額1,000円（税込）
+                  ■ プレミアムプラン（Web版・iOSアプリ版共通）：月額{monthlyPrice}円（税込）
                 </p>
+                {yearlyPrice && (
+                  <p className="text-xs text-gray-600 ml-4">
+                    ■ プレミアムプラン（年額）：{yearlyPrice}円（税込）
+                  </p>
+                )}
                 <p className="text-xs text-gray-600 ml-4">
-                  ■ プレミアムプラン（年額）：9,000円（税込、3ヶ月分お得）
-                </p>
-                <p className="text-xs text-gray-600 ml-4">
-                  ※Web版はStripe経由で決済、モバイルアプリ版は{isIOSApp ? "App Store（iOS）で決済" : "App Store（iOS）またはGoogle Play（Android）で決済"}
+                  ※Web版はStripe経由で決済、iOSアプリ版はApp Store（iOS）で決済
                 </p>
                 <p className="text-xs text-gray-600 ml-4">
                   ※価格は予告なく変更される場合があります
@@ -198,7 +204,6 @@ export default function LegalPage() {
                 <ul className="list-disc list-inside ml-4 space-y-1">
                   <li>Web版：Stripe決済システム（クレジットカード、デビットカード）</li>
                   <li>iOS版：App Store（Apple）の決済システム</li>
-                  {!isIOSApp && <li>Android版：Google Playの決済システム</li>}
                 </ul>
                 <p className="text-xs text-gray-600 mt-2">
                   ※各プラットフォームで利用可能な支払い方法（クレジットカード、デビットカード、キャリア決済等）をご利用いただけます
@@ -212,7 +217,7 @@ export default function LegalPage() {
               </h2>
               <p>
                 サブスクリプション登録時に初回決済が行われ、以降は自動更新されます。
-                詳細は{isIOSApp ? "App Storeの規約" : "App StoreまたはGoogle Playの規約"}に従います。
+                詳細はStripeまたはApp Storeの規約に従います。
               </p>
             </section>
 
@@ -241,14 +246,13 @@ export default function LegalPage() {
                 <ul className="list-disc list-inside ml-8 space-y-1 text-xs">
                   <li>Web版：ダッシュボードのサブスクリプション設定から解約</li>
                   <li>iOS：設定 → Apple ID → サブスクリプション</li>
-                  {!isIOSApp && <li>Android：Google Play → メニュー → 定期購入</li>}
                 </ul>
 
                 <p className="font-medium mt-3">■ 返金について</p>
                 <p className="ml-4 text-xs">
                   Web版：初回購入後7日以内の返金に応じます。お問い合わせページからご連絡ください。
                   <br />
-                  モバイルアプリ版：返金を希望される場合は、AppleまたはGoogleのサポートに直接お問い合わせください。サービス提供者側では返金処理を行うことができません。
+                  iOSアプリ版：返金を希望される場合は、Appleのサポートに直接お問い合わせください。サービス提供者側では返金処理を行うことができません。
                 </p>
               </div>
             </section>
@@ -267,7 +271,6 @@ export default function LegalPage() {
               <div className="space-y-1">
                 <p>■ Web版：Chrome、Safari、Firefox、Edge（最新版推奨）</p>
                 <p>■ iOS版アプリ：iOS 14.0以降</p>
-                {!isIOSApp && <p>■ Android版アプリ：Android 8.0以降</p>}
               </div>
             </section>
 

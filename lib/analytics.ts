@@ -388,7 +388,11 @@ class LearningAnalytics {
       if (!userData) {
         throw new Error('User profile not found');
       }
-      return JSON.parse(userData);
+      const parsed = JSON.parse(userData);
+      if (parsed?.id !== userId) {
+        throw new Error('Cached user does not match requested user');
+      }
+      return parsed;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('Failed to load user profile', err, { userId });

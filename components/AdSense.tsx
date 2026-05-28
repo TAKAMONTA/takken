@@ -26,7 +26,7 @@ export default function AdSense({
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("AdSense error", err, { adSlot });
     }
-  }, []);
+  }, [adSlot]);
 
   return (
     <div className={`text-center ${className}`}>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { aiEnhancementSystem, AIPersonalityProfile, EmotionalState } from '@/lib/ai-enhancement-system';
+import { getExamDate } from '@/lib/exam-config';
 import { logger } from '@/lib/logger';
 
 interface AIEnhancementDashboardProps {
@@ -15,11 +16,7 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeEnhancement, setActiveEnhancement] = useState<'personality' | 'emotion' | 'efficiency' | 'mentor'>('personality');
 
-  useEffect(() => {
-    loadEnhancementData();
-  }, [userId]);
-
-  const loadEnhancementData = async () => {
+  const loadEnhancementData = useCallback(async () => {
     try {
       // 既存のプロファイルを取得
       const profile = aiEnhancementSystem.getPersonalityProfile(userId);
@@ -33,7 +30,11 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('拡張データ読み込みエラー', err, { userId });
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadEnhancementData();
+  }, [loadEnhancementData]);
 
   const analyzePersonality = async () => {
     setIsAnalyzing(true);
@@ -354,7 +355,7 @@ export default function AIEnhancementDashboard({ userId }: AIEnhancementDashboar
                         [], // サンプルセッションデータ
                         {
                           availableTime: 2,
-                          deadline: new Date('2024-10-20') // 次回宅建試験日
+                          deadline: getExamDate()
                         }
                       );
                       

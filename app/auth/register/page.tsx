@@ -62,10 +62,8 @@ export default function Register() {
 
       const firebaseInstance = await initializeFirebaseWithFallback();
 
-      // フォールバックモードの場合はローカルストレージ認証を使用
       if (firebaseInstance.fallback) {
-        await handleLocalStorageRegistration();
-        return;
+        throw new Error("Firebase authentication is unavailable");
       }
 
       const { auth } = firebaseInstance;
@@ -114,19 +112,6 @@ export default function Register() {
       };
       localStorage.setItem("takken_user", JSON.stringify(userData));
 
-      // ローカルストレージにもユーザーリストを保存（フォールバック用）
-      const { hashPassword } = await import("../../../lib/crypto-utils");
-      const existingUsers = JSON.parse(
-        localStorage.getItem("takken_users") || "[]"
-      );
-      existingUsers.push({
-        id: user.uid,
-        username: formData.username,
-        email: formData.email,
-        passwordHash: hashPassword(formData.password), // 暗号化されたパスワード
-      });
-      localStorage.setItem("takken_users", JSON.stringify(existingUsers));
-
       // ダッシュボードに遷移
       router.push("/dashboard");
     } catch (error: unknown) {
@@ -134,19 +119,16 @@ export default function Register() {
       const errorObj = err as { code?: string; message?: string };
       logger.error("Registration error", err);
 
-      // Firebaseが利用できない場合は、ローカルストレージのみで動作
       if (
         errorObj.code === "auth/configuration-not-found" ||
         errorObj.code === "auth/network-request-failed" ||
         errorObj.message?.includes("Firebase configuration")
       ) {
-        try {
-          await handleLocalStorageRegistration();
-          return;
-        } catch (localStorageError) {
-          const localStorageErr = localStorageError instanceof Error ? localStorageError : new Error(String(localStorageError));
-          logger.error("LocalStorage registration error", localStorageErr);
-        }
+        setErrors({
+          general:
+            "認証サービスに接続できません。時間をおいて再度お試しください。",
+        });
+        return;
       }
 
       let errorMessage = "登録に失敗しました";
@@ -162,51 +144,6 @@ export default function Register() {
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ローカルストレージ登録の処理
-  const handleLocalStorageRegistration = async () => {
-    try {
-      // 既存ユーザーの確認
-      const existingUsers = JSON.parse(
-        localStorage.getItem("takken_users") || "[]"
-      );
-      const existingUser = existingUsers.find(
-        (u: any) => u.email === formData.email.trim()
-      );
-
-      if (existingUser) {
-        throw new Error("このメールアドレスは既に使用されています");
-      }
-
-      // 新しいユーザーを作成
-      const { hashPassword } = await import("../../../lib/crypto-utils");
-      const newUser = {
-        id: "user-" + Date.now(),
-        username: formData.username,
-        email: formData.email.trim(),
-        passwordHash: hashPassword(formData.password), // 暗号化されたパスワード
-      };
-
-      // ユーザーリストに追加
-      existingUsers.push(newUser);
-      localStorage.setItem("takken_users", JSON.stringify(existingUsers));
-
-      // 現在のユーザーとして設定
-      const userData = {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-      };
-      localStorage.setItem("takken_user", JSON.stringify(userData));
-
-      // ダッシュボードに遷移
-      router.push("/dashboard");
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error("LocalStorage registration error", err);
-      throw error;
     }
   };
 
@@ -252,7 +189,7 @@ export default function Register() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                 {/* General Error */}
                 {errors.general && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
@@ -286,7 +223,7 @@ export default function Register() {
                     メールアドレス *
                   </label>
                   <input
-                    type="text"
+                    type="email"
                     inputMode="email"
                     autoCapitalize="none"
                     autoCorrect="off"

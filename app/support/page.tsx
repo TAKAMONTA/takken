@@ -2,22 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useIsIOSApp } from "@/lib/use-is-ios-app";
-
-/** iOSアプリ内ではAndroid/Google Play表記を削除（Guideline 2.3.10対応） */
-function answerForPlatform(text: string, isIOSApp: boolean): string {
-  if (!isIOSApp) return text;
-  return text
-    .replace(/モバイルアプリ版（iOS\/Android）/g, "モバイルアプリ版（iOS）")
-    .replace(/App StoreまたはGoogle Play/g, "App Store")
-    .replace(/App StoreまたはGoogle Playで/g, "App Storeで")
-    .replace(/。Android版：Google Play[^。]+解約してください。/g, "。")
-    .replace(/AppleまたはGoogleのサポート/g, "Appleのサポート");
-}
+import { takkenExamConfig } from "@/lib/exam-config";
+import { PLAN_CONFIGS, SubscriptionPlan } from "@/lib/types/subscription";
 
 export default function SupportPage() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const isIOSApp = useIsIOSApp();
+  const freeConfig = PLAN_CONFIGS[SubscriptionPlan.FREE];
+  const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
+  const monthlyPrice = premiumConfig.price.toLocaleString();
+  const yearlyPrice = premiumConfig.yearlyPrice?.toLocaleString();
 
   const faqs = [
     {
@@ -26,19 +19,19 @@ export default function SupportPage() {
       items: [
         {
           q: "Web版で課金できますか？",
-          a: "はい、Web版でもStripe経由でプレミアムプランにご登録いただけます。クレジットカードまたはデビットカードで安全に決済いただけます。モバイルアプリ版（iOS/Android）では、App StoreまたはGoogle Playから決済できます。",
+          a: "はい、Web版ではStripe経由でプレミアムプランにご登録いただけます。クレジットカードまたはデビットカードで安全に決済いただけます。iOSアプリ版ではApp Storeから決済できます。",
         },
         {
           q: "プレミアムプランの料金は？",
-          a: "月額1,000円（税込）です。詳細な価格はApp StoreまたはGoogle Playでご確認ください。無料トライアル期間が提供される場合があります。",
+          a: `月額${monthlyPrice}円（税込）です。${yearlyPrice ? `年額${yearlyPrice}円（税込）も選択できます。` : ""}iOSアプリ版の最終価格はApp Storeの決済画面でご確認ください。無料トライアル期間が提供される場合があります。`,
         },
         {
           q: "無料版との違いは何ですか？",
-          a: "プレミアムプランでは、AI機能が無制限、広告非表示、全AI予想問題へのアクセス、詳細な学習分析などがご利用いただけます。無料プランではAI機能は月20回まで、問題数300問まで、広告表示ありとなります。",
+          a: `プレミアムプランでは、AI機能が無制限、広告非表示、全AI予想問題へのアクセス、詳細な学習分析などがご利用いただけます。無料プランではAI機能は月${freeConfig.features.aiExplanationLimit}回まで、問題数${freeConfig.features.questionLimit}問まで、広告表示ありとなります。`,
         },
         {
           q: "解約方法を教えてください",
-          a: "iOS版：iPhoneの設定 → [あなたの名前] → サブスクリプション から「宅建合格ロード」を選択し解約。Android版：Google Play → メニュー → 定期購入 から「宅建合格ロード」を選択し解約してください。",
+          a: "Web版はダッシュボードのサブスクリプション設定から解約できます。iOS版はiPhoneの設定 → [あなたの名前] → サブスクリプション から「宅建合格ロード」を選択して解約してください。",
         },
         {
           q: "解約後はどうなりますか？",
@@ -60,7 +53,7 @@ export default function SupportPage() {
         },
         {
           q: "AI先生に質問できる回数は？",
-          a: "Web版無料プランは月5回まで、モバイルアプリ版のプレミアムプランでは無制限です。質問回数は毎月1日にリセットされます。",
+          a: `無料プランは月${freeConfig.features.aiExplanationLimit}回まで、プレミアムプランでは無制限です。質問回数は毎月1日にリセットされます。`,
         },
         {
           q: "学習データは引き継げますか？",
@@ -82,7 +75,7 @@ export default function SupportPage() {
         },
         {
           q: "購入が反映されません（モバイルアプリ版）",
-          a: "モバイルアプリ版の設定画面から「購入の復元」ボタンをタップしてください。それでも解決しない場合は、AppleまたはGoogleのサポート、または当サポートにレシートを添えてお問い合わせください。",
+          a: "iOSアプリ版の設定画面から「購入の復元」ボタンをタップしてください。それでも解決しない場合は、Appleのサポート、または当サポートにレシートを添えてお問い合わせください。",
         },
         {
           q: "アカウントを削除したい",
@@ -96,7 +89,7 @@ export default function SupportPage() {
       items: [
         {
           q: "宅建試験の試験日はいつですか？",
-          a: "例年10月の第3日曜日に実施されます。最新の試験情報は一般財団法人不動産適正取引推進機構のウェブサイトでご確認ください。",
+          a: `${takkenExamConfig.eraYearLabel}の試験日は${takkenExamConfig.examDateLabel}（${takkenExamConfig.statusLabel}）です。申込期間はインターネット申込が${takkenExamConfig.internetApplicationLabel}、郵送申込が${takkenExamConfig.postalApplicationLabel}です。最新情報は${takkenExamConfig.sourceName}の公式サイトでご確認ください。`,
         },
         {
           q: "合格点は何点ですか？",
@@ -216,7 +209,7 @@ export default function SupportPage() {
                           Q. {item.q}
                         </p>
                         <p className="text-sm text-gray-600 pl-4">
-                          A. {answerForPlatform(item.a, isIOSApp)}
+                          A. {item.a}
                         </p>
                       </div>
                     ))}

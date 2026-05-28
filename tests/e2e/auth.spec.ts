@@ -9,7 +9,7 @@ test.describe('認証機能', () => {
     
     // フォーム要素が存在することを確認
     const emailInput = page.locator('input[type="email"]');
-    const passwordInput = page.locator('input[type="password"]');
+    const passwordInput = page.locator('input[name="password"]');
     const submitButton = page.locator('button[type="submit"]');
     
     await expect(emailInput).toBeVisible();
@@ -28,9 +28,9 @@ test.describe('認証機能', () => {
     await expect(page.locator('h1')).toContainText('新規登録');
     
     // フォーム要素が存在することを確認
-    const nameInput = page.locator('input[name="name"]');
+    const nameInput = page.locator('input[name="username"]');
     const emailInput = page.locator('input[type="email"]');
-    const passwordInput = page.locator('input[type="password"]');
+    const passwordInput = page.locator('input[name="password"]');
     const confirmPasswordInput = page.locator('input[name="confirmPassword"]');
     const submitButton = page.locator('button[type="submit"]');
     
@@ -60,7 +60,7 @@ test.describe('認証機能', () => {
     await page.goto('/auth/register');
     
     // 短いパスワードを入力
-    await page.fill('input[name="name"]', 'テストユーザー');
+    await page.fill('input[name="username"]', 'テストユーザー');
     await page.fill('input[type="email"]', 'test@example.com');
     await page.fill('input[type="password"]', '123');
     await page.fill('input[name="confirmPassword"]', '123');
@@ -77,7 +77,7 @@ test.describe('認証機能', () => {
     await page.goto('/auth/register');
     
     // 異なるパスワードを入力
-    await page.fill('input[name="name"]', 'テストユーザー');
+    await page.fill('input[name="username"]', 'テストユーザー');
     await page.fill('input[type="email"]', 'test@example.com');
     await page.fill('input[type="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password456');
@@ -112,23 +112,10 @@ test.describe('認証機能', () => {
     await expect(page.locator('h1')).toContainText('ログイン');
   });
 
-  test('パスワードの表示/非表示切り替えが機能する', async ({ page }) => {
+  test('ソーシャルログインボタンが表示される', async ({ page }) => {
     await page.goto('/auth/login');
-    
-    const passwordInput = page.locator('input[type="password"]');
-    const toggleButton = page.locator('[aria-label="パスワードを表示"]');
-    
-    // 初期状態ではパスワードが非表示
-    await expect(passwordInput).toHaveAttribute('type', 'password');
-    
-    // トグルボタンをクリック
-    await toggleButton.click();
-    
-    // パスワードが表示される
-    await expect(passwordInput).toHaveAttribute('type', 'text');
-    
-    // 再度クリックで非表示に戻る
-    await toggleButton.click();
-    await expect(passwordInput).toHaveAttribute('type', 'password');
+
+    await expect(page.locator('button:has-text("Appleでログイン")')).toBeVisible();
+    await expect(page.locator('button:has-text("Googleでログイン")')).toBeVisible();
   });
 });

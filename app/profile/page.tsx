@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { clearCachedUser, requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
 
 export default function Profile() {
   const router = useRouter();
@@ -10,18 +11,33 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('takken_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      router.push('/');
-    }
-    setLoading(false);
+    let cancelled = false;
+
+    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
+      .then((cachedUser) => {
+        if (!cancelled && cachedUser) {
+          setUser(cachedUser);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('takken_user');
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      const { getAuth, signOut } = await import('firebase/auth');
+      await signOut(getAuth());
+    } finally {
+      clearCachedUser();
+      router.push('/');
+    }
   };
 
   if (loading || !user) {

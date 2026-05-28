@@ -2,12 +2,16 @@
 
 import React from 'react';
 import { splitIntoParagraphs, highlightAndSanitize } from '@/lib/text-utils';
+import type { Article } from '@/lib/types/quiz';
 
 interface ExplanationDisplayProps {
   explanation: string;
   isCorrect: boolean;
   correctAnswer: number;
   options: string[];
+  relatedArticles?: Article[];
+  topic?: string;
+  source?: string;
   className?: string;
 }
 
@@ -16,6 +20,9 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
   isCorrect,
   correctAnswer,
   options,
+  relatedArticles = [],
+  topic,
+  source,
   className = ''
 }) => {
   // 解説を段落に分割
@@ -134,6 +141,31 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
         </div>
       </div>
 
+      {(relatedArticles.length > 0 || topic || source) && (
+        <div className="bg-white rounded-lg p-3 mb-4 border border-blue-100">
+          <div className="text-xs font-bold text-gray-700 mb-2">
+            信頼性情報
+          </div>
+          <div className="space-y-1 text-xs text-gray-600">
+            {topic && <p>関連論点: {topic}</p>}
+            {source && <p>出所: {source}</p>}
+            {relatedArticles.length > 0 && (
+              <div>
+                <p className="font-medium text-gray-700">関連条文</p>
+                <ul className="mt-1 space-y-1">
+                  {relatedArticles.map((article, index) => (
+                    <li key={`${article.law}-${article.article}-${index}`}>
+                      {article.law} {article.article}
+                      {article.content ? `: ${article.content}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 構造化された解説 */}
       <div className="space-y-4">
         {paragraphs.map((paragraph, index) => {
@@ -147,6 +179,10 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
           );
         })}
       </div>
+
+      <p className="mt-4 text-[11px] leading-relaxed text-gray-500">
+        法令・制度は改正される場合があります。重要な論点は、最新の公的情報や教材でも確認してください。
+      </p>
     </div>
   );
 };

@@ -10,9 +10,10 @@
 
 | 変数名 | 形式 | 用途 | 例 |
 |--------|------|------|-----|
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_...` または `pk_live_...` | クライアント側での決済処理 | `pk_live_xxxxxxxxxxxxx` |
 | `STRIPE_SECRET_KEY` | `sk_test_...` または `sk_live_...` | サーバー側でのStripe API呼び出し | `sk_live_xxxxxxxxxxxxx` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Webhook署名の検証 | `whsec_xxxxxxxxxxxxx` |
+| `STRIPE_PRICE_ID_PREMIUM_MONTHLY` | `price_...` | プレミアム月額プランのPrice ID | `price_xxxxxxxxxxxxx` |
+| `STRIPE_PRICE_ID_PREMIUM_YEARLY` | `price_...` | プレミアム年額プランのPrice ID | `price_xxxxxxxxxxxxx` |
 
 ### Firebase関連
 
@@ -31,8 +32,8 @@
 | 変数名 | 形式 | 用途 |
 |--------|------|------|
 | `OPENAI_API_KEY` | `sk-...` | OpenAI API（AI機能） |
-| `NEXT_PUBLIC_GOOGLE_API_KEY` | 文字列 | Google API（AdSense等） |
 | `ANTHROPIC_API_KEY` | `sk-ant-...` | Anthropic API（Claude） |
+| `GOOGLE_AI_API_KEY` | 文字列 | Google AI API |
 | `ALLOW_DEV_BYPASS_AUTH` | `true` または `false` | 開発環境での認証バイパス |
 
 ---
@@ -97,13 +98,6 @@ https://dashboard.stripe.com/apikeys
 
 ### 3. キーをコピー
 
-#### Publishable Key（公開可能キー）
-
-- フロントエンドで使用
-- **公開しても安全**なキー
-- `pk_test_...` または `pk_live_...` で始まる
-- 環境変数: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-
 #### Secret Key（秘密キー）
 
 - バックエンドで使用
@@ -138,7 +132,10 @@ https://vercel.com/
 |------|-------|-------------|
 | `STRIPE_SECRET_KEY` | `sk_live_xxxxxxxxxxxxx` | ✅ Production |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_xxxxxxxxxxxxx` | ✅ Production |
+| `STRIPE_PRICE_ID_PREMIUM_MONTHLY` | `price_xxxxxxxxxxxxx` | ✅ Production |
+| `STRIPE_PRICE_ID_PREMIUM_YEARLY` | `price_xxxxxxxxxxxxx` | ✅ Production |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | `{"type":"service_account",...}` | ✅ Production |
+| `NEXT_PUBLIC_APP_URL` | `https://your-production-domain` | ✅ Production |
 
 ### ステップ 5: 再デプロイ
 
@@ -163,15 +160,22 @@ npm run check:env
 
 このコマンドは、必要な環境変数が設定されているかをチェックします。
 
+本番公開前は、より厳格なチェックを実行してください。このチェックは秘密値を表示せず、形式と危険な開発フラグだけを検査します。
+
+```bash
+npm run check:production-env
+```
+
 ### 方法 2: 手動で確認
 
 `.env.local`ファイルを開いて、以下の形式になっているか確認：
 
 ```bash
 # Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxx
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+STRIPE_PRICE_ID_PREMIUM_MONTHLY=price_xxxxxxxxxxxxx
+STRIPE_PRICE_ID_PREMIUM_YEARLY=price_xxxxxxxxxxxxx
 
 # Firebase
 NEXT_PUBLIC_FIREBASE_API_KEY=xxxxxxxxxxxxx
@@ -186,9 +190,9 @@ FIREBASE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
 OPENAI_API_KEY=sk-xxxxxxxxxxxxx
 
 # その他
-NEXT_PUBLIC_GOOGLE_API_KEY=xxxxxxxxxxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
-ALLOW_DEV_BYPASS_AUTH=true
+GOOGLE_AI_API_KEY=xxxxxxxxxxxxx
+ALLOW_DEV_BYPASS_AUTH=false
 ```
 
 ---
@@ -206,8 +210,37 @@ ALLOW_DEV_BYPASS_AUTH=true
 
 - Secret Keyは`.env.local`に保存し、`.gitignore`に含める
 - Vercelの環境変数に安全に保存する
+- Firebase FunctionsのAIキーはFunctions secretsに保存する
 - 定期的にキーをローテーションする
 - 不要になったキーは無効化する
+
+### Firebase Functions secrets
+
+Firebase Hosting / Capacitorの静的配信では、AI処理はFirebase Functionsを使います。Functions側にもAIキーを設定してください。
+
+```bash
+firebase functions:secrets:set OPENAI_API_KEY
+# または
+firebase functions:secrets:set ANTHROPIC_API_KEY
+firebase functions:secrets:set GOOGLE_AI_API_KEY
+```
+
+Functionsを更新したら再デプロイします。
+
+```bash
+firebase deploy --only functions
+```
+
+### Firebase Hosting のビルドモード
+
+`firebase.json` の Hosting は `out` ディレクトリを公開します。Firebase Hostingへ静的配信する場合は、通常の `npm run build` ではなく次を使ってください。
+
+```bash
+npm run build:ios
+firebase deploy --only hosting
+```
+
+VercelでWebを運用する場合は通常の `npm run build` / Vercelデプロイで問題ありません。
 
 ---
 
@@ -262,6 +295,5 @@ ALLOW_DEV_BYPASS_AUTH=true
 npm run check:webhook
 npm run check:subscription
 ```
-
 
 

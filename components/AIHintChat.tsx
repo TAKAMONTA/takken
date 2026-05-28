@@ -4,6 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/ai-client";
 import { aiClient } from "@/lib/ai-client";
 import { logger } from "@/lib/logger";
+import { APIError, APIErrorType } from "@/lib/api-error-handler";
+import AIUsageLimitNotice from "@/components/AIUsageLimitNotice";
 
 interface AIHintChatProps {
   question: string;
@@ -26,6 +28,7 @@ export default function AIHintChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usageLimitMessage, setUsageLimitMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const systemMessage = useMemo<ChatMessage>(
@@ -58,6 +61,7 @@ export default function AIHintChat({
 
     setLoading(true);
     setError(null);
+    setUsageLimitMessage(null);
     const newMessages: ChatMessage[] = [
       ...messages,
       {
@@ -68,33 +72,6 @@ export default function AIHintChat({
     setMessages(newMessages);
     setInput("");
 
-    // 1) まずはサーバーのAPI Routeに投げる（本番想定）
-    try {
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [systemMessage, ...newMessages] }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const content: string = data?.data?.content || data?.content || "";
-        if (!content) throw new Error("空の応答です");
-        setMessages((prev) => [...prev, { role: "assistant", content }]);
-        setTimeout(scrollToBottom, 0);
-        setLoading(false);
-        return;
-      }
-      // 401などはフォールバックへ
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      logger.warn("API Route failed, falling back to direct client", {
-        errorMessage: err.message,
-      });
-      // フォールバックへ
-    }
-
-    // 2) フォールバック：開発環境では直接 aiClient を使用
     try {
       const response = await aiClient.chat([systemMessage, ...newMessages], {
         temperature: 0.3,
@@ -106,6 +83,11 @@ export default function AIHintChat({
       ]);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
+      if (err instanceof APIError && err.type === APIErrorType.AI_USAGE_LIMIT) {
+        setUsageLimitMessage(err.message);
+        return;
+      }
+
       logger.error("AI chat failed", err, {
         questionLength: question.length,
         messagesCount: newMessages.length,
@@ -130,7 +112,7 @@ export default function AIHintChat({
           🤖 AIヒントチャット（ベータ）
         </h3>
         <span className="text-[10px] text-purple-600">
-          本番ではFunctionsが必要
+          無料枠あり
         </span>
       </div>
 
@@ -168,6 +150,9 @@ export default function AIHintChat({
             {error}
           </div>
         )}
+        {usageLimitMessage && (
+          <AIUsageLimitNotice message={usageLimitMessage} compact />
+        )}
       </div>
 
       <div className="px-4 py-3 border-t border-purple-200 flex gap-2">
@@ -175,11 +160,12 @@ export default function AIHintChat({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="どこで躓いているかを書いてください（例: 二重売買の扱いが混乱）"
+          disabled={!!usageLimitMessage}
           className="flex-1 text-sm p-2 border border-purple-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
         />
         <button
           onClick={send}
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || !!usageLimitMessage}
           className="px-3 py-2 text-sm bg-purple-600 text-white rounded-md disabled:opacity-50"
         >
           {loading ? "送信中" : "送信"}
