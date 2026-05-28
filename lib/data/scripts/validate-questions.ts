@@ -168,8 +168,8 @@ export async function validateAllCategories(): Promise<Record<string, Validation
     
     for (const category of categories) {
       try {
-        const module = await import(category.path);
-        const questions = module[`${category.name}Questions`] || [];
+        const questionModule = await import(category.path);
+        const questions = questionModule[`${category.name}Questions`] || [];
         results[category.name] = validateQuestions(questions);
       } catch (error) {
         results[category.name] = {
