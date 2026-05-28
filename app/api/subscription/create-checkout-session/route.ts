@@ -4,8 +4,9 @@ import {
   verifyRequestAuth,
   createAuthErrorResponse,
 } from "@/lib/firebase-admin-auth";
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/server-logger";
 import { SubscriptionPlan } from "@/lib/types/subscription";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * Stripe Checkoutセッション作成API
@@ -18,6 +19,23 @@ export async function POST(request: NextRequest) {
   try {
     // Firebase Admin SDKでトークンを検証
     userId = await verifyRequestAuth(request);
+
+    // レート制限（決済セッション作成: 10 req/min per user）
+    const rl = checkRateLimit(userId, "subscription:checkout", {
+      maxRequests: 10,
+      windowSeconds: 60,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "リクエストが多すぎます。しばらくしてから再試行してください" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rl.retryAfterSec),
+          },
+        }
+      );
+    }
 
     const body = await request.json();
     const { plan, yearly = false } = body;

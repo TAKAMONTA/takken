@@ -6,7 +6,7 @@
 
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { logger } from "./logger";
+import { logger } from "./server-logger";
 
 /**
  * サービスアカウントキーを安全にパース
@@ -236,42 +236,26 @@ export async function verifyAuthToken(authHeader: string): Promise<string> {
  * @throws Error 認証に失敗した場合
  */
 export async function verifyRequestAuth(request: Request): Promise<string> {
-  const isProduction = process.env.NODE_ENV === "production";
   const allowDevBypass = process.env.ALLOW_DEV_BYPASS_AUTH === "true";
   
   const authHeader = request.headers.get("authorization");
 
-  // Firebase IDトークンでの認証を試行
   if (authHeader && authHeader.startsWith("Bearer ")) {
-    try {
-      return await verifyAuthToken(authHeader);
-    } catch (error) {
-      // Firebase IDトークンが無効な場合、ローカルストレージ認証を試行
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.debug("Firebase IDトークン認証失敗、ローカルストレージ認証を試行", {
-        error: err.message,
-      });
-    }
+    return await verifyAuthToken(authHeader);
   }
-
-  // ローカルストレージ認証（FirestoreでuserIdの存在を確認）
-  const userIdHeader = request.headers.get("x-user-id") || request.headers.get("X-User-Id");
   
-  // デバッグログ
   logger.debug("認証ヘッダー確認", {
     hasAuthHeader: !!authHeader,
-    hasUserIdHeader: !!userIdHeader,
-    userIdHeader: userIdHeader ? `${userIdHeader.substring(0, 8)}...` : "なし",
     nodeEnv: process.env.NODE_ENV,
     allowDevBypass,
   });
   
-  // 開発環境での認証バイパス（明示的なフラグがある場合のみ）
-  if (!userIdHeader && !isProduction && allowDevBypass) {
+  // 開発・検証環境の明示バイパス。X-User-Idは信頼せず、リクエストボディのuserIdだけを使う。
+  if (allowDevBypass) {
     logger.warn("開発環境: 認証バイパスが有効です（ALLOW_DEV_BYPASS_AUTH=true）", {
       warning: "本番環境では使用しないでください",
     });
-    // リクエストボディからuserIdを取得する方法を試行
+
     try {
       const clonedRequest = request.clone();
       const body = await clonedRequest.json().catch(() => ({}));
@@ -288,69 +272,9 @@ export async function verifyRequestAuth(request: Request): Promise<string> {
       });
     }
     
-    // 認証バイパスが有効でも、userIdが取得できない場合はエラー
     throw new Error("認証が必要です（開発環境でもuserIdが必要です）");
   }
-  
-  if (userIdHeader) {
-    // FirestoreでuserIdの存在を確認（セキュリティのため）
-    try {
-      // Firebase Admin SDKを初期化
-      initializeAdminSDK();
-      
-      const { getFirestore } = await import("firebase-admin/firestore");
-      const db = getFirestore();
-      
-      // Firestoreが初期化されているか確認
-      if (!db) {
-        if (isProduction) {
-          throw new Error("Firestoreが初期化されていません");
-        }
-        logger.warn("Firestoreが初期化されていません。ローカルストレージ認証を許可します（開発環境）", { 
-          userId: `${userIdHeader.substring(0, 8)}...` 
-        });
-        return userIdHeader;
-      }
-      
-      const userDoc = await db.collection("users").doc(userIdHeader).get();
-      
-      if (userDoc.exists) {
-        logger.debug("ローカルストレージ認証を使用（Firestoreで確認済み）", { 
-          userId: `${userIdHeader.substring(0, 8)}...` 
-        });
-        return userIdHeader;
-      } else {
-        // 開発環境、またはバイパスが有効な場合は、Firestoreにユーザーが存在しない場合でも許可（初回ユーザーの可能性）
-        if (!isProduction || allowDevBypass) {
-          logger.debug("ローカルストレージ認証を使用（Firestoreにユーザーが存在しませんが許可）", { 
-            userId: `${userIdHeader.substring(0, 8)}...`,
-            reason: !isProduction ? "開発環境" : "ALLOW_DEV_BYPASS_AUTH有効",
-          });
-          return userIdHeader;
-        }
-        logger.warn("ローカルストレージ認証: Firestoreにユーザーが存在しません", { 
-          userId: `${userIdHeader.substring(0, 8)}...` 
-        });
-        throw new Error("認証が必要です");
-      }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      
-      // エラーが発生しても、明示的なバイパスフラグがある場合は許可
-      if (!isProduction || allowDevBypass) {
-        logger.debug("ローカルストレージ認証を使用（開発環境: エラーが発生しましたが許可）", { 
-          userId: `${userIdHeader.substring(0, 8)}...`,
-          error: err.message,
-        });
-        return userIdHeader;
-      }
-      
-      logger.error("ローカルストレージ認証の検証エラー", err);
-      throw new Error("認証が必要です");
-    }
-  }
 
-  // どちらの認証も失敗した場合
   throw new Error("認証が必要です");
 }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getApps } from "firebase-admin/app";
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/server-logger";
 import { SubscriptionPlan, SubscriptionStatus } from "@/lib/types/subscription";
 import { initializeAdminSDK } from "@/lib/firebase-admin-auth";
 
@@ -160,7 +160,6 @@ async function handleCheckoutSessionCompleted(
 
     // Stripeからサブスクリプション情報を取得
     const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const subscription = subscriptionResponse as any;
 
     // Firestoreにサブスクリプション情報を保存
@@ -218,7 +217,6 @@ async function handleCheckoutSessionCompleted(
  * サブスクリプション更新時の処理
  * @param subscription - Stripe Subscriptionオブジェクト（any型で受け取り、SDKバージョン間の型互換性問題を回避）
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSubscriptionUpdated(subscription: any) {
   try {
     // カスタマーIDからユーザーIDを取得（metadataに保存されている場合）
@@ -278,7 +276,6 @@ async function handleSubscriptionUpdated(subscription: any) {
  * サブスクリプションキャンセル時の処理
  * @param subscription - Stripe Subscriptionオブジェクト（any型で受け取り、SDKバージョン間の型互換性問題を回避）
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleSubscriptionDeleted(subscription: any) {
   try {
     const db = initializeAdminFirestore();

@@ -5,7 +5,7 @@
  */
 
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { logger } from "./logger";
+import { logger } from "./server-logger";
 
 // Firestore使用量記録の型定義
 export interface AIUsageRecord {
