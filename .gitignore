@@ -166,3 +166,6 @@ takken/
 
 # Claude local settings
 .claude/settings.local.json
+
+# iOS build wrapper の一時退避先 (scripts/release/build-ios.ts)
+.ios-build-backup/

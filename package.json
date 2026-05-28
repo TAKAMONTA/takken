@@ -6,7 +6,7 @@
     "postinstall": "patch-package || true",
     "dev": "next dev",
     "build": "next build",
-    "build:ios": "CAPACITOR_BUILD=true next build",
+    "build:ios": "ts-node scripts/release/build-ios.ts",
     "start": "next start",
     "lint": "eslint app components lib middleware.ts next.config.mjs",
     "test:env": "ts-node -r dotenv/config scripts/test/env.ts",
