@@ -195,6 +195,64 @@ export function validateEnvironment(): void {
     if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')) {
       errors.push('❌ NEXT_PUBLIC_APP_URL は本番環境では https:// で始まるURLを設定してください');
     }
+
+    // Stripe Secret Key の誤設定ガード（docs/ENV_VARIABLES_GUIDE.md 記載の頻発バグ）
+    const stripeSecret = process.env.STRIPE_SECRET_KEY;
+    if (stripeSecret) {
+      if (stripeSecret.startsWith('pk_')) {
+        errors.push(
+          '❌ STRIPE_SECRET_KEY に Publishable Key (pk_...) が設定されています。' +
+            ' Secret Key (sk_live_... / sk_test_...) を設定してください。'
+        );
+      } else if (!stripeSecret.startsWith('sk_live_')) {
+        errors.push(
+          '❌ 本番環境では STRIPE_SECRET_KEY は sk_live_ で始まるライブキーを設定してください' +
+            '（現状: ' + stripeSecret.slice(0, 8) + '...）'
+        );
+      }
+    }
+
+    const stripeWebhook = process.env.STRIPE_WEBHOOK_SECRET;
+    if (stripeWebhook && !stripeWebhook.startsWith('whsec_')) {
+      errors.push(
+        '❌ STRIPE_WEBHOOK_SECRET は whsec_ で始まる必要があります'
+      );
+    }
+
+    ['STRIPE_PRICE_ID_PREMIUM_MONTHLY', 'STRIPE_PRICE_ID_PREMIUM_YEARLY'].forEach((key) => {
+      const value = process.env[key];
+      if (value && !value.startsWith('price_')) {
+        errors.push('❌ ' + key + ' は price_ で始まる必要があります');
+      }
+    });
+
+    // Firebase Admin SDK の JSON 妥当性チェック（壊れていると Webhook が全滅する）
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (serviceAccount) {
+      try {
+        const parsed = JSON.parse(serviceAccount);
+        if (parsed.type !== 'service_account') {
+          errors.push(
+            '❌ FIREBASE_SERVICE_ACCOUNT_KEY の type が "service_account" ではありません'
+          );
+        }
+        if (!parsed.private_key || !String(parsed.private_key).includes('BEGIN PRIVATE KEY')) {
+          errors.push(
+            '❌ FIREBASE_SERVICE_ACCOUNT_KEY に有効な private_key が含まれていません'
+          );
+        }
+        if (parsed.project_id && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
+            parsed.project_id !== process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+          errors.push(
+            '❌ FIREBASE_SERVICE_ACCOUNT_KEY の project_id が NEXT_PUBLIC_FIREBASE_PROJECT_ID と一致しません'
+          );
+        }
+      } catch {
+        errors.push(
+          '❌ FIREBASE_SERVICE_ACCOUNT_KEY が有効な JSON ではありません'
+        );
+      }
+    }
   }
 
   // エラーがある場合は例外を投げる
