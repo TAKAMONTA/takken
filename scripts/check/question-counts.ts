@@ -3,8 +3,8 @@
  * 各カテゴリの問題数を確認
  */
 
-import { questionsByCategory } from "../../lib/data/questions/index";
 import { Question } from "../../lib/types/quiz";
+import { questionSets } from "./question-data";
 const logger = require('../utils/logger');
 
 function checkQuestionCounts() {
@@ -12,7 +12,7 @@ function checkQuestionCounts() {
 
   let totalQuestions = 0;
 
-  Object.entries(questionsByCategory).forEach(([category, questions]) => {
+  Object.entries(questionSets).forEach(([category, questions]) => {
     const count = questions.length;
     totalQuestions += count;
 
@@ -30,8 +30,12 @@ function checkQuestionCounts() {
     });
   });
 
+  if (totalQuestions === 0) {
+    logger.error("問題データが読み込めませんでした");
+    process.exit(1);
+  }
+
   logger.success(`合計: ${totalQuestions}問`, { totalQuestions });
 }
 
 checkQuestionCounts();
-
