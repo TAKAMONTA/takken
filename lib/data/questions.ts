@@ -1,5 +1,6 @@
 import { Question } from '@/lib/types/quiz';
 import { firestoreService } from '../firestore-service';
+import { uniqueQuestionsByText } from '../question-dedupe';
 // ビルド時の実行を避けるため、categoryInfoを直接定義
 // import { categoryInfo } from './questions/index';
 import { logger } from '../logger';
@@ -87,7 +88,7 @@ export const getQuestionsByCategory = async (category: string): Promise<Question
         count: firestoreQuestions.length,
         source: 'firestore',
       });
-      return firestoreQuestions;
+      return uniqueQuestionsByText(firestoreQuestions);
     }
     
     // Firestoreにデータがない場合は、ローカルの問題データを使用（遅延読み込み）
@@ -98,7 +99,7 @@ export const getQuestionsByCategory = async (category: string): Promise<Question
       source: 'local',
     });
     
-    return localQuestions;
+    return uniqueQuestionsByText(localQuestions);
     
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
@@ -111,14 +112,14 @@ export const getQuestionsByCategory = async (category: string): Promise<Question
       count: fallbackQuestions.length,
     });
     
-    return fallbackQuestions;
+    return uniqueQuestionsByText(fallbackQuestions);
   }
 };
 
 // 難易度別の問題取得
 export const getQuestionsByDifficulty = async (difficulty: string): Promise<Question[]> => {
   try {
-    return await firestoreService.getQuestionsByDifficulty(difficulty);
+    return uniqueQuestionsByText(await firestoreService.getQuestionsByDifficulty(difficulty));
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error('Error fetching questions by difficulty', err, { difficulty });
@@ -132,7 +133,7 @@ export const getQuestionsByCategoryAndDifficulty = async (
   difficulty: string
 ): Promise<Question[]> => {
   try {
-    return await firestoreService.getQuestionsByCategoryAndDifficulty(category, difficulty);
+    return uniqueQuestionsByText(await firestoreService.getQuestionsByCategoryAndDifficulty(category, difficulty));
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error('Error fetching questions by category and difficulty', err, { category, difficulty });
@@ -146,7 +147,7 @@ export const getRandomQuestions = async (
   count: number = 10
 ): Promise<Question[]> => {
   try {
-    return await firestoreService.getRandomQuestions(category, count);
+    return uniqueQuestionsByText(await firestoreService.getRandomQuestions(category, count));
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     logger.error('Error fetching random questions', err, { category, count });

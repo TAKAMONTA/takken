@@ -1,5 +1,6 @@
 // AI生成問題を使用した模試用問題データ
 import { Question } from '@/lib/types/quiz';
+import { shuffleQuestions, uniqueQuestionsByText } from '@/lib/question-dedupe';
 import { takkengyouhouQuestions } from './questions/takkengyouhou';
 import { minpouQuestions } from './questions/minpou';
 import { houreiQuestions } from './questions/hourei';
@@ -62,17 +63,17 @@ export function getMockExamQuestions(mode: string): Question[] {
 
   // カテゴリごとに問題を選択
   Object.entries(questionCounts).forEach(([category, count]) => {
-    const categoryQuestions = allQuestions.filter(q => q.category === category);
+    const categoryQuestions = uniqueQuestionsByText(allQuestions.filter(q => q.category === category));
 
     // 問題をシャッフルして指定数を選択
-    const shuffled = [...categoryQuestions].sort(() => Math.random() - 0.5);
+    const shuffled = shuffleQuestions(categoryQuestions);
     const selected = shuffled.slice(0, Math.min(count, categoryQuestions.length));
 
     selectedQuestions.push(...selected);
   });
 
   // 問題をシャッフルして返す
-  return selectedQuestions.sort(() => Math.random() - 0.5);
+  return shuffleQuestions(uniqueQuestionsByText(selectedQuestions));
 }
 
 /**

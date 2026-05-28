@@ -20,14 +20,31 @@ import {
   FieldValue,
   Firestore,
 } from "firebase/firestore";
-import { db as dbImport } from "./firebase";
+import { initializeFirebaseWithFallback } from "./firebase-client";
 import { UserProfile, StudySession } from "./types";
 import { Question } from "./types/quiz";
 import { UserSubscription } from "./subscription-service";
 import { logger } from "./logger";
+import { shuffleQuestions, uniqueQuestionsByText } from "./question-dedupe";
 
-// db の型を明示的に定義
-const db = dbImport as Firestore | null;
+type FirebaseInitializerResult = {
+  fallback?: boolean;
+  db?: Firestore | null;
+};
+
+type FirebaseInitializer = () =>
+  | FirebaseInitializerResult
+  | Promise<FirebaseInitializerResult>;
+
+async function resolveFirestoreDb(
+  initializer: FirebaseInitializer = initializeFirebaseWithFallback
+): Promise<Firestore | null> {
+  const firebase = await initializer();
+  if (firebase.fallback || !firebase.db) {
+    return null;
+  }
+  return firebase.db;
+}
 
 export interface FirestoreUser extends Omit<Partial<UserProfile>, "id"> {
   createdAt: Timestamp | FieldValue; // Firestore Timestamp (読み込み時) または FieldValue (書き込み時)
@@ -69,6 +86,10 @@ class FirestoreService {
     }
   }
 
+  private async getDb(): Promise<Firestore | null> {
+    return resolveFirestoreDb();
+  }
+
   // 入力値検証関数
   private validateUserId(userId: string): boolean {
     return (
@@ -96,7 +117,8 @@ class FirestoreService {
 
   // User Profile Operations
   async createUserProfile(userId: string, profile: UserProfile): Promise<void> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
@@ -110,7 +132,6 @@ class FirestoreService {
     }
 
     try {
-      const firestore = db as Firestore;
       const userRef = doc(firestore, "users", userId);
       const sanitizedProfile = this.sanitizeUserData(profile);
 
@@ -146,7 +167,8 @@ class FirestoreService {
   }
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
@@ -156,7 +178,6 @@ class FirestoreService {
     }
 
     try {
-      const firestore = db as Firestore;
       const userRef = doc(firestore, "users", userId);
       const userSnap = await getDoc(userRef);
 
@@ -220,7 +241,8 @@ class FirestoreService {
     userId: string,
     updates: Partial<UserProfile>
   ): Promise<void> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
@@ -236,7 +258,6 @@ class FirestoreService {
     const sanitizedUpdates = this.sanitizeUserData(updates);
 
     try {
-      const firestore = db as Firestore;
       const userRef = doc(firestore, "users", userId);
 
       const firestoreUpdates = {
@@ -280,12 +301,12 @@ class FirestoreService {
 
   // Study Session Operations
   async saveStudySession(session: StudySession): Promise<string> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
     try {
-      const firestore = db as Firestore;
       const sessionsRef = collection(firestore, "studySessions");
       const firestoreSession: FirestoreStudySession = {
         ...session,
@@ -312,12 +333,12 @@ class FirestoreService {
     userId: string,
     limitCount: number = 50
   ): Promise<StudySession[]> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
     try {
-      const firestore = db as Firestore;
       const sessionsRef = collection(firestore, "studySessions");
       const q = query(
         sessionsRef,
@@ -362,116 +383,145 @@ class FirestoreService {
     userId: string,
     callback: (profile: UserProfile | null) => void
   ): Unsubscribe {
-    if (!db) {
-      // Firestore が初期化されていない環境（SSR/ビルド時など）は購読を開始せずに no-op を返す
-      logger.warn("Firestore is not initialized; subscribeToUserProfile returns noop", { userId });
-      // 直ちに null を返して UI が待ち続けないようにする
-      try {
-        callback(null);
-      } catch {
-        // ignore callback errors
-      }
-      return (() => {}) as Unsubscribe;
-    }
-    const firestore = db as Firestore;
-    const userRef = doc(firestore, "users", userId);
+    let cancelled = false;
+    let unsubscribe: Unsubscribe | undefined;
 
-    return onSnapshot(
-      userRef,
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data() as FirestoreUser;
-          // 必須プロパティのデフォルト値を設定
-          const profile: UserProfile = {
-            id: doc.id,
-            name: data.name || '',
-            email: data.email || '',
-            streak: data.streak || {
-              currentStreak: 0,
-              longestStreak: 0,
-              lastStudyDate: new Date().toISOString(),
-              studyDates: [],
-            },
-            progress: data.progress || {
-              totalQuestions: 0,
-              correctAnswers: 0,
-              studyTimeMinutes: 0,
-              categoryProgress: {},
-            },
-            learningRecords: data.learningRecords || [],
-            joinedAt: (data.createdAt && 'toDate' in data.createdAt) 
-              ? data.createdAt.toDate().toISOString() 
-              : new Date().toISOString(),
-            studyHistory: data.studyHistory,
-            totalStats: data.totalStats,
-          };
-          callback(profile);
-        } else {
+    this.getDb()
+      .then((firestore) => {
+        if (cancelled) return;
+
+        if (!firestore) {
+          logger.warn("Firestore is not initialized; subscribeToUserProfile returns noop", { userId });
           callback(null);
+          return;
         }
-      },
-      (error) => {
+
+        const userRef = doc(firestore, "users", userId);
+        unsubscribe = onSnapshot(
+          userRef,
+          (doc) => {
+            if (doc.exists()) {
+              const data = doc.data() as FirestoreUser;
+              // 必須プロパティのデフォルト値を設定
+              const profile: UserProfile = {
+                id: doc.id,
+                name: data.name || '',
+                email: data.email || '',
+                streak: data.streak || {
+                  currentStreak: 0,
+                  longestStreak: 0,
+                  lastStudyDate: new Date().toISOString(),
+                  studyDates: [],
+                },
+                progress: data.progress || {
+                  totalQuestions: 0,
+                  correctAnswers: 0,
+                  studyTimeMinutes: 0,
+                  categoryProgress: {},
+                },
+                learningRecords: data.learningRecords || [],
+                joinedAt: (data.createdAt && 'toDate' in data.createdAt)
+                  ? data.createdAt.toDate().toISOString()
+                  : new Date().toISOString(),
+                studyHistory: data.studyHistory,
+                totalStats: data.totalStats,
+              };
+              callback(profile);
+            } else {
+              callback(null);
+            }
+          },
+          (error) => {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error("Error in user profile subscription", err, { userId });
+            callback(null);
+          }
+        );
+      })
+      .catch((error) => {
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.error("Error in user profile subscription", err, { userId });
+        logger.error("Failed to initialize Firestore subscription", err, { userId });
         callback(null);
+      });
+
+    return (() => {
+      cancelled = true;
+      if (unsubscribe) {
+        unsubscribe();
       }
-    );
+    }) as Unsubscribe;
   }
 
   subscribeToStudySessions(
     userId: string,
     callback: (sessions: StudySession[]) => void
   ): Unsubscribe {
-    if (!db) {
-      logger.warn("Firestore is not initialized; subscribeToStudySessions returns noop", { userId });
-      try {
-        callback([]);
-      } catch {
-        // ignore callback errors
-      }
-      return (() => {}) as Unsubscribe;
-    }
-    const firestore = db as Firestore;
-    const sessionsRef = collection(firestore, "studySessions");
-    const q = query(
-      sessionsRef,
-      where("userId", "==", userId),
-      orderBy("createdAt", "desc"),
-      limit(50)
-    );
+    let cancelled = false;
+    let unsubscribe: Unsubscribe | undefined;
 
-    return onSnapshot(
-      q,
-      (querySnapshot) => {
-        const sessions: StudySession[] = [];
+    this.getDb()
+      .then((firestore) => {
+        if (cancelled) return;
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as FirestoreStudySession;
-          
-          // startTimeとendTimeの型安全な変換
-          const startTime = data.startTime 
-            ? ('toDate' in data.startTime ? data.startTime.toDate() : data.startTime instanceof Date ? data.startTime : new Date())
-            : new Date();
-          const endTime = data.endTime 
-            ? ('toDate' in data.endTime ? data.endTime.toDate() : data.endTime instanceof Date ? data.endTime : new Date())
-            : new Date();
-          
-          sessions.push({
-            id: doc.id,
-            ...data,
-            startTime,
-            endTime,
-          });
-        });
+        if (!firestore) {
+          logger.warn("Firestore is not initialized; subscribeToStudySessions returns noop", { userId });
+          callback([]);
+          return;
+        }
 
-        callback(sessions);
-      },
-      (error) => {
+        const sessionsRef = collection(firestore, "studySessions");
+        const q = query(
+          sessionsRef,
+          where("userId", "==", userId),
+          orderBy("createdAt", "desc"),
+          limit(50)
+        );
+
+        unsubscribe = onSnapshot(
+          q,
+          (querySnapshot) => {
+            const sessions: StudySession[] = [];
+
+            querySnapshot.forEach((doc) => {
+              const data = doc.data() as FirestoreStudySession;
+
+              // startTimeとendTimeの型安全な変換
+              const startTime = data.startTime
+                ? ('toDate' in data.startTime ? data.startTime.toDate() : data.startTime instanceof Date ? data.startTime : new Date())
+                : new Date();
+              const endTime = data.endTime
+                ? ('toDate' in data.endTime ? data.endTime.toDate() : data.endTime instanceof Date ? data.endTime : new Date())
+                : new Date();
+
+              sessions.push({
+                id: doc.id,
+                ...data,
+                startTime,
+                endTime,
+              });
+            });
+
+            callback(sessions);
+          },
+          (error) => {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error("Error in study sessions subscription", err, { userId });
+            callback([]);
+          }
+        );
+      })
+      .catch((error) => {
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.error("Error in study sessions subscription", err, { userId });
+        logger.error("Failed to initialize study session subscription", err, { userId });
         callback([]);
+      });
+
+    return (() => {
+      cancelled = true;
+      if (unsubscribe) {
+        unsubscribe();
       }
-    );
+    }) as Unsubscribe;
   }
 
   // Sync operations
@@ -567,7 +617,9 @@ class FirestoreService {
   private getLocalUserProfile(userId: string): UserProfile | null {
     try {
       const userData = localStorage.getItem("takken_user");
-      return userData ? JSON.parse(userData) : null;
+      if (!userData) return null;
+      const profile = JSON.parse(userData);
+      return profile?.id === userId ? profile : null;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Error getting local user profile", err, { userId });
@@ -583,6 +635,13 @@ class FirestoreService {
       const userData = localStorage.getItem("takken_user");
       if (userData) {
         const profile = JSON.parse(userData);
+        if (profile?.id !== userId) {
+          logger.warn("Skipping local profile update for mismatched user", {
+            userId,
+            cachedUserId: profile?.id,
+          });
+          return;
+        }
         const updatedProfile = { ...profile, ...updates };
         localStorage.setItem("takken_user", JSON.stringify(updatedProfile));
       }
@@ -627,13 +686,13 @@ class FirestoreService {
 
   // Question Data Operations
   async getQuestionsByCategory(category: string): Promise<Question[]> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn("Firestore is not initialized; getQuestionsByCategory returns empty array", { category });
       return [];
     }
 
     try {
-      const firestore = db as Firestore;
       const questionsRef = collection(firestore, "questions");
       const q = query(
         questionsRef,
@@ -672,13 +731,13 @@ class FirestoreService {
   }
 
   async getQuestionsByDifficulty(difficulty: string): Promise<Question[]> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn("Firestore is not initialized; getQuestionsByDifficulty returns empty array", { difficulty });
       return [];
     }
 
     try {
-      const firestore = db as Firestore;
       const questionsRef = collection(firestore, "questions");
       const q = query(
         questionsRef,
@@ -710,7 +769,8 @@ class FirestoreService {
     category: string,
     difficulty: string
   ): Promise<Question[]> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn(
         "Firestore is not initialized; getQuestionsByCategoryAndDifficulty returns empty array",
         { category, difficulty }
@@ -719,7 +779,6 @@ class FirestoreService {
     }
 
     try {
-      const firestore = db as Firestore;
       const questionsRef = collection(firestore, "questions");
       const q = query(
         questionsRef,
@@ -752,14 +811,14 @@ class FirestoreService {
     category?: string,
     count: number = 10
   ): Promise<Question[]> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn("Firestore is not initialized; getRandomQuestions returns empty array", { category, count });
       return [];
     }
 
     try {
       let q;
-      const firestore = db as Firestore;
       const questionsRef = collection(firestore, "questions");
 
       if (category) {
@@ -781,7 +840,7 @@ class FirestoreService {
       });
 
       // Shuffle and return requested count
-      const shuffled = questions.sort(() => Math.random() - 0.5);
+      const shuffled = shuffleQuestions(uniqueQuestionsByText(questions));
       return shuffled.slice(0, count);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -844,13 +903,13 @@ class FirestoreService {
    * ユーザーのサブスクリプション情報を取得
    */
   async getUserSubscription(userId: string): Promise<UserSubscription | null> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn("Firestore is not initialized; getUserSubscription returns null", { userId });
       return null;
     }
 
     try {
-      const firestore = db as Firestore;
       const subscriptionRef = doc(firestore, "subscriptions", userId);
       const subscriptionSnap = await getDoc(subscriptionRef);
 
@@ -883,12 +942,12 @@ class FirestoreService {
    * ユーザーのサブスクリプション情報を保存
    */
   async saveUserSubscription(subscription: UserSubscription): Promise<void> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
     try {
-      const firestore = db as Firestore;
       const subscriptionRef = doc(firestore, "subscriptions", subscription.userId);
       await setDoc(subscriptionRef, {
         planId: subscription.planId,
@@ -913,12 +972,12 @@ class FirestoreService {
     userId: string,
     status: UserSubscription["status"]
   ): Promise<void> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
     try {
-      const firestore = db as Firestore;
       const subscriptionRef = doc(firestore, "subscriptions", userId);
       await updateDoc(subscriptionRef, {
         status,
@@ -935,7 +994,8 @@ class FirestoreService {
    * AI機能の使用回数を取得（月単位）
    */
   async getAIUsageCount(userId: string, date: Date): Promise<number> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       logger.warn("Firestore is not initialized; getAIUsageCount returns 0", { userId, date: date.toISOString() });
       return 0;
     }
@@ -943,7 +1003,6 @@ class FirestoreService {
     try {
       const year = date.getFullYear();
       const month = date.getMonth();
-      const firestore = db as Firestore;
       const usageRef = doc(firestore, "ai_usage", `${userId}_${year}_${month}`);
       const usageSnap = await getDoc(usageRef);
 
@@ -963,14 +1022,14 @@ class FirestoreService {
    * AI機能の使用回数を増加
    */
   async incrementAIUsageCount(userId: string, date: Date): Promise<void> {
-    if (!db) {
+    const firestore = await this.getDb();
+    if (!firestore) {
       throw new Error("Firestore is not initialized");
     }
 
     try {
       const year = date.getFullYear();
       const month = date.getMonth();
-      const firestore = db as Firestore;
       const usageRef = doc(firestore, "ai_usage", `${userId}_${year}_${month}`);
       const usageSnap = await getDoc(usageRef);
 
@@ -998,3 +1057,6 @@ class FirestoreService {
 }
 
 export const firestoreService = new FirestoreService();
+export const __private__ = {
+  resolveFirestoreDb,
+};

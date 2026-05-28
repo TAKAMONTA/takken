@@ -6,6 +6,7 @@
  */
 
 import { Question } from "@/lib/types/quiz";
+import { shuffleQuestions, uniqueQuestionsByText } from "@/lib/question-dedupe";
 import { getQuestionsByCategoryLazy, getAllQuestionsLazy } from "./utils/lazy-loader";
 
 // カテゴリ情報（軽量なので静的にインポート）
@@ -66,10 +67,10 @@ export async function getQuestionsByCategory(
   const questions = questionsByCategory[category];
   
   if (questions instanceof Promise) {
-    return questions;
+    return uniqueQuestionsByText(await questions);
   }
   
-  return questions || [];
+  return uniqueQuestionsByText(questions || []);
 }
 
 /**
@@ -86,7 +87,7 @@ export async function getQuestionsByDifficulty(
   difficulty: string
 ): Promise<Question[]> {
   const all = await getAllQuestions();
-  return all.filter((q) => q.difficulty === difficulty);
+  return uniqueQuestionsByText(all.filter((q) => q.difficulty === difficulty));
 }
 
 /**
@@ -105,7 +106,7 @@ export async function getQuestionsByCategoryAndDifficulty(
   difficulty: string
 ): Promise<Question[]> {
   const categoryQuestions = await getQuestionsByCategory(category);
-  return categoryQuestions.filter((q) => q.difficulty === difficulty);
+  return uniqueQuestionsByText(categoryQuestions.filter((q) => q.difficulty === difficulty));
 }
 
 /**
@@ -118,7 +119,7 @@ export async function getRandomQuestions(
   const sourceQuestions = category
     ? await getQuestionsByCategory(category)
     : await getAllQuestions();
-  const shuffled = [...sourceQuestions].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleQuestions(uniqueQuestionsByText(sourceQuestions));
   return shuffled.slice(0, count);
 }
 

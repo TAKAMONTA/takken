@@ -1,5 +1,6 @@
 // 問題データの統合管理ファイル
 import { Question } from "@/lib/types/quiz";
+import { shuffleQuestions, uniqueQuestionsByText } from "@/lib/question-dedupe";
 // 一時的にコメントアウト
 // import {
 //   assignFrequencyGrades,
@@ -64,7 +65,7 @@ export const getQuestionsByDifficulty = (difficulty: string): Question[] => {
   if (!difficulty || typeof difficulty !== 'string') {
     return [];
   }
-  return allQuestions.filter((q) => q && q.difficulty === difficulty);
+  return uniqueQuestionsByText(allQuestions.filter((q) => q && q.difficulty === difficulty));
 };
 
 // 年度別の問題取得
@@ -81,7 +82,7 @@ export const getQuestionsByCategoryAndDifficulty = (
   difficulty: string
 ): Question[] => {
   const categoryQuestions = questionsByCategory[category] || [];
-  return categoryQuestions.filter((q) => q.difficulty === difficulty);
+  return uniqueQuestionsByText(categoryQuestions.filter((q) => q.difficulty === difficulty));
 };
 
 // ランダムな問題取得
@@ -95,7 +96,7 @@ export const getRandomQuestions = (
   if (!sourceQuestions || !Array.isArray(sourceQuestions)) {
     return [];
   }
-  const shuffled = [...sourceQuestions].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleQuestions(uniqueQuestionsByText(sourceQuestions));
   return shuffled.slice(0, Math.max(0, count));
 };
 

@@ -9,6 +9,9 @@ import QuestionDisplay from "@/components/QuestionDisplay";
 import StudyTipDisplay from "@/components/StudyTipDisplay";
 import { getStudyTipsByDomain } from "@/lib/data/study-strategy";
 import { logger } from "@/lib/logger";
+import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
+import QuestionMetaBadges from "@/components/QuestionMetaBadges";
+import { shuffleQuestions, uniqueQuestionsByText } from "@/lib/question-dedupe";
 
 // 弱点克服用の問題データ
 const weaknessQuestions = {
@@ -130,46 +133,52 @@ function WeakPointsQuizContent() {
   // 植物機能は削除
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("takken_user");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-    } else {
-      router.push("/");
-      return;
-    }
+    let cancelled = false;
 
-    // 弱点問題を準備
-    if (topic && weaknessQuestions[topic as keyof typeof weaknessQuestions]) {
-      const topicQuestions =
-        weaknessQuestions[topic as keyof typeof weaknessQuestions];
+    const initialize = async () => {
+      const cachedUser = await requireCachedUserForCurrentAuth<any>(() =>
+        router.push("/auth/login")
+      );
+      if (!cachedUser || cancelled) return;
+      setUser(cachedUser);
 
-      let selectedQuestions = [...topicQuestions];
+      // 弱点問題を準備
+      if (topic && weaknessQuestions[topic as keyof typeof weaknessQuestions]) {
+        const topicQuestions =
+          weaknessQuestions[topic as keyof typeof weaknessQuestions];
 
-      // 学習方法に応じて設定を調整
-      switch (method) {
-        case "intensive":
-          selectedQuestions = selectedQuestions.slice(0, 10);
-          setTimeLeft(30 * 60); // 30分
-          break;
-        case "mixed":
-          // 他の弱点問題も混ぜる
-          const allWeakQuestions = Object.values(weaknessQuestions).flat();
-          selectedQuestions = allWeakQuestions
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 8);
-          setTimeLeft(20 * 60); // 20分
-          break;
-        case "detailed":
-          selectedQuestions = selectedQuestions.slice(0, 6);
-          setTimeLeft(40 * 60); // 40分
-          setShowDetailedExplanation(true);
-          break;
+        let selectedQuestions = uniqueQuestionsByText([...topicQuestions]);
+
+        // 学習方法に応じて設定を調整
+        switch (method) {
+          case "intensive":
+            selectedQuestions = selectedQuestions.slice(0, 10);
+            setTimeLeft(30 * 60); // 30分
+            break;
+          case "mixed":
+            // 他の弱点問題も混ぜる
+            const allWeakQuestions = Object.values(weaknessQuestions).flat();
+            selectedQuestions = shuffleQuestions(uniqueQuestionsByText(allWeakQuestions))
+              .slice(0, 8);
+            setTimeLeft(20 * 60); // 20分
+            break;
+          case "detailed":
+            selectedQuestions = selectedQuestions.slice(0, 6);
+            setTimeLeft(40 * 60); // 40分
+            setShowDetailedExplanation(true);
+            break;
+        }
+
+        setQuestions(selectedQuestions);
+        setStartTime(new Date());
       }
+    };
 
-      setQuestions(selectedQuestions);
-      setStartTime(new Date());
-    }
+    initialize();
+
+    return () => {
+      cancelled = true;
+    };
   }, [topic, method, router]);
 
   useEffect(() => {
@@ -276,7 +285,7 @@ function WeakPointsQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
     // 植物状態の保存は不要
 
     logger.debug("弱点克服1問解答後の学習履歴を保存しました", {
@@ -389,7 +398,7 @@ function WeakPointsQuizContent() {
     }
 
     setUser(updatedUser);
-    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
+    setCachedUser(updatedUser);
     // 植物状態の保存は不要
 
     logger.debug("弱点克服学習履歴を保存しました", {
@@ -591,13 +600,14 @@ function WeakPointsQuizContent() {
       {/* 問題表示 */}
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          {/* 問題情報 */}
-          <div className="flex items-center justify-between mb-4 text-xs">
-            <span className="bg-red-100 text-red-700 px-2 py-1 rounded">
-              💪 弱点克服
-            </span>
-            <span className="text-gray-500">{currentQuestion.category}</span>
-          </div>
+          <QuestionMetaBadges
+            question={{
+              category: currentQuestion.category,
+              topic: currentQuestion.weakness,
+              source: "弱点克服",
+            }}
+            className="mb-4"
+          />
 
           {/* 弱点ポイント表示 */}
           {currentQuestion.weakness && (
@@ -701,6 +711,17 @@ function WeakPointsQuizContent() {
               <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
                 <div className="text-base text-gray-800 leading-relaxed">
                   {currentQuestion.explanation}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-3 mb-4 border border-blue-100">
+                <div className="text-xs font-bold text-gray-700 mb-2">
+                  信頼性情報
+                </div>
+                <div className="space-y-1 text-xs text-gray-600">
+                  <p>関連論点: {currentQuestion.weakness || currentQuestion.category}</p>
+                  <p>出所: 弱点克服</p>
+                  <p>法令・制度は改正される場合があります。重要な論点は最新の公的情報や教材でも確認してください。</p>
                 </div>
               </div>
 

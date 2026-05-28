@@ -16,20 +16,20 @@ type QuestionArrayGetter = () => Question[];
  */
 const questionLoaders: Record<string, QuestionLoader | QuestionArrayGetter> = {
   takkengyouhou: async () => {
-    const module = await import('../takkengyouhou/index');
-    return module.takkengyouhouQuestions;
+    const questionModule = await import('../takkengyouhou/index');
+    return questionModule.takkengyouhouQuestions;
   },
   minpou: async () => {
-    const module = await import('../minpou/index');
-    return module.minpouQuestions;
+    const questionModule = await import('../minpou/index');
+    return questionModule.minpouQuestions;
   },
   hourei: async () => {
-    const module = await import('../hourei/index');
-    return module.houreiQuestions;
+    const questionModule = await import('../hourei/index');
+    return questionModule.houreiQuestions;
   },
   zeihou: async () => {
-    const module = await import('../zeihou/index');
-    return module.zeihouQuestions;
+    const questionModule = await import('../zeihou/index');
+    return questionModule.zeihouQuestions;
   },
 };
 
@@ -120,4 +120,3 @@ export function getCacheStatus(): Record<string, boolean> {
     return acc;
   }, {} as Record<string, boolean>);
 }
-
