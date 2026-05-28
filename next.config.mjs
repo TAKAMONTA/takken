@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: process.cwd(),
+  serverExternalPackages: ["firebase-admin"],
   // ビルドモード切り替え:
   // - Vercel (Web): サーバーモード (API Routes有効)
   // - Capacitor (iOS): 静的エクスポート (CAPACITOR_BUILD=true で有効化)
@@ -51,18 +53,15 @@ const nextConfig = {
     
     return config;
   },
-  // Enable experimental features for better PWA support
-  experimental: {
-    serverComponentsExternalPackages: ["firebase-admin"],
-  },
   // Environment variables for client-side
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  // 本番環境でのconsole.logを無効化（デバッグ中は無効化）
-  // TODO: デバッグ完了後、本番環境では再度有効化を検討
+  // 本番環境では console.log を除去（error/warn は残す）
   compiler: {
-    removeConsole: false, // デバッグのため一時的に無効化
+    removeConsole: process.env.NODE_ENV === "production"
+      ? { exclude: ["error", "warn"] }
+      : false,
   },
   eslint: {
     ignoreDuringBuilds: true,

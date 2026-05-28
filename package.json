@@ -8,8 +8,11 @@
     "build": "next build",
     "build:ios": "CAPACITOR_BUILD=true next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app components lib middleware.ts next.config.mjs",
     "test:env": "ts-node -r dotenv/config scripts/test/env.ts",
+    "test:server-boundaries": "ts-node scripts/test/server-import-boundaries.ts",
+    "test:question-dedupe": "ts-node scripts/test/question-dedupe.ts",
+    "lint:strict": "npm run lint -- --max-warnings=0",
     "emulators": "node scripts/start-emulators.js",
     "dev:emulator": "concurrently \"npm run emulators\" \"npm run dev\"",
     "test": "playwright test",
@@ -17,7 +20,9 @@
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
+    "test:e2e:smoke": "playwright test tests/e2e/homepage.spec.ts tests/e2e/auth.spec.ts --project=chromium",
     "check-env": "node -r dotenv/config -r ts-node/register scripts/check/env.ts",
+    "check:production-env": "ts-node scripts/check/production-env.ts",
     "generate:questions": "node scripts/generate/questions.js",
     "integrate:questions": "ts-node scripts/integrate/questions.ts",
     "generate:all": "node scripts/generate/batch-all.js",
@@ -26,6 +31,11 @@
     "deploy:functions:win": "call scripts/deploy/deploy-functions.bat",
     "duplicate:questions": "ts-node scripts/check/duplicates.ts",
     "check:questions": "ts-node scripts/check/question-counts.ts",
+    "check:app-store": "ts-node scripts/test/app-store-safety.ts",
+    "check:subscription-copy": "ts-node scripts/test/subscription-copy-consistency.ts",
+    "verify:release": "npm run lint:strict && npm run check-env && npm run check:questions && npm run duplicate:questions && npm run check:question-quality && npm run check:app-store && npm run check:subscription-copy && npm run build",
+    "verify:ios": "npm run check:app-store && npm run build:ios",
+    "release:preflight": "npm run verify:release && npm run verify:ios",
     "check:subscription": "ts-node scripts/check-subscription-data.ts",
     "check:webhook": "ts-node scripts/check-stripe-webhook-events.ts",
     "verify:webhook": "ts-node scripts/check-stripe-webhook-events.ts && ts-node scripts/check-subscription-data.ts",
@@ -35,7 +45,12 @@
     "generate:prediction:hourei": "ts-node scripts/generate/generate-prediction-questions.ts hourei",
     "generate:prediction:zeihou": "ts-node scripts/generate/generate-prediction-questions.ts zeihou",
     "test:prediction": "ts-node scripts/generate/test-prediction.ts",
-    "integrate:prediction": "ts-node scripts/integrate/integrate-prediction-questions.ts"
+    "integrate:prediction": "ts-node scripts/integrate/integrate-prediction-questions.ts",
+    "test:question-source-locator": "ts-node scripts/test/question-source-locator.ts",
+    "test:duplicate-report": "ts-node scripts/test/duplicate-report.ts",
+    "duplicate:questions:report": "ts-node scripts/check/duplicates.ts --report docs/duplicate-questions-report.md",
+    "test:question-quality-utils": "ts-node scripts/test/question-quality-utils.ts",
+    "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.9.1",
@@ -53,18 +68,17 @@
     "crypto-js": "^4.2.0",
     "dompurify": "^3.3.0",
     "firebase": "^10.7.1",
-    "firebase-admin": "^12.7.0",
+    "firebase-admin": "^13.10.0",
     "framer-motion": "^12.23.12",
-    "next": "^14.2.32",
-    "next-pwa": "^5.6.0",
+    "next": "^15.5.16",
     "openai": "^4.20.1",
     "react": "^18",
     "react-dom": "^18",
     "react-firebase-hooks": "^5.1.1",
-    "stripe": "^18.4.0",
-    "workbox-webpack-plugin": "^7.0.0"
+    "stripe": "^18.4.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^2.1.4",
     "@playwright/test": "^1.54.2",
     "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
@@ -79,8 +93,10 @@
     "autoprefixer": "^10.0.1",
     "concurrently": "^8.2.2",
     "dotenv": "^17.2.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.16",
     "patch-package": "^8.0.1",
-    "postcss": "^8",
+    "postcss": "8.5.15",
     "puppeteer": "^24.16.2",
     "sharp": "^0.34.4",
     "tailwindcss": "^3.3.0",
@@ -90,5 +106,13 @@
   },
   "optionalDependencies": {
     "canvas": "^3.2.0"
+  },
+  "overrides": {
+    "@next/eslint-plugin-next": {
+      "glob": "10.5.0"
+    },
+    "postcss": "8.5.15",
+    "undici": "6.26.0",
+    "uuid": "11.1.1"
   }
 }

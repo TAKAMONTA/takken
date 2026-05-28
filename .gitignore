@@ -12,6 +12,8 @@ dist/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -154,6 +156,7 @@ debug-ai-response.json
 
 # Local save files
 .env.local.save
+.env.local.test
 
 # Patch errors
 patch-package-error.json.gz
