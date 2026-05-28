@@ -38,6 +38,8 @@
     "verify:production-env": "ts-node scripts/check/production-env.ts",
     "release:preflight": "npm run verify:release && npm run verify:ios",
     "release:production": "npm run verify:production-env && npm run verify:release",
+    "bump:ios-build": "ts-node scripts/release/bump-ios-build.ts",
+    "bump:ios-build:dry": "ts-node scripts/release/bump-ios-build.ts --dry-run",
     "check:subscription": "ts-node scripts/check-subscription-data.ts",
     "check:webhook": "ts-node scripts/check-stripe-webhook-events.ts",
     "verify:webhook": "ts-node scripts/check-stripe-webhook-events.ts && ts-node scripts/check-subscription-data.ts",
@@ -52,6 +54,7 @@
     "test:duplicate-report": "ts-node scripts/test/duplicate-report.ts",
     "duplicate:questions:report": "ts-node scripts/check/duplicates.ts --report docs/duplicate-questions-report.md",
     "test:question-quality-utils": "ts-node scripts/test/question-quality-utils.ts",
+    "test:error-reporter": "ts-node scripts/test/error-reporter.ts",
     "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {

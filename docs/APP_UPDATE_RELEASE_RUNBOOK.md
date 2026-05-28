@@ -65,10 +65,18 @@ npm run release:production
 ## 4. App Store ビルド前
 
 ```bash
+# 1. ビルド番号を bump（CURRENT_PROJECT_VERSION）。提出のたび必須。
+npm run bump:ios-build:dry     # 差分プレビュー
+npm run bump:ios-build         # 実行 (例: 3 -> 4)
+
+# パッチ版を上げるときは marketing version も bump
+npx ts-node scripts/release/bump-ios-build.ts --marketing patch   # 1.4 -> 1.4.1
+
+# 2. iOS preflight
 npm run verify:ios
 ```
 
-中身: `check:app-store` + `build:ios` (Capacitor 用 static export)。
+`verify:ios` の中身: `check:app-store` + `build:ios` (Capacitor 用 static export)。
 
 加えて手動チェック:
 
@@ -76,6 +84,15 @@ npm run verify:ios
 - App Store Connect の IAP 価格が `lib/types/subscription.ts` / `ios/App/TakkenIAP.storekit` と一致
 - サブスクメタが価格・期間・自動更新文言・利用規約/プライバシーリンク・購入復元を表示
 - iOS ビルドが起動時に Web 広告スクリプトを読まず、ATT を最初に要求しないこと
+
+### CFBundleVersion bump スクリプトの安全装置
+
+`scripts/release/bump-ios-build.ts` は次の事故を防ぐ:
+
+- DEBUG / RELEASE config の `CURRENT_PROJECT_VERSION` が乖離していたら fail
+- `MARKETING_VERSION` も同様
+- 書き換え後に行末セミコロンを再検証し、破壊書き込みを防止
+- `--dry-run` で実書き込みなしのプレビュー
 
 ## 5. TestFlight Pass
 
@@ -98,10 +115,61 @@ This update improves App Store compliance, subscription display consistency, and
   ユーザー直接影響は限定的。次の P1 タスクで全体リナンバー予定。
 - `build:ios` は Capacitor の static export 仕様により Next.js の標準警告を出す
 
+## 7. 本番障害の観測（error reporting）
+
+`lib/error-reporter.ts` がコード側のフック。Sentry / Crashlytics などの SDK は
+**まだ wire していない** が、抽象は完成している。
+
+使い方:
+
+```ts
+import { reportError, setReportUser } from "@/lib/error-reporter";
+
+// アプリ起動時 (例: app/layout.tsx) で外部 SDK を差し込む
+import { registerExternalReporter } from "@/lib/error-reporter";
+import * as Sentry from "@sentry/nextjs";
+
+registerExternalReporter({
+  captureException: (error, context) => Sentry.captureException(error, { extra: context }),
+  captureMessage: (message, context) => Sentry.captureMessage(message, { extra: context }),
+  setUser: (user) => Sentry.setUser(user),
+});
+
+// ログイン時
+setReportUser(firebaseUser.uid);
+
+// エラー発生時
+try {
+  await createCheckoutSession(...);
+} catch (err) {
+  reportError(err, { tags: { route: "/subscription/pricing" }, severity: "error" });
+  throw err;
+}
+```
+
+未登録なら logger に構造化ログを出すだけで no-op。Sentry が落ちても本流のフローは
+止まらない（safeForward でラップ済み）。
+
+### Sentry を入れるとき
+
+1. `npm install @sentry/nextjs`
+2. `npx @sentry/wizard@latest -i nextjs` で sentry.{client,server,edge}.config.ts を生成
+3. `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` を `.env.local` と Vercel に登録
+4. 起動箇所で `registerExternalReporter` を呼ぶ
+
+### Firebase Crashlytics を入れるとき（iOS native crash）
+
+1. Capacitor 用の Firebase Crashlytics plugin を導入
+2. 同様に `registerExternalReporter` で wrap
+
 ## P1（次の改善候補）
 
-- Sentry / Firebase Crashlytics 同等の error reporting 導入
+- ✅ error reporter 抽象化（実装済み・SDK 未 wire）
+- ⏳ Sentry または Crashlytics SDK の wire-up と DSN 設定
+- ✅ CFBundleVersion 自動 bump スクリプト
 - AI API 失敗時のフォールバック UX 明示化
 - Stripe webhook 冪等性のユニットテスト
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
+- 段階リリース（TestFlight Beta → Phased Release）の運用化
+- 強制アップデート機構（minimumVersion チェック）
