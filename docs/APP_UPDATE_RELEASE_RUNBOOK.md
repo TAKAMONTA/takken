@@ -117,25 +117,16 @@ This update improves App Store compliance, subscription display consistency, and
 
 ## 7. 本番障害の観測（error reporting）
 
-`lib/error-reporter.ts` がコード側のフック。Sentry / Crashlytics などの SDK は
-**まだ wire していない** が、抽象は完成している。
+`lib/error-reporter.ts` の抽象 + `@sentry/nextjs` SDK + `components/SentryWireup.tsx`
+で **client / server / edge** の全 runtime をカバー済み。残りは Sentry 側で
+プロジェクトを作って DSN を投入するだけ。
 
-使い方:
+### コードから使う
 
 ```ts
 import { reportError, setReportUser } from "@/lib/error-reporter";
 
-// アプリ起動時 (例: app/layout.tsx) で外部 SDK を差し込む
-import { registerExternalReporter } from "@/lib/error-reporter";
-import * as Sentry from "@sentry/nextjs";
-
-registerExternalReporter({
-  captureException: (error, context) => Sentry.captureException(error, { extra: context }),
-  captureMessage: (message, context) => Sentry.captureMessage(message, { extra: context }),
-  setUser: (user) => Sentry.setUser(user),
-});
-
-// ログイン時
+// ログイン時（FirebaseInitializer などで）
 setReportUser(firebaseUser.uid);
 
 // エラー発生時
@@ -147,29 +138,63 @@ try {
 }
 ```
 
-未登録なら logger に構造化ログを出すだけで no-op。Sentry が落ちても本流のフローは
-止まらない（safeForward でラップ済み）。
+DSN 未設定でも `logger` に構造化ログを出すだけで no-op。Sentry SDK の init
+自体が DSN 無しでスキップされ、`SentryWireup` も実質 idle になる。
 
-### Sentry を入れるとき
+### Sentry を有効化する手順
 
-1. `npm install @sentry/nextjs`
-2. `npx @sentry/wizard@latest -i nextjs` で sentry.{client,server,edge}.config.ts を生成
-3. `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` を `.env.local` と Vercel に登録
-4. 起動箇所で `registerExternalReporter` を呼ぶ
+1. https://sentry.io でプロジェクト作成（Platform: Next.js）
+2. DSN と auth token を取得
+3. `.env.local` / Vercel 環境変数に投入:
+   ```
+   NEXT_PUBLIC_SENTRY_DSN=https://xxxx@oXXXX.ingest.sentry.io/XXXX
+   SENTRY_ORG=your-org-slug
+   SENTRY_PROJECT=takken
+   SENTRY_AUTH_TOKEN=sntrys_xxxxx
+   ```
+4. デプロイ。`production-env` チェックが DSN 形式を検証する。
 
-### Firebase Crashlytics を入れるとき（iOS native crash）
+### サンプリング設定（free tier 5k events/月に収めるため）
 
-1. Capacitor 用の Firebase Crashlytics plugin を導入
-2. 同様に `registerExternalReporter` で wrap
+| env var | 既定値 | 用途 |
+|---|---|---|
+| `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | 0.1 | パフォーマンストレースの 10% を送信 |
+| `NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE` | 1.0 | エラー発生時のセッションリプレイを 100% 取得 |
+
+通常時 (no-error) のセッションリプレイは常時 OFF (`replaysSessionSampleRate: 0`)。
+
+### Firebase Crashlytics（iOS native crash 用、未実装）
+
+iOS WebView 内の JS エラーは Sentry が自動捕捉するが、Capacitor / Swift 層の
+ネイティブクラッシュは別途 Crashlytics か `@sentry/capacitor` で追加対応が必要。
+
+## 8. 既知のビルド問題
+
+### `build:ios` (CAPACITOR_BUILD=true) と API Routes の衝突
+
+現状 `npm run build:ios` は `Failed to collect page data for /api/subscription/webhook` で fail する。
+理由: API Routes (Stripe webhook 等) は server runtime が必須だが、
+Capacitor 用に `output: "export"` を有効化すると静的エクスポートと衝突する。
+
+これは Sentry 導入前から存在する課題（API Routes は Vercel 用、Capacitor 用には不要）。
+回避策（未実装）:
+- ビルド前スクリプトで `app/api/` を一時退避してから `next build`
+- もしくは API Routes を別パッケージに分離
+
+iOS バンドルは Web の静的部分しか必要としないため、運用上の影響は限定的。
+だが `verify:ios` のチェーンに含まれているため P1 で根治予定。
 
 ## P1（次の改善候補）
 
-- ✅ error reporter 抽象化（実装済み・SDK 未 wire）
-- ⏳ Sentry または Crashlytics SDK の wire-up と DSN 設定
+- ✅ error reporter 抽象化
+- ✅ Sentry SDK wire-up（client / server / edge / instrumentation 完成）
+- ⏳ Sentry 側プロジェクト作成と DSN 投入（運用作業）
 - ✅ CFBundleVersion 自動 bump スクリプト
+- ⏳ `build:ios` の API Routes 衝突解消（一時退避スクリプトなど）
 - AI API 失敗時のフォールバック UX 明示化
 - Stripe webhook 冪等性のユニットテスト
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
 - 段階リリース（TestFlight Beta → Phased Release）の運用化
 - 強制アップデート機構（minimumVersion チェック）
+- iOS native crash の Crashlytics または `@sentry/capacitor` 追加

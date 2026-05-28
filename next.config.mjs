@@ -73,4 +73,23 @@ const nextConfig = {
 // next-pwa を使用する場合は、package.jsonに追加して設定してください
 // 現在はPWA機能は手動実装（Service Worker等）を使用
 
-export default nextConfig;
+// Sentry: DSN 未設定 / Capacitor static export では source map upload を抑制する
+// SENTRY_AUTH_TOKEN を投入すると本番ビルドで sourcemap が上がる
+import { withSentryConfig } from "@sentry/nextjs";
+
+const sentryWebpackPluginOptions = {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.SENTRY_AUTH_TOKEN, // token 無い時は plugin の noise を抑制
+  widenClientFileUpload: true,
+  disableLogger: true,
+  // Capacitor の static export では source map upload を完全に skip
+  dryRun: Boolean(process.env.CAPACITOR_BUILD) || !process.env.SENTRY_AUTH_TOKEN,
+};
+
+const exported = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN || process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+  : nextConfig;
+
+export default exported;

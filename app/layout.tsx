@@ -4,6 +4,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
 import AdSenseScript from "@/components/AdSenseScript";
+import SentryWireup from "@/components/SentryWireup";
 
 export const metadata: Metadata = {
   title: "宅建合格ロード - AI予想問題で学ぶ",
@@ -71,6 +72,7 @@ export default function RootLayout({
 
       </head>
       <body className="antialiased bg-background text-foreground">
+        <SentryWireup />
         <FirebaseInitializer />
         <AdSenseScript />
         <SubscriptionProvider>

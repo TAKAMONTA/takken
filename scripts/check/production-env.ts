@@ -148,6 +148,32 @@ if (hasValue("OPENAI_API_KEY")) {
   );
 }
 
+// Sentry: 設定されていれば形式を検証。未設定は warn 相当（本番障害観測ゼロは将来的に直すべき）
+const sentryDsn = value("NEXT_PUBLIC_SENTRY_DSN") || value("SENTRY_DSN");
+if (sentryDsn) {
+  addCheck(
+    "SENTRY_DSN",
+    /^https:\/\/[a-f0-9]+@/i.test(sentryDsn) && sentryDsn.includes(".ingest."),
+    "SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN must be a valid Sentry DSN (https://<key>@<host>.ingest.sentry.io/<project>)."
+  );
+  if (hasValue("SENTRY_AUTH_TOKEN")) {
+    addCheck(
+      "SENTRY_AUTH_TOKEN",
+      startsWith("SENTRY_AUTH_TOKEN", "sntrys_") ||
+        startsWith("SENTRY_AUTH_TOKEN", "sntryu_"),
+      "SENTRY_AUTH_TOKEN should start with sntrys_ (org) or sntryu_ (user)."
+    );
+  }
+} else {
+  logger.warn(
+    "NEXT_PUBLIC_SENTRY_DSN が未設定です。本番障害が観測できません。",
+    {
+      recommendation:
+        "https://sentry.io でプロジェクトを作成し DSN を投入してください。lib/error-reporter.ts が自動で forward します。",
+    }
+  );
+}
+
 const failures = checks.filter((check) => !check.ok);
 const passes = checks.filter((check) => check.ok);
 
