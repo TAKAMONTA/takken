@@ -12,7 +12,11 @@ import {
   consumeAIUsage,
   createAIUsageLimitResponse,
 } from "@/lib/server-ai-usage";
-import { callServerAI } from "@/lib/server-ai-provider";
+import {
+  callServerAI,
+  sanitizeChatMessages,
+  sanitizeClientAIOptions,
+} from "@/lib/server-ai-provider";
 
 /**
  * AI Chat API Route
@@ -53,27 +57,20 @@ export async function POST(request: NextRequest) {
 
     // リクエストボディの取得
     const body = await request.json();
-    const { messages, options } = body;
+    const { messages: rawMessages, options: rawOptions } = body;
 
-    // バリデーション
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json(
         { error: "メッセージが必要です" },
         { status: 400 }
       );
     }
 
-    // メッセージの型チェック
-    const validMessages: ChatMessage[] = messages.filter(
-      (msg: unknown): msg is ChatMessage =>
-        typeof msg === "object" &&
-        msg !== null &&
-        "role" in msg &&
-        "content" in msg &&
-        typeof (msg as { role: unknown }).role === "string" &&
-        ["system", "user", "assistant"].includes((msg as { role: string }).role) &&
-        typeof (msg as { content: unknown }).content === "string"
-    );
+    // クライアント入力の sanitize（コスト爆発・abuse 防止）
+    // - messages: shape 検証 + 内容を maxContentChars に切り詰め + maxMessages に制限
+    // - options: temperature のみ許可（model / provider / maxTokens はサーバー固定）
+    const validMessages: ChatMessage[] = sanitizeChatMessages(rawMessages);
+    const safeOptions = sanitizeClientAIOptions(rawOptions);
 
     if (validMessages.length === 0) {
       return NextResponse.json(
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // AI APIを直接呼び出し（サーバー側でのみ実行）
     // UnifiedAIClientはFirebase Functionsエミュレーターを使おうとするため、直接APIを呼ぶ
-    const response = await callServerAI(validMessages, options);
+    const response = await callServerAI(validMessages, safeOptions);
     const committedUsage = await consumeAIUsage(userId);
     if (!committedUsage.allowed) {
       return createAIUsageLimitResponse(committedUsage);

@@ -1,5 +1,65 @@
 import type { AIClientOptions, AIResponse, ChatMessage } from "@/lib/ai-client";
 
+/**
+ * クライアント入力 (API route の request body) を AI provider に流す前の安全上限。
+ *
+ * 攻撃シナリオ: 認証済みユーザーが model=gpt-4o + maxTokens=128000 + 巨大な messages を
+ * 指定して OpenAI のコストを 10〜100 倍にする。クライアントが指定できるのは
+ * temperature のみとし、それ以外（model / provider / maxTokens / 長さ）はサーバー固定。
+ */
+export const SAFE_AI_INPUT_LIMITS = {
+  /** 1 リクエストあたり最大メッセージ数 */
+  maxMessages: 20,
+  /** 1 メッセージあたり最大文字数（content） */
+  maxContentChars: 4000,
+  /** temperature の許容範囲（OpenAI/Anthropic とも 0..1 で十分） */
+  minTemperature: 0,
+  maxTemperature: 1,
+} as const;
+
+/**
+ * クライアント由来の AIClientOptions を allow-list 化。
+ * - temperature のみ許可（範囲内にクランプ）
+ * - model / provider / maxTokens は無視（server-determined）
+ */
+export function sanitizeClientAIOptions(raw: unknown): AIClientOptions {
+  if (!raw || typeof raw !== "object") return {};
+  const r = raw as Record<string, unknown>;
+  const safe: AIClientOptions = {};
+  if (typeof r.temperature === "number" && Number.isFinite(r.temperature)) {
+    safe.temperature = Math.min(
+      SAFE_AI_INPUT_LIMITS.maxTemperature,
+      Math.max(SAFE_AI_INPUT_LIMITS.minTemperature, r.temperature),
+    );
+  }
+  return safe;
+}
+
+/**
+ * チャットメッセージを安全な範囲に切り詰める。
+ * - 不正な shape は除外
+ * - content を maxContentChars でトランケート
+ * - 配列全体を maxMessages で切り詰め
+ */
+export function sanitizeChatMessages(raw: unknown): ChatMessage[] {
+  if (!Array.isArray(raw)) return [];
+  const validRoles = new Set<ChatMessage["role"]>(["system", "user", "assistant"]);
+  const filtered: ChatMessage[] = [];
+  for (const item of raw) {
+    if (filtered.length >= SAFE_AI_INPUT_LIMITS.maxMessages) break;
+    if (!item || typeof item !== "object") continue;
+    const m = item as Record<string, unknown>;
+    const role = m.role;
+    if (typeof role !== "string" || !validRoles.has(role as ChatMessage["role"])) continue;
+    if (typeof m.content !== "string") continue;
+    filtered.push({
+      role: role as ChatMessage["role"],
+      content: m.content.slice(0, SAFE_AI_INPUT_LIMITS.maxContentChars),
+    });
+  }
+  return filtered;
+}
+
 export async function callServerAI(
   messages: ChatMessage[],
   options: AIClientOptions = {}
@@ -129,8 +189,8 @@ async function callOpenAI(
     body: JSON.stringify({
       model: options.model || "gpt-4o-mini",
       messages,
-      temperature: options.temperature || 0.7,
-      max_tokens: options.maxTokens || 1000,
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens ?? 1000,
     }),
   });
 
@@ -172,8 +232,8 @@ async function callAnthropic(
       model: options.model || "claude-3-5-sonnet-20241022",
       system: systemMessage,
       messages: userMessages,
-      max_tokens: options.maxTokens || 1000,
-      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens ?? 1000,
+      temperature: options.temperature ?? 0.7,
     }),
   });
 
@@ -214,8 +274,8 @@ async function callGoogleAI(
           parts: [{ text: m.content }],
         })),
         generationConfig: {
-          temperature: options.temperature || 0.7,
-          maxOutputTokens: options.maxTokens || 1000,
+          temperature: options.temperature ?? 0.7,
+          maxOutputTokens: options.maxTokens ?? 1000,
         },
       }),
     }

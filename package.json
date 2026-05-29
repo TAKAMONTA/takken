@@ -58,6 +58,7 @@
     "test:stripe-webhook-idempotency": "ts-node scripts/test/stripe-webhook-idempotency.ts",
     "test:ai-fallback": "ts-node scripts/test/ai-fallback.ts",
     "test:version-check": "ts-node scripts/test/version-check.ts",
+    "test:server-ai-provider": "ts-node scripts/test/server-ai-provider.ts",
     "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {
