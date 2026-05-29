@@ -59,6 +59,7 @@
     "test:ai-fallback": "ts-node scripts/test/ai-fallback.ts",
     "test:version-check": "ts-node scripts/test/version-check.ts",
     "test:server-ai-provider": "ts-node scripts/test/server-ai-provider.ts",
+    "test:trusted-origin": "ts-node scripts/test/trusted-origin.ts",
     "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {

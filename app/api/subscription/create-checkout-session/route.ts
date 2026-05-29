@@ -7,6 +7,7 @@ import {
 import { logger } from "@/lib/server-logger";
 import { SubscriptionPlan } from "@/lib/types/subscription";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { resolveTrustedOrigin } from "@/lib/trusted-origin";
 
 /**
  * Stripe Checkoutセッション作成API
@@ -84,12 +85,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // アプリのベースURLを取得（リクエストのOriginを使用、なければ環境変数、最終的に固定値）
-    const origin = request.headers.get("origin") || 
-                   process.env.NEXT_PUBLIC_APP_URL || 
-                   "https://takken-study.com";
-    
-    const baseUrl = origin;
+    // アプリのベースURLを取得。
+    // セキュリティ: request の origin ヘッダーは攻撃者制御可能なため、
+    // NEXT_PUBLIC_APP_URL (および dev では localhost) との一致を検証してから使う。
+    // 不正な origin は攻撃者ドメインに success_url を向けるフィッシング経路になりうる。
+    const baseUrl = resolveTrustedOrigin(request.headers.get("origin"));
 
     // Checkoutセッションの作成
     const session = await stripe.checkout.sessions.create({
