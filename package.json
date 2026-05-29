@@ -60,7 +60,9 @@
     "test:version-check": "ts-node scripts/test/version-check.ts",
     "test:server-ai-provider": "ts-node scripts/test/server-ai-provider.ts",
     "test:trusted-origin": "ts-node scripts/test/trusted-origin.ts",
-    "check:question-quality": "ts-node scripts/check/question-quality.ts"
+    "check:question-quality": "ts-node scripts/check/question-quality.ts",
+    "check:question-content": "ts-node scripts/check/question-content-validator.ts",
+    "check:question-content:all": "ts-node scripts/check/question-content-validator.ts --all"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.9.1",
