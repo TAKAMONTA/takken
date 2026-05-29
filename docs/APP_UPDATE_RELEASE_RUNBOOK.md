@@ -213,6 +213,43 @@ status: "processing" | "completed", claimedAt, completedAt }` を保存。
 失敗時 release、release 失敗時のエラー伝播、metadata 記録、独立性、5 回再送で
 1 回のみ実行）を pass。
 
+## 10. AI API 失敗時のフォールバック
+
+`lib/ai-fallback.ts` の `withAIFallback()` が AI 呼び出しをラップし、
+失敗時に以下を保証する:
+
+1. **観測**: `error-reporter` 経由で Sentry に forward（DSN 未設定なら logger のみ）
+2. **分類**: `rate_limit` / `network` / `timeout` / `auth` / `server` / `unknown` の reason
+3. **ユーザー向け文言**: reason 別の中立的な日本語メッセージ
+4. **retryable フラグ**: network / timeout / server のときのみ true
+5. **fallback 値**: consumer が `options.fallback` で渡したもの（例: question.explanation）
+
+統合済み: [components/AIHintChat.tsx](components/AIHintChat.tsx)
+- 重複した API key 文字列マッチを撤去、`withAIFallback` に統一
+- rate_limit は AIUsageLimitNotice、それ以外は通常エラー UI に振り分け
+- retryable な失敗は「もう一度試す」ボタンを表示し、同じメッセージで再送
+
+```ts
+const result = await withAIFallback(
+  () => aiClient.chat(messages, options),
+  { tags: { component: "AIHintChat", questionCategory: category } },
+);
+
+if (result.success) {
+  // result.value を使う
+} else if (result.reason === "rate_limit") {
+  // 利用上限案内（プラン誘導）
+} else {
+  // result.userMessage を表示、result.retryable なら retry ボタン
+}
+```
+
+検証: `npm run test:ai-fallback` で 8 ケース pass（classify の網羅、severity 振り分け、
+retryable フラグ、fallback 値返却、reporter forward、非 Error の wrap）。
+
+次の適用候補: ExplanationDisplay の consumer (`app/practice/quiz/page.tsx` 等)
+で AI 解説が失敗したら `question.explanation` を fallback として表示する流れ。
+
 ## P1（次の改善候補）
 
 - ✅ error reporter 抽象化
@@ -221,7 +258,8 @@ status: "processing" | "completed", claimedAt, completedAt }` を保存。
 - ✅ CFBundleVersion 自動 bump スクリプト
 - ✅ `build:ios` の API Routes 衝突解消（退避→ビルド→復元のラッパー）
 - ✅ Stripe webhook 冪等性（実装 + ユニットテスト）
-- AI API 失敗時のフォールバック UX 明示化
+- ✅ AI API 失敗時のフォールバック UX（ライブラリ + AIHintChat 統合済み）
+- ⏳ ExplanationDisplay / その他 quiz pages への withAIFallback 適用拡大
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
 - 段階リリース（TestFlight Beta → Phased Release）の運用化

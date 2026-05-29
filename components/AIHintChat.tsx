@@ -3,8 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ChatMessage } from "@/lib/ai-client";
 import { aiClient } from "@/lib/ai-client";
-import { logger } from "@/lib/logger";
-import { APIError, APIErrorType } from "@/lib/api-error-handler";
+import { withAIFallback } from "@/lib/ai-fallback";
 import AIUsageLimitNotice from "@/components/AIUsageLimitNotice";
 
 interface AIHintChatProps {
@@ -28,6 +27,8 @@ export default function AIHintChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorRetryable, setErrorRetryable] = useState(false);
+  const [lastSentMessages, setLastSentMessages] = useState<ChatMessage[] | null>(null);
   const [usageLimitMessage, setUsageLimitMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,50 +57,62 @@ export default function AIHintChat({
     containerRef.current.scrollTop = containerRef.current.scrollHeight;
   };
 
-  async function send() {
-    if (!input.trim() || loading) return;
+  async function send(retryWith?: ChatMessage[]) {
+    if (loading) return;
+    const trimmed = input.trim();
+    if (!retryWith && !trimmed) return;
 
     setLoading(true);
     setError(null);
+    setErrorRetryable(false);
     setUsageLimitMessage(null);
-    const newMessages: ChatMessage[] = [
+
+    const newMessages: ChatMessage[] = retryWith ?? [
       ...messages,
       {
         role: "user",
-        content: `【状況】\n${contextBlock}\n\n【質問】\n${input.trim()}`,
+        content: `【状況】\n${contextBlock}\n\n【質問】\n${trimmed}`,
       },
     ];
-    setMessages(newMessages);
-    setInput("");
+    if (!retryWith) {
+      setMessages(newMessages);
+      setInput("");
+    }
+    setLastSentMessages(newMessages);
 
-    try {
-      const response = await aiClient.chat([systemMessage, ...newMessages], {
-        temperature: 0.3,
-        maxTokens: 400,
-      });
+    const result = await withAIFallback(
+      () =>
+        aiClient.chat([systemMessage, ...newMessages], {
+          temperature: 0.3,
+          maxTokens: 400,
+        }),
+      {
+        tags: {
+          component: "AIHintChat",
+          questionCategory: category ?? "unknown",
+        },
+      },
+    );
+
+    if (result.success && result.value) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: response.content },
+        { role: "assistant", content: result.value!.content },
       ]);
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      if (err instanceof APIError && err.type === APIErrorType.AI_USAGE_LIMIT) {
-        setUsageLimitMessage(err.message);
-        return;
-      }
+    } else if (result.reason === "rate_limit") {
+      setUsageLimitMessage(result.userMessage ?? "");
+    } else {
+      setError(result.userMessage ?? "AI応答の取得に失敗しました。");
+      setErrorRetryable(result.retryable);
+    }
 
-      logger.error("AI chat failed", err, {
-        questionLength: question.length,
-        messagesCount: newMessages.length,
-      });
-      setError(
-        err.message.includes("API key")
-          ? "AIの設定が未完了です。開発ではAPI RouteかFirebase Functionsの設定が必要です。"
-          : "AI応答の取得に失敗しました。しばらくしてから再試行してください。"
-      );
-    } finally {
-      setLoading(false);
-      setTimeout(scrollToBottom, 0);
+    setLoading(false);
+    setTimeout(scrollToBottom, 0);
+  }
+
+  function retry() {
+    if (lastSentMessages) {
+      void send(lastSentMessages);
     }
   }
 
@@ -146,8 +159,17 @@ export default function AIHintChat({
           </div>
         ))}
         {error && (
-          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md p-2">
-            {error}
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md p-2 space-y-2">
+            <div>{error}</div>
+            {errorRetryable && (
+              <button
+                onClick={retry}
+                disabled={loading}
+                className="text-xs px-2 py-1 bg-red-600 text-white rounded-md disabled:opacity-50"
+              >
+                もう一度試す
+              </button>
+            )}
           </div>
         )}
         {usageLimitMessage && (
@@ -164,7 +186,7 @@ export default function AIHintChat({
           className="flex-1 text-sm p-2 border border-purple-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
         />
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={loading || !input.trim() || !!usageLimitMessage}
           className="px-3 py-2 text-sm bg-purple-600 text-white rounded-md disabled:opacity-50"
         >

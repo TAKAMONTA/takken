@@ -56,6 +56,7 @@
     "test:question-quality-utils": "ts-node scripts/test/question-quality-utils.ts",
     "test:error-reporter": "ts-node scripts/test/error-reporter.ts",
     "test:stripe-webhook-idempotency": "ts-node scripts/test/stripe-webhook-idempotency.ts",
+    "test:ai-fallback": "ts-node scripts/test/ai-fallback.ts",
     "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {
