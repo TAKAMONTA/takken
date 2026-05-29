@@ -160,6 +160,42 @@ export async function consumeAIUsage(userId: string): Promise<AIUsageDecision> {
   });
 }
 
+/**
+ * 予約した利用枠を 1 つ戻す。AI 呼び出しが失敗した時のみ呼ぶこと。
+ *
+ * 設計: consumeAIUsage を AI 呼び出しの「前」に行うことで TOCTOU バイパスを防ぐが、
+ * AI 呼び出しが失敗した場合は枠を消費したままにしないよう refund する。
+ * Premium ユーザーは常に枠が無限なので no-op。count が 0 未満になることはない。
+ */
+export async function refundAIUsage(userId: string): Promise<void> {
+  if (await hasPremiumAccess(userId)) return;
+
+  initializeAdminSDK();
+  const db = getFirestore();
+  const now = new Date();
+  const usageRef = db.collection("ai_usage").doc(getUsageDocId(userId, now));
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const usageSnap = await transaction.get(usageRef);
+      if (!usageSnap.exists) return;
+      const currentCount = Number(usageSnap.data()?.count || 0);
+      if (currentCount <= 0) return;
+      transaction.update(usageRef, {
+        count: FieldValue.increment(-1),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+  } catch (err) {
+    // refund 失敗は loud にログするが、本流は止めない（呼び元の AI 失敗エラーが優先）
+    logger.error(
+      "AI usage refund failed",
+      err instanceof Error ? err : new Error(String(err)),
+      { userId },
+    );
+  }
+}
+
 export function aiUsageHeaders(decision: AIUsageDecision): Record<string, string> {
   return {
     "X-AIUsage-Limit": String(decision.limit),

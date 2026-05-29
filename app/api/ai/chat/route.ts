@@ -8,9 +8,9 @@ import { logger } from "@/lib/server-logger";
 import { checkRateLimit, AI_RATE_LIMIT } from "@/lib/rate-limit";
 import {
   aiUsageHeaders,
-  checkAIUsage,
   consumeAIUsage,
   createAIUsageLimitResponse,
+  refundAIUsage,
 } from "@/lib/server-ai-usage";
 import {
   callServerAI,
@@ -79,31 +79,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const usageDecision = await checkAIUsage(userId);
-    if (!usageDecision.allowed) {
-      return createAIUsageLimitResponse(usageDecision);
+    // TOCTOU 対策: AI 呼び出しの「前」に枠を予約 (consumeAIUsage は atomic transaction)。
+    // 並列リクエストでも実際に AI を呼べるのは枠分のみで、コスト爆発を防ぐ。
+    // AI 失敗時は refundAIUsage で枠を戻し、Stripe の再送等での再処理を許容する。
+    const reservation = await consumeAIUsage(userId);
+    if (!reservation.allowed) {
+      return createAIUsageLimitResponse(reservation);
     }
 
-    // AI APIを直接呼び出し（サーバー側でのみ実行）
-    // UnifiedAIClientはFirebase Functionsエミュレーターを使おうとするため、直接APIを呼ぶ
-    const response = await callServerAI(validMessages, safeOptions);
-    const committedUsage = await consumeAIUsage(userId);
-    if (!committedUsage.allowed) {
-      return createAIUsageLimitResponse(committedUsage);
+    let response;
+    try {
+      // AI APIを直接呼び出し（サーバー側でのみ実行）
+      response = await callServerAI(validMessages, safeOptions);
+    } catch (aiErr) {
+      // AI 呼び出し失敗 → 予約済みの枠を戻す（refund 自体の失敗は呼び元の throw を優先）
+      await refundAIUsage(userId);
+      throw aiErr;
     }
 
     return NextResponse.json({
       success: true,
       data: response,
       usage: {
-        limit: committedUsage.limit,
-        used: committedUsage.used,
-        remaining: committedUsage.remaining,
-        isPremium: committedUsage.isPremium,
-        resetAt: committedUsage.resetAt.toISOString(),
+        limit: reservation.limit,
+        used: reservation.used,
+        remaining: reservation.remaining,
+        isPremium: reservation.isPremium,
+        resetAt: reservation.resetAt.toISOString(),
       },
     }, {
-      headers: aiUsageHeaders(committedUsage),
+      headers: aiUsageHeaders(reservation),
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));

@@ -7,9 +7,9 @@ import { logger } from "@/lib/server-logger";
 import { checkRateLimit, AI_RATE_LIMIT } from "@/lib/rate-limit";
 import {
   aiUsageHeaders,
-  checkAIUsage,
   consumeAIUsage,
   createAIUsageLimitResponse,
+  refundAIUsage,
 } from "@/lib/server-ai-usage";
 import { generateServerStudyRecommendations } from "@/lib/server-ai-provider";
 
@@ -55,32 +55,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const usageDecision = await checkAIUsage(userId);
-    if (!usageDecision.allowed) {
-      return createAIUsageLimitResponse(usageDecision);
+    // TOCTOU 対策: 枠予約 → AI → 失敗時 refund
+    const reservation = await consumeAIUsage(userId);
+    if (!reservation.allowed) {
+      return createAIUsageLimitResponse(reservation);
     }
 
-    const recommendations = await generateServerStudyRecommendations(
-      userProgress,
-      weakAreas
-    );
-    const committedUsage = await consumeAIUsage(userId);
-    if (!committedUsage.allowed) {
-      return createAIUsageLimitResponse(committedUsage);
+    let recommendations: string;
+    try {
+      recommendations = await generateServerStudyRecommendations(userProgress, weakAreas);
+    } catch (aiErr) {
+      await refundAIUsage(userId);
+      throw aiErr;
     }
 
     return NextResponse.json({
       success: true,
       recommendations,
       usage: {
-        limit: committedUsage.limit,
-        used: committedUsage.used,
-        remaining: committedUsage.remaining,
-        isPremium: committedUsage.isPremium,
-        resetAt: committedUsage.resetAt.toISOString(),
+        limit: reservation.limit,
+        used: reservation.used,
+        remaining: reservation.remaining,
+        isPremium: reservation.isPremium,
+        resetAt: reservation.resetAt.toISOString(),
       },
     }, {
-      headers: aiUsageHeaders(committedUsage),
+      headers: aiUsageHeaders(reservation),
     });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
