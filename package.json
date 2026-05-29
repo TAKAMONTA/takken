@@ -55,6 +55,7 @@
     "duplicate:questions:report": "ts-node scripts/check/duplicates.ts --report docs/duplicate-questions-report.md",
     "test:question-quality-utils": "ts-node scripts/test/question-quality-utils.ts",
     "test:error-reporter": "ts-node scripts/test/error-reporter.ts",
+    "test:stripe-webhook-idempotency": "ts-node scripts/test/stripe-webhook-idempotency.ts",
     "check:question-quality": "ts-node scripts/check/question-quality.ts"
   },
   "dependencies": {

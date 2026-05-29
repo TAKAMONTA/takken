@@ -5,6 +5,10 @@ import { getApps } from "firebase-admin/app";
 import { logger } from "@/lib/server-logger";
 import { SubscriptionPlan, SubscriptionStatus } from "@/lib/types/subscription";
 import { initializeAdminSDK } from "@/lib/firebase-admin-auth";
+import {
+  createFirestoreIdempotencyStore,
+  withStripeIdempotency,
+} from "@/lib/stripe-webhook-idempotency";
 
 /**
  * Firebase Admin SDK初期化（Firestore用）
@@ -94,27 +98,49 @@ export async function POST(request: NextRequest) {
       id: event.id,
     });
 
-    // イベントタイプに応じて処理
-    switch (event.type) {
-      case "checkout.session.completed":
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, stripe);
-        break;
+    // 冪等性保証: 同じ event.id が再送された場合は処理をスキップ。
+    // claim は Firestore transaction で原子的に行う（並行リクエストの二重処理防止）。
+    const db = initializeAdminFirestore();
+    const idempotencyStore = createFirestoreIdempotencyStore(db);
+    const eventForLambda = event;
 
-      case "customer.subscription.updated":
-        await handleSubscriptionUpdated(event.data.object);
-        break;
+    const idemResult = await withStripeIdempotency(
+      idempotencyStore,
+      eventForLambda.id,
+      { type: eventForLambda.type },
+      async () => {
+        switch (eventForLambda.type) {
+          case "checkout.session.completed":
+            await handleCheckoutSessionCompleted(
+              eventForLambda.data.object as Stripe.Checkout.Session,
+              stripe,
+            );
+            break;
 
-      case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(event.data.object);
-        break;
+          case "customer.subscription.updated":
+            await handleSubscriptionUpdated(eventForLambda.data.object);
+            break;
 
-      default:
-        logger.info("未処理のStripe Webhookイベント", {
-          type: event.type,
-        });
+          case "customer.subscription.deleted":
+            await handleSubscriptionDeleted(eventForLambda.data.object);
+            break;
+
+          default:
+            logger.info("未処理のStripe Webhookイベント", {
+              type: eventForLambda.type,
+            });
+        }
+      },
+    );
+
+    if (idemResult.result === "skipped") {
+      logger.info("Stripe Webhook 重複イベントをスキップ", {
+        type: eventForLambda.type,
+        id: eventForLambda.id,
+      });
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, idempotency: idemResult.result });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     // eventの型を明示的にキャストしてTypeScriptエラーを回避

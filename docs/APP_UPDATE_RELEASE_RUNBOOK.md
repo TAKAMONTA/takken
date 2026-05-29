@@ -190,6 +190,29 @@ Web 版（Vercel）は API Routes と middleware を含む。iOS 版はそれら
 静的バンドルのみで動作する（iOS の課金は StoreKit ネイティブ、API は
 fetch で本番 Vercel エンドポイントを叩く）。
 
+## 9. Stripe Webhook の冪等性
+
+`lib/stripe-webhook-idempotency.ts` で「claim → 処理 → 完了マーク」のライフ
+サイクルを実装し、`app/api/subscription/webhook/route.ts` が全イベントを
+それでラップしている。
+
+| 状況 | 挙動 |
+|---|---|
+| 初回受信 | Firestore `processedStripeEvents/{event.id}` を作成 → handler 実行 → completed |
+| Stripe が同じ event.id を再送（最大10回） | claim transaction で既存検出 → handler スキップ → `{ received: true, idempotency: "skipped" }` |
+| 並行リクエスト（webhook を同時受信） | Firestore transaction で原子的に claim、一方だけが処理 |
+| handler 失敗（throw） | release で claim を解放、Stripe の再送に再処理を委ねる（500 を返す） |
+
+これにより、再送 / 並行リクエスト / リトライのいずれでも `stripe.subscriptions.retrieve`
+と `subscriptions/{userId}` への書き込みが二重実行されない。
+
+データモデル: `processedStripeEvents/{event.id}` に `{ eventId, type,
+status: "processing" | "completed", claimedAt, completedAt }` を保存。
+
+検証: `npm run test:stripe-webhook-idempotency` で 7 ケース（初回処理、重複スキップ、
+失敗時 release、release 失敗時のエラー伝播、metadata 記録、独立性、5 回再送で
+1 回のみ実行）を pass。
+
 ## P1（次の改善候補）
 
 - ✅ error reporter 抽象化
@@ -197,8 +220,8 @@ fetch で本番 Vercel エンドポイントを叩く）。
 - ⏳ Sentry 側プロジェクト作成と DSN 投入（運用作業）
 - ✅ CFBundleVersion 自動 bump スクリプト
 - ✅ `build:ios` の API Routes 衝突解消（退避→ビルド→復元のラッパー）
+- ✅ Stripe webhook 冪等性（実装 + ユニットテスト）
 - AI API 失敗時のフォールバック UX 明示化
-- Stripe webhook 冪等性のユニットテスト
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
 - 段階リリース（TestFlight Beta → Phased Release）の運用化
