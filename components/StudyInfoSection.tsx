@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { aiClient } from '@/lib/ai-client';
+import { withAIFallback } from '@/lib/ai-fallback';
 import { logger } from '@/lib/logger';
 import { UserProfile } from '@/lib/types';
 import type { UserProfile as UserProfileType } from '@/lib/types';
@@ -24,14 +25,14 @@ export default function StudyInfoSection({ user }: StudyInfoSectionProps) {
 
   useEffect(() => {
     const fetchStudyInfo = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+      setLoading(true);
+      setError(null);
 
-        // キャッシュをチェック（30分間有効）
-        const cacheKey = 'study_info_cache';
-        const cacheData = localStorage.getItem(cacheKey);
-        if (cacheData) {
+      // キャッシュをチェック（30分間有効）
+      const cacheKey = 'study_info_cache';
+      const cacheData = localStorage.getItem(cacheKey);
+      if (cacheData) {
+        try {
           const { data, timestamp } = JSON.parse(cacheData);
           const cacheAge = Date.now() - timestamp;
           if (cacheAge < 30 * 60 * 1000) { // 30分
@@ -39,18 +40,21 @@ export default function StudyInfoSection({ user }: StudyInfoSectionProps) {
             setLoading(false);
             return;
           }
+        } catch {
+          // キャッシュが破損していたら無視して fetch
         }
+      }
 
-        // ユーザーの学習状況を分析
-        const streak = user?.streak?.currentStreak || 0;
-        const totalQuestions = user?.progress?.totalQuestions || user?.totalStats?.totalQuestions || 0;
-        const correctAnswers = user?.progress?.correctAnswers || user?.totalStats?.totalCorrect || 0;
-        // weakAreasは暫定的に空配列（将来的に実装）
-        const weakAreas: string[] = [];
-        const recentPerformance = 0; // 暫定的に0（将来的に実装）
+      // ユーザーの学習状況を分析
+      const streak = user?.streak?.currentStreak || 0;
+      const totalQuestions = user?.progress?.totalQuestions || user?.totalStats?.totalQuestions || 0;
+      const correctAnswers = user?.progress?.correctAnswers || user?.totalStats?.totalCorrect || 0;
+      // weakAreasは暫定的に空配列（将来的に実装）
+      const weakAreas: string[] = [];
+      const recentPerformance = 0; // 暫定的に0（将来的に実装）
 
-        // AI プロンプトを作成
-        const prompt = `あなたは宅建試験の学習アドバイザーです。以下の学習者の状況に基づいて、具体的で実践的な学習アドバイスを1つ提供してください。
+      // AI プロンプトを作成
+      const prompt = `あなたは宅建試験の学習アドバイザーです。以下の学習者の状況に基づいて、具体的で実践的な学習アドバイスを1つ提供してください。
 
 学習者の状況:
 - 連続学習日数: ${streak}日
@@ -73,65 +77,71 @@ export default function StudyInfoSection({ user }: StudyInfoSectionProps) {
 - 励ましの言葉も含めてください
 - JSON形式のみを返答してください（説明文は不要）`;
 
-        // AI APIを呼び出し（クライアント側で直接呼び出し）
-        const response = await aiClient.chat([
-          {
-            role: 'system',
-            content: 'あなたは宅建試験の学習アドバイザーです。学習者の状況に基づいて、実践的で具体的なアドバイスをJSON形式で提供してください。',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ], {
-          temperature: 0.8,
-          maxTokens: 300,
-        });
+      // 静的フォールバック（AI が落ちた / レート制限 / ネットワーク失敗時、
+      // または JSON parse 失敗時に使う）
+      const staticFallback = generateFallbackInfo(streak, totalQuestions, weakAreas);
 
-        // レスポンスをパース
-        let parsedInfo: StudyInfo;
-        try {
-          // JSON形式のレスポンスを抽出
-          const content = response.content.trim();
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
+      // withAIFallback で AI 呼び出しをラップ。失敗は自動で Sentry に forward。
+      // generic 型は AIResponse なので fallback prop は使わず、consumer 側で
+      // success/userMessage を見て静的フォールバックに振り分ける。
+      const result = await withAIFallback(
+        () =>
+          aiClient.chat([
+            {
+              role: 'system',
+              content:
+                'あなたは宅建試験の学習アドバイザーです。学習者の状況に基づいて、実践的で具体的なアドバイスをJSON形式で提供してください。',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ], {
+            temperature: 0.8,
+            maxTokens: 300,
+          }),
+        { tags: { component: 'StudyInfoSection' } },
+      );
+
+      let parsedInfo: StudyInfo;
+
+      if (result.success && result.value) {
+        // AI 成功: JSON parse を試み、失敗したら静的フォールバックに退避
+        const content = result.value.content.trim();
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
             parsedInfo = JSON.parse(jsonMatch[0]);
-          } else {
-            // JSONが見つからない場合はフォールバック
-            throw new Error('JSON形式が見つかりません');
+          } catch (parseError) {
+            const err = parseError instanceof Error ? parseError : new Error(String(parseError));
+            logger.warn('AI response parsing failed, using fallback', { error: err.message });
+            parsedInfo = staticFallback;
           }
-        } catch (parseError) {
-          const err = parseError instanceof Error ? parseError : new Error(String(parseError));
-          logger.warn('AI response parsing failed, using fallback', { 
-            error: err.message 
-          });
-          // フォールバック: 一般的なアドバイス
-          parsedInfo = generateFallbackInfo(streak, totalQuestions, weakAreas);
+        } else {
+          logger.warn('AI response missing JSON, using fallback');
+          parsedInfo = staticFallback;
         }
+      } else {
+        // AI 失敗: withAIFallback が既に Sentry へ forward 済み
+        parsedInfo = staticFallback;
+        if (result.userMessage) {
+          setError(result.userMessage);
+        }
+      }
 
-        setStudyInfo(parsedInfo);
+      setStudyInfo(parsedInfo);
 
-        // キャッシュに保存
+      // キャッシュに保存（フォールバック値も含む。次回 AI 復旧時に上書きされる）
+      try {
         localStorage.setItem(cacheKey, JSON.stringify({
           data: parsedInfo,
           timestamp: Date.now(),
         }));
-
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        logger.error('Failed to fetch study info', error);
-        setError('学習情報の取得に失敗しました');
-        
-        // エラー時はフォールバック情報を表示
-        const fallbackInfo = generateFallbackInfo(
-          user?.streak?.currentStreak || 0,
-          user?.progress?.totalQuestions || user?.totalStats?.totalQuestions || 0,
-          [] // weakAreasは暫定的に空配列
-        );
-        setStudyInfo(fallbackInfo);
-      } finally {
-        setLoading(false);
+      } catch {
+        // localStorage が使えない環境（容量超過など）は無視
       }
+
+      setLoading(false);
     };
 
     fetchStudyInfo();
@@ -188,7 +198,7 @@ export default function StudyInfoSection({ user }: StudyInfoSectionProps) {
 
       {error && (
         <p className="text-xs text-gray-500 mt-2">
-          ※ 最新情報の取得に失敗しましたが、キャッシュから情報を表示しています
+          ※ 最新情報を取得できませんでした。状況に合わせた汎用アドバイスを表示しています。
         </p>
       )}
     </div>

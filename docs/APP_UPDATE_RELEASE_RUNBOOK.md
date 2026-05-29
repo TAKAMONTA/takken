@@ -224,10 +224,17 @@ status: "processing" | "completed", claimedAt, completedAt }` を保存。
 4. **retryable フラグ**: network / timeout / server のときのみ true
 5. **fallback 値**: consumer が `options.fallback` で渡したもの（例: question.explanation）
 
-統合済み: [components/AIHintChat.tsx](components/AIHintChat.tsx)
-- 重複した API key 文字列マッチを撤去、`withAIFallback` に統一
-- rate_limit は AIUsageLimitNotice、それ以外は通常エラー UI に振り分け
-- retryable な失敗は「もう一度試す」ボタンを表示し、同じメッセージで再送
+統合済み:
+
+- [components/AIHintChat.tsx](components/AIHintChat.tsx)
+  - 重複した API key 文字列マッチを撤去、`withAIFallback` に統一
+  - rate_limit は AIUsageLimitNotice、それ以外は通常エラー UI に振り分け
+  - retryable な失敗は「もう一度試す」ボタンを表示し、同じメッセージで再送
+- [components/StudyInfoSection.tsx](components/StudyInfoSection.tsx)
+  - AI 学習アドバイス取得を `withAIFallback` 化
+  - 既存の `generateFallbackInfo()` 静的アドバイスを失敗時に表示
+  - キャッシュ JSON 破損や localStorage 容量超過も try/catch でガード
+  - エラー footer の文言を「キャッシュから表示」から実態の「汎用アドバイス表示」に修正
 
 ```ts
 const result = await withAIFallback(
@@ -247,8 +254,16 @@ if (result.success) {
 検証: `npm run test:ai-fallback` で 8 ケース pass（classify の網羅、severity 振り分け、
 retryable フラグ、fallback 値返却、reporter forward、非 Error の wrap）。
 
-次の適用候補: ExplanationDisplay の consumer (`app/practice/quiz/page.tsx` 等)
-で AI 解説が失敗したら `question.explanation` を fallback として表示する流れ。
+設計メモ: `withAIFallback<T>` の generic 型 T は AI 呼び出しの戻り値型に
+固定されるため、AIResponse → 別ドメイン型（例: StudyInfo）への変換を伴う
+fallback は `options.fallback` 経由では渡せない。consumer 側で
+`result.success` を見て静的フォールバックに振り分ける。StudyInfoSection が
+この典型例。
+
+実態調査: quiz pages (`practice/quiz`, `mock-exam/quiz`, `weak-points/quiz`,
+`quick-test/quiz`) は aiClient を直接呼んでおらず、AI 機能は AIHintChat /
+StudyInfoSection / ExplanationDisplay (server 経由) を経由する構造。
+従って主要 client-side AI 呼び出しは現状の 2 コンポーネントで網羅される。
 
 ## P1（次の改善候補）
 
@@ -258,8 +273,7 @@ retryable フラグ、fallback 値返却、reporter forward、非 Error の wrap
 - ✅ CFBundleVersion 自動 bump スクリプト
 - ✅ `build:ios` の API Routes 衝突解消（退避→ビルド→復元のラッパー）
 - ✅ Stripe webhook 冪等性（実装 + ユニットテスト）
-- ✅ AI API 失敗時のフォールバック UX（ライブラリ + AIHintChat 統合済み）
-- ⏳ ExplanationDisplay / その他 quiz pages への withAIFallback 適用拡大
+- ✅ AI API 失敗時のフォールバック UX（ライブラリ + AIHintChat + StudyInfoSection 統合）
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
 - 段階リリース（TestFlight Beta → Phased Release）の運用化
