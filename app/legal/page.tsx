@@ -178,9 +178,6 @@ export default function LegalPage() {
                 <p className="text-xs text-gray-600 ml-4">
                   ※価格は予告なく変更される場合があります
                 </p>
-                <p className="text-xs text-gray-600 ml-4">
-                  ※無料トライアル期間が提供される場合があります
-                </p>
               </div>
             </section>
 

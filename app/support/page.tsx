@@ -23,7 +23,7 @@ export default function SupportPage() {
         },
         {
           q: "プレミアムプランの料金は？",
-          a: `月額${monthlyPrice}円（税込）です。${yearlyPrice ? `年額${yearlyPrice}円（税込）も選択できます。` : ""}iOSアプリ版の最終価格はApp Storeの決済画面でご確認ください。無料トライアル期間が提供される場合があります。`,
+          a: `月額${monthlyPrice}円（税込）です。${yearlyPrice ? `年額${yearlyPrice}円（税込）も選択できます。` : ""}iOSアプリ版の最終価格はApp Storeの決済画面でご確認ください。`,
         },
         {
           q: "無料版との違いは何ですか？",

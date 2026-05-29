@@ -196,8 +196,8 @@ ios/App/App/Assets.xcassets/AppIcon.appiconset/
 商品ID: premium_monthly
 参照名: プレミアムプラン（月額）
 期間: 1ヶ月
-価格: ¥500
-無料トライアル: 7日間
+価格: ¥1,000（年額プラン: premium_yearly ¥8,000）
+無料トライアル: 設定しない（storekit 未設定、広告詐欺リスク回避）
 ```
 
 **手順**:
