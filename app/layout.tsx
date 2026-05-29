@@ -5,6 +5,7 @@ import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
 import FirebaseInitializer from "@/components/FirebaseInitializer";
 import AdSenseScript from "@/components/AdSenseScript";
 import SentryWireup from "@/components/SentryWireup";
+import ForceUpdateNotice from "@/components/ForceUpdateNotice";
 
 export const metadata: Metadata = {
   title: "宅建合格ロード - AI予想問題で学ぶ",
@@ -79,6 +80,7 @@ export default function RootLayout({
           {children}
           <PWAInstallPrompt />
         </SubscriptionProvider>
+        <ForceUpdateNotice />
       </body>
     </html>
   );

@@ -265,6 +265,59 @@ fallback は `options.fallback` 経由では渡せない。consumer 側で
 StudyInfoSection / ExplanationDisplay (server 経由) を経由する構造。
 従って主要 client-side AI 呼び出しは現状の 2 コンポーネントで網羅される。
 
+## 11. 強制アップデート機構
+
+`lib/version-check.ts` + `components/ForceUpdateNotice.tsx` で、リリース済み
+アプリでクリティカルバグを発見した際に古いビルドのユーザーを最新版に誘導する
+仕組み。
+
+### 仕組み
+
+```
+起動 → app/layout.tsx に <ForceUpdateNotice /> マウント
+  ↓ useEffect
+  ↓ checkAppVersion()
+  ├─ detectPlatform(): ios / web を判定
+  ├─ getCurrentVersion(): NEXT_PUBLIC_APP_VERSION を読む
+  ├─ fetchAppConfig("/app-config.json"): リモート config を取得 (cache: no-store)
+  ├─ compareVersions(current, minimum[platform])
+  └─ forceUpdate=true なら全画面モーダル表示 → ストアリンク
+```
+
+### リモート config: `public/app-config.json`
+
+```json
+{
+  "minVersion": { "ios": "1.4.0", "web": "1.4.0" },
+  "forceUpdate": false,
+  "message": "重要な不具合修正があります。最新版にアップデートしてください。",
+  "storeUrl": { "ios": "https://apps.apple.com/jp/app/<APP_ID>" }
+}
+```
+
+緊急時は `public/app-config.json` を更新して再デプロイ → Vercel edge で
+全クライアントに即時反映。`forceUpdate: true` でバージョン比較を飛ばして
+全員強制（メンテナンス停止用）。
+
+### 安全装置
+
+- `fetchAppConfig` 失敗時は `forceUpdate: false`（全ユーザーロックアウト事故を防ぐ）
+- `NEXT_PUBLIC_APP_VERSION` 未設定時も `forceUpdate: false`
+- `parseVersion` 失敗時は比較スコア 0（保守的）
+
+### リリース運用
+
+提出のたびに3つを同期する:
+
+1. `npm run bump:ios-build` で `CURRENT_PROJECT_VERSION` / `MARKETING_VERSION` を bump
+2. `.env.local` / Vercel の `NEXT_PUBLIC_APP_VERSION` を新 `MARKETING_VERSION` に合わせる
+3. 旧バージョンを切るタイミングで `public/app-config.json` の `minVersion` を更新
+
+検証: `npm run test:version-check` で 18 ケース（parse / compare /
+isForceUpdateRequired / fetch 成功・失敗・例外・空 baseUrl / checkAppVersion
+の各分岐・プラットフォーム別 / forceUpdate=true 強制 / storeUrl オーバーライド
+/ current 未設定）を pass。
+
 ## P1（次の改善候補）
 
 - ✅ error reporter 抽象化
@@ -274,8 +327,9 @@ StudyInfoSection / ExplanationDisplay (server 経由) を経由する構造。
 - ✅ `build:ios` の API Routes 衝突解消（退避→ビルド→復元のラッパー）
 - ✅ Stripe webhook 冪等性（実装 + ユニットテスト）
 - ✅ AI API 失敗時のフォールバック UX（ライブラリ + AIHintChat + StudyInfoSection 統合）
+- ✅ 強制アップデート機構（version-check + ForceUpdateNotice + remote app-config）
+- ⏳ `public/app-config.json` の `storeUrl.ios` を実 App ID に差し替え（運用作業）
 - ID重複リナンバー（同カテゴリ内 IDs を一意化、Firestore 影響評価込み）
 - E2E golden path 拡張（register→quiz→answer→stats）
 - 段階リリース（TestFlight Beta → Phased Release）の運用化
-- 強制アップデート機構（minimumVersion チェック）
 - iOS native crash の Crashlytics または `@sentry/capacitor` 追加
