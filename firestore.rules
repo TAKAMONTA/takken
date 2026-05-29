@@ -59,14 +59,24 @@ service cloud.firestore {
     }
     
     // 学習セッションデータ
+    // 注意: write を read/create/update/delete に明示分割。
+    // update で userId と createdAt を immutable に固定し、
+    // 「自分のセッションを開いて userId を他人に書き換える」越権を防ぐ。
     match /studySessions/{sessionId} {
-      allow read, write: if isAuthenticated() && 
-                            resource.data.userId == request.auth.uid &&
-                            isValidDataSize(resource.data);
-      allow create: if isAuthenticated() && 
+      allow read: if isAuthenticated() &&
+                     resource.data.userId == request.auth.uid &&
+                     isValidDataSize(resource.data);
+      allow create: if isAuthenticated() &&
                        request.resource.data.userId == request.auth.uid &&
                        isValidDataSize(request.resource.data) &&
                        isValidTimestamp(request.resource.data.createdAt);
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == resource.data.userId &&
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       isValidDataSize(request.resource.data);
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
     }
     
     // 学習スケジュールも本人のみアクセス可能
