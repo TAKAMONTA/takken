@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
 import { getDaysUntilExam, takkenExamConfig } from '@/lib/exam-config';
+import { firestoreService } from '@/lib/firestore-service';
+import { QuestionStat, summarizeByCategory } from '@/lib/question-mastery';
+import { logger } from '@/lib/logger';
 // 分野情報を定義
 const categories = [
   { id: 'takkengyouhou', name: '宅建業法', icon: '🏢', target: 18, total: 0 },
@@ -16,22 +19,33 @@ const categories = [
 export default function Progress() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [questionStats, setQuestionStats] = useState<QuestionStat[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
-      .then((cachedUser) => {
-        if (!cancelled && cachedUser) {
-          setUser(cachedUser);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+    const init = async () => {
+      try {
+        const cachedUser = await requireCachedUserForCurrentAuth<any>(() =>
+          router.push('/auth/login'),
+        );
+        if (!cachedUser || cancelled) return;
+        setUser(cachedUser);
+
+        // 実 mastery レコードからカテゴリ別正答率を計算する（W1-2 経路）。
+        // user.categoryStats は誰も書き込まない死フィールドだったため使わない。
+        const stats = await firestoreService.getQuestionStats(cachedUser.id);
+        if (!cancelled) setQuestionStats(stats);
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        logger.error('Failed to load progress stats', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    init();
 
     return () => {
       cancelled = true;
@@ -62,41 +76,40 @@ export default function Progress() {
     // 実際のユーザーデータから統計を計算
     const totalStats = user.totalStats || { totalQuestions: 0, totalCorrect: 0, totalStudyTime: 0 };
     const studyHistory = user.studyHistory || [];
-    const categoryStats = user.categoryStats || {};
-    
-    // 分野別統計を実際のデータから計算
+
+    // 分野別統計を questionStats から導出（誰も書かなかった user.categoryStats の代替）。
+    // attempts = 回答試行数、correctCount = 正解数、accuracy ∈ [0,1]。
+    // 時間（time）はカテゴリ別には未集計 — 全体の totalStudyTime のみ totalStats に。
+    const summaries = summarizeByCategory(questionStats);
+    const findCategory = (id: string) =>
+      summaries.find((s) => s.category === id);
+
     const calculatedCategoryStats = {
       takkengyouhou: {
-        solved: categoryStats.takkengyouhou?.totalQuestions || 0,
-        correct: categoryStats.takkengyouhou?.correctAnswers || 0,
-        rate: 0,
-        time: categoryStats.takkengyouhou?.studyTime || 0
+        solved: findCategory('takkengyouhou')?.attempts ?? 0,
+        correct: findCategory('takkengyouhou')?.correctCount ?? 0,
+        rate: Math.round(((findCategory('takkengyouhou')?.accuracy ?? 0) * 100)),
+        time: 0,
       },
       minpou: {
-        solved: categoryStats.minpou?.totalQuestions || 0,
-        correct: categoryStats.minpou?.correctAnswers || 0,
-        rate: 0,
-        time: categoryStats.minpou?.studyTime || 0
+        solved: findCategory('minpou')?.attempts ?? 0,
+        correct: findCategory('minpou')?.correctCount ?? 0,
+        rate: Math.round(((findCategory('minpou')?.accuracy ?? 0) * 100)),
+        time: 0,
       },
       hourei: {
-        solved: categoryStats.hourei?.totalQuestions || 0,
-        correct: categoryStats.hourei?.correctAnswers || 0,
-        rate: 0,
-        time: categoryStats.hourei?.studyTime || 0
+        solved: findCategory('hourei')?.attempts ?? 0,
+        correct: findCategory('hourei')?.correctCount ?? 0,
+        rate: Math.round(((findCategory('hourei')?.accuracy ?? 0) * 100)),
+        time: 0,
       },
       zeihou: {
-        solved: categoryStats.zeihou?.totalQuestions || 0,
-        correct: categoryStats.zeihou?.correctAnswers || 0,
-        rate: 0,
-        time: categoryStats.zeihou?.studyTime || 0
-      }
+        solved: findCategory('zeihou')?.attempts ?? 0,
+        correct: findCategory('zeihou')?.correctCount ?? 0,
+        rate: Math.round(((findCategory('zeihou')?.accuracy ?? 0) * 100)),
+        time: 0,
+      },
     };
-
-    // 正答率を計算
-    Object.keys(calculatedCategoryStats).forEach(key => {
-      const category = calculatedCategoryStats[key as keyof typeof calculatedCategoryStats];
-      category.rate = category.solved > 0 ? Math.round((category.correct / category.solved) * 100) : 0;
-    });
 
     return {
       overall: {

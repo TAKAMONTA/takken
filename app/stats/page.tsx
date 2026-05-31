@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { learningAnalytics } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
+import { firestoreService } from '@/lib/firestore-service';
+import { summarizeByCategory } from '@/lib/question-mastery';
 
 const menuItems = [
   { id: 'progress', title: '学習進捗', description: '分野別の進捗を確認', icon: 'ri-line-chart-line', link: '/stats/progress' },
@@ -23,55 +24,43 @@ export default function Stats() {
   useEffect(() => {
     let cancelled = false;
 
-    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
-      .then((userData) => {
-        if (!userData || cancelled) {
-          return;
-        }
-
-      setUser(userData);
-      
-      // 学習統計を取得
+    const init = async () => {
       try {
-        const analytics = learningAnalytics.getAnalyticsSummary(userData.id);
-        setStudyStats(analytics);
+        const userData = await requireCachedUserForCurrentAuth<any>(() =>
+          router.push('/auth/login'),
+        );
+        if (!userData || cancelled) return;
+        setUser(userData);
+
+        // questionStats を集計して総問題数/正答率を実値で出す。
+        // 旧 user.categoryStats は誰も書き込まない死フィールドだったため使わない。
+        const stats = await firestoreService.getQuestionStats(userData.id);
+        if (cancelled) return;
+
+        const summaries = summarizeByCategory(stats);
+        const totalAttempts = summaries.reduce((sum, s) => sum + s.attempts, 0);
+        const totalCorrect = summaries.reduce((sum, s) => sum + s.correctCount, 0);
+        const accuracy =
+          totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+        const totalStudyTime = userData.totalStats?.totalStudyTime ?? 0;
+
+        setStudyStats({
+          totalQuestions: totalAttempts,
+          accuracy,
+          // 時間はカテゴリ別未集計 — totalStats.totalStudyTime (分) を時間に変換
+          studyTime: Math.round(totalStudyTime / 60),
+          streak: userData.streak?.currentStreak ?? 0,
+          categoryBreakdown: summaries,
+        });
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.error('Failed to load analytics', err, { userId: userData.id });
-        // フォールバック: ユーザーデータから直接統計を計算
-        const totalStats = userData.totalStats || { totalQuestions: 0, totalCorrect: 0, totalStudyTime: 0 };
-        const categoryStats = userData.categoryStats || {};
-        
-        // 分野別統計を集計
-        let totalCategoryQuestions = 0;
-        let totalCategoryCorrect = 0;
-        Object.keys(categoryStats).forEach(category => {
-          const stats = categoryStats[category];
-          if (stats) {
-            totalCategoryQuestions += stats.totalQuestions || 0;
-            totalCategoryCorrect += stats.correctAnswers || 0;
-          }
-        });
-        
-        // より正確な統計を使用（分野別データがある場合はそれを優先）
-        const finalTotalQuestions = totalCategoryQuestions > 0 ? totalCategoryQuestions : totalStats.totalQuestions;
-        const finalTotalCorrect = totalCategoryCorrect > 0 ? totalCategoryCorrect : totalStats.totalCorrect;
-        const accuracy = finalTotalQuestions > 0 ? Math.round((finalTotalCorrect / finalTotalQuestions) * 100) : 0;
-        
-        setStudyStats({
-          totalQuestions: finalTotalQuestions,
-          accuracy: accuracy,
-          studyTime: Math.round(totalStats.totalStudyTime / 60), // 時間に変換
-          streak: userData.streak?.currentStreak || 0,
-          categoryBreakdown: categoryStats
-        });
+        logger.error('Failed to load stats summary', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+    };
+
+    init();
 
     return () => {
       cancelled = true;
