@@ -333,22 +333,22 @@ function WeakPointsQuizContent() {
       (record: any) => record.date === today
     );
 
+    // 学習履歴は sessions のみ更新（questionsAnswered/correctAnswers/
+    // studyTimeMinutes は saveProgressAfterAnswer が 1問ごと加算済み。
+    // ここで再加算すると2倍カウントの double-counting バグになる）
     if (todayRecord) {
-      todayRecord.questionsAnswered += questions.length;
-      todayRecord.correctAnswers += correctCount;
-      todayRecord.studyTimeMinutes += studyTimeMinutes;
       todayRecord.sessions += 1;
     } else {
       updatedUser.studyHistory.push({
         date: today,
-        questionsAnswered: questions.length,
-        correctAnswers: correctCount,
+        questionsAnswered: 0,
+        correctAnswers: 0,
         studyTimeMinutes: studyTimeMinutes,
         sessions: 1,
       });
     }
 
-    // 総学習統計を更新
+    // 総学習統計は totalSessions のみ更新（他フィールドは saveProgressAfterAnswer 側）
     if (!updatedUser.totalStats) {
       updatedUser.totalStats = {
         totalQuestions: 0,
@@ -358,9 +358,6 @@ function WeakPointsQuizContent() {
       };
     }
 
-    updatedUser.totalStats.totalQuestions += questions.length;
-    updatedUser.totalStats.totalCorrect += correctCount;
-    updatedUser.totalStats.totalStudyTime += studyTimeMinutes;
     updatedUser.totalStats.totalSessions += 1;
 
     // 連続学習日数を更新

@@ -24,6 +24,7 @@ import LessonScreen from "@/components/LessonScreen";
 import { getLessonForQuestion, getDefaultLesson } from "@/lib/data/lessons";
 import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
 import QuestionMetaBadges from "@/components/QuestionMetaBadges";
+import { firestoreService } from "@/lib/firestore-service";
 
 function QuizContent() {
   const router = useRouter();
@@ -163,6 +164,26 @@ function QuizContent() {
 
     // 1問解答するごとに記録を保存
     saveProgressAfterAnswer(isCorrect);
+
+    // per-question 習熟度記録（弱点克服・間隔反復の土台）
+    // fire-and-forget で UI を待たせない。失敗時も localStorage フォールバックで継続。
+    if (user?.id && currentQuestion) {
+      void firestoreService
+        .recordQuestionAnswer(user.id, {
+          questionId: Number(currentQuestion.id),
+          category: currentQuestion.category,
+          topic: currentQuestion.topic,
+          difficulty: currentQuestion.difficulty,
+          selectedAnswer: selectedAnswer as number,
+          correctAnswer: currentQuestion.correctAnswer,
+        })
+        .catch((err) => {
+          const e = err instanceof Error ? err : new Error(String(err));
+          logger.error("Failed to record question mastery", e, {
+            questionId: currentQuestion.id,
+          });
+        });
+    }
   };
 
   const saveProgressAfterAnswer = (isCorrect: boolean) => {
@@ -300,7 +321,9 @@ function QuizContent() {
     // ユーザーデータを更新
     const updatedUser = { ...user };
 
-    // 学習履歴を更新
+    // 学習履歴の sessions カウントのみ更新（questionsAnswered/correctAnswers/
+    // studyTimeMinutes は saveProgressAfterAnswer が既に1問ごと加算済み。
+    // ここで再加算すると2倍にカウントされる double-counting バグになる）
     if (!updatedUser.studyHistory) {
       updatedUser.studyHistory = [];
     }
@@ -311,21 +334,20 @@ function QuizContent() {
     );
 
     if (todayRecord) {
-      todayRecord.questionsAnswered += questions.length;
-      todayRecord.correctAnswers += correctCount;
-      todayRecord.studyTimeMinutes += studyTimeMinutes;
       todayRecord.sessions += 1;
     } else {
+      // saveProgressAfterAnswer が走らなかったエッジケース用に最低限の record を作る
       updatedUser.studyHistory.push({
         date: today,
-        questionsAnswered: questions.length,
-        correctAnswers: correctCount,
+        questionsAnswered: 0,
+        correctAnswers: 0,
         studyTimeMinutes: studyTimeMinutes,
         sessions: 1,
       });
     }
 
-    // 総学習統計を更新
+    // 総学習統計の totalSessions のみ更新（totalQuestions / totalCorrect /
+    // totalStudyTime は saveProgressAfterAnswer 側で per-question に加算済み）
     if (!updatedUser.totalStats) {
       updatedUser.totalStats = {
         totalQuestions: 0,
@@ -335,9 +357,6 @@ function QuizContent() {
       };
     }
 
-    updatedUser.totalStats.totalQuestions += questions.length;
-    updatedUser.totalStats.totalCorrect += correctCount;
-    updatedUser.totalStats.totalStudyTime += studyTimeMinutes;
     updatedUser.totalStats.totalSessions += 1;
 
     // 連続学習日数を更新

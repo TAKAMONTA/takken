@@ -13,6 +13,7 @@ import QuestionDisplay from "@/components/QuestionDisplay";
 import { logger } from "@/lib/logger";
 import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
 import QuestionMetaBadges from "@/components/QuestionMetaBadges";
+import { firestoreService } from "@/lib/firestore-service";
 
 function QuickTestQuizContent() {
   const router = useRouter();
@@ -90,6 +91,25 @@ function QuickTestQuizContent() {
 
     // 1問解答するごとに記録を保存
     saveProgressAfterAnswer(isCorrect);
+
+    // per-question 習熟度記録（弱点克服・間隔反復の土台）
+    if (user?.id) {
+      void firestoreService
+        .recordQuestionAnswer(user.id, {
+          questionId: Number(currentQuestion.id),
+          category: currentQuestion.category,
+          topic: currentQuestion.topic,
+          difficulty: currentQuestion.difficulty,
+          selectedAnswer: selectedAnswer as number,
+          correctAnswer: currentQuestion.correctAnswer,
+        })
+        .catch((err) => {
+          const e = err instanceof Error ? err : new Error(String(err));
+          logger.error("Failed to record quick-test mastery", e, {
+            questionId: currentQuestion.id,
+          });
+        });
+    }
   };
 
   const saveProgressAfterAnswer = (_isCorrect: boolean) => {

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getMockExamQuestions } from "@/lib/data/mock-exam-questions";
 import { logger } from "@/lib/logger";
 import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
+import { firestoreService } from "@/lib/firestore-service";
 // 植物機能は削除
 
 function MockExamQuizContent() {
@@ -89,6 +90,35 @@ function MockExamQuizContent() {
     ) {
       setIsComplete(true);
       setShowResults(true);
+
+      // per-question 習熟度記録（弱点克服・間隔反復の土台）
+      // 模試は最後に一括提出なので、回答済みの全問を並列で記録する。
+      // fire-and-forget で UI を待たせない。
+      if (user?.id) {
+        const userId = user.id as string;
+        const attempts = answers
+          .map((selected, idx) => ({ selected, q: questions[idx] }))
+          .filter((x) => x.selected !== null && x.q)
+          .map((x) =>
+            firestoreService
+              .recordQuestionAnswer(userId, {
+                questionId: Number(x.q.id),
+                category: x.q.category,
+                topic: x.q.topic,
+                difficulty: x.q.difficulty,
+                selectedAnswer: x.selected as number,
+                correctAnswer: x.q.correctAnswer,
+              })
+              .catch((err) => {
+                const e = err instanceof Error ? err : new Error(String(err));
+                logger.error("Failed to record mock-exam mastery", e, {
+                  questionId: x.q.id,
+                });
+              })
+          );
+        void Promise.allSettled(attempts);
+      }
+
       saveResults();
     }
   };
