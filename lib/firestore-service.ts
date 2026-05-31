@@ -26,6 +26,12 @@ import { Question } from "./types/quiz";
 import { UserSubscription } from "./subscription-service";
 import { logger } from "./logger";
 import { shuffleQuestions, uniqueQuestionsByText } from "./question-dedupe";
+import {
+  applyAttempt,
+  questionStatDocId,
+  QuestionAttempt,
+  QuestionStat,
+} from "./question-mastery";
 
 type FirebaseInitializerResult = {
   fallback?: boolean;
@@ -1052,6 +1058,188 @@ class FirestoreService {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Error incrementing AI usage count", err, { userId, date: date.toISOString() });
       throw error;
+    }
+  }
+
+  // ============================================================================
+  // Per-question mastery (questionStats collection)
+  //
+  // 1問ごとの解答履歴を upsert で持つ。doc id = {userId}_{questionId}（ai_usage と
+  // 同じ規約）。純粋ロジックは lib/question-mastery.ts。Firestore に書く際は
+  // undefined を持つフィールドが拒否されるので serialize で除去する。
+  // ============================================================================
+
+  /**
+   * 1問の解答を記録し、習熟度レコードを upsert する。
+   * read → applyAttempt（純粋）→ write の順で実行。
+   * Firestore 未初期化・失敗時は localStorage にフォールバックして継続。
+   */
+  async recordQuestionAnswer(
+    userId: string,
+    attempt: QuestionAttempt,
+  ): Promise<QuestionStat> {
+    if (!this.validateUserId(userId)) {
+      throw new Error("Invalid user ID");
+    }
+
+    const now = new Date();
+    const firestore = await this.getDb();
+
+    if (!firestore) {
+      const prev = this.getLocalQuestionStat(userId, attempt.questionId);
+      const next = applyAttempt(prev, attempt, now);
+      this.saveLocalQuestionStat(userId, next);
+      return next;
+    }
+
+    try {
+      const statRef = doc(
+        firestore,
+        "questionStats",
+        questionStatDocId(userId, attempt.questionId),
+      );
+      const snap = await getDoc(statRef);
+      const prev = snap.exists()
+        ? this.deserializeQuestionStat(snap.data())
+        : null;
+      const next = applyAttempt(prev, attempt, now);
+
+      await setDoc(statRef, {
+        ...this.serializeQuestionStat(next),
+        userId,
+        updatedAt: serverTimestamp(),
+      });
+
+      // 並行 localStorage 更新（オフライン読み出し性能、再ログイン時の即時表示）
+      this.saveLocalQuestionStat(userId, next);
+      return next;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error recording question answer", err, {
+        userId,
+        questionId: attempt.questionId,
+      });
+      // Firestore 失敗時も localStorage に保存して学習体験を止めない
+      const prev = this.getLocalQuestionStat(userId, attempt.questionId);
+      const next = applyAttempt(prev, attempt, now);
+      this.saveLocalQuestionStat(userId, next);
+      return next;
+    }
+  }
+
+  /**
+   * ユーザーの全習熟度レコードを取得。最大 ~問題総数 件で有界。
+   * 弱点クイズ・カテゴリ別集計・進捗ページの土台。
+   */
+  async getQuestionStats(userId: string): Promise<QuestionStat[]> {
+    if (!this.validateUserId(userId)) {
+      return [];
+    }
+
+    const firestore = await this.getDb();
+    if (!firestore) {
+      return this.getLocalQuestionStats(userId);
+    }
+
+    try {
+      const statsRef = collection(firestore, "questionStats");
+      const q = query(statsRef, where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      const stats: QuestionStat[] = [];
+      querySnapshot.forEach((d) => {
+        stats.push(this.deserializeQuestionStat(d.data()));
+      });
+      return stats;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error getting question stats", err, { userId });
+      return this.getLocalQuestionStats(userId);
+    }
+  }
+
+  /**
+   * QuestionStat を Firestore 用に正規化（undefined を除去）。
+   * Firestore Web SDK は undefined をエラーにするため optional は省略する。
+   */
+  private serializeQuestionStat(stat: QuestionStat): Record<string, unknown> {
+    const out: Record<string, unknown> = {
+      questionId: stat.questionId,
+      category: stat.category,
+      attempts: stat.attempts,
+      correctCount: stat.correctCount,
+      lastSelectedAnswer: stat.lastSelectedAnswer,
+      lastIsCorrect: stat.lastIsCorrect,
+      lastAnsweredAt: stat.lastAnsweredAt,
+      consecutiveCorrect: stat.consecutiveCorrect,
+      isWeak: stat.isWeak,
+      nextReviewAt: stat.nextReviewAt,
+    };
+    if (stat.topic !== undefined) out.topic = stat.topic;
+    if (stat.difficulty !== undefined) out.difficulty = stat.difficulty;
+    return out;
+  }
+
+  /** Firestore raw doc を QuestionStat に rehydrate。欠損値は安全なデフォルト。 */
+  private deserializeQuestionStat(raw: unknown): QuestionStat {
+    const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    return {
+      questionId: Number(r.questionId) || 0,
+      category: typeof r.category === "string" ? r.category : "",
+      topic: typeof r.topic === "string" ? r.topic : undefined,
+      difficulty: typeof r.difficulty === "string" ? r.difficulty : undefined,
+      attempts: Number(r.attempts) || 0,
+      correctCount: Number(r.correctCount) || 0,
+      lastSelectedAnswer: Number(r.lastSelectedAnswer) || 0,
+      lastIsCorrect: Boolean(r.lastIsCorrect),
+      lastAnsweredAt: Number(r.lastAnsweredAt) || 0,
+      consecutiveCorrect: Number(r.consecutiveCorrect) || 0,
+      isWeak: Boolean(r.isWeak),
+      nextReviewAt: Number(r.nextReviewAt) || 0,
+    };
+  }
+
+  /** localStorage フォールバック: 単一 question の stat 取得 */
+  private getLocalQuestionStat(
+    userId: string,
+    questionId: number,
+  ): QuestionStat | null {
+    const all = this.getLocalQuestionStats(userId);
+    return all.find((s) => s.questionId === questionId) ?? null;
+  }
+
+  /** localStorage フォールバック: 全 stat 取得 */
+  private getLocalQuestionStats(userId: string): QuestionStat[] {
+    try {
+      if (typeof localStorage === "undefined") return [];
+      const raw = localStorage.getItem(`question_stats_${userId}`);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error getting local question stats", err, { userId });
+      return [];
+    }
+  }
+
+  /** localStorage フォールバック: 単一 stat の upsert */
+  private saveLocalQuestionStat(userId: string, stat: QuestionStat): void {
+    try {
+      if (typeof localStorage === "undefined") return;
+      const all = this.getLocalQuestionStats(userId);
+      const idx = all.findIndex((s) => s.questionId === stat.questionId);
+      if (idx >= 0) {
+        all[idx] = stat;
+      } else {
+        all.push(stat);
+      }
+      localStorage.setItem(`question_stats_${userId}`, JSON.stringify(all));
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Error saving local question stat", err, {
+        userId,
+        questionId: stat.questionId,
+      });
     }
   }
 }

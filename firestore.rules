@@ -138,6 +138,23 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 問題ごとの習熟度レコード（弱点克服・間隔反復の土台）
+    // doc id 規約: {userId}_{questionId}。userId は本人のみ・update で immutable。
+    match /questionStats/{statId} {
+      allow read: if isAuthenticated() &&
+                     resource.data.userId == request.auth.uid &&
+                     isValidDataSize(resource.data);
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       isValidDataSize(request.resource.data);
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == resource.data.userId &&
+                       isValidDataSize(request.resource.data);
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+    }
+
     // エラーログ（管理者のみアクセス可能）
     match /errorLogs/{logId} {
       allow read: if isAdmin();
