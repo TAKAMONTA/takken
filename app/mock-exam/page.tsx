@@ -115,8 +115,15 @@ export default function MockExam() {
         return (exam.rank && exam.rank < best) ? exam.rank : best;
       }, undefined);
 
-      // 合格可能性を計算 (仮のロジック)
-      const passProbability = Math.min(50 + averageScore * 0.5, 95);
+      // 合格可能性の honest 推定。本試験の合格ラインは50問中35問正解（=70%）。
+      // 平均点が合格ラインから乖離した分を線形で減点/加点する。
+      // - 平均 70% 以上: 50% + 上振れ分を加算（最大 95%）
+      // - 平均 70% 未満: 50% から下振れ分を減算（最小  5%）
+      // 旧仮ロジック (= 50 + score*0.5) は低スコアでも常に 50% 以上を返して
+      // ユーザーを誤誘導していたため撤去。
+      const PASS_LINE = 70;
+      const diff = averageScore - PASS_LINE;
+      const passProbability = Math.max(5, Math.min(95, 50 + diff * 1.5));
 
       setStats({
         examCount,

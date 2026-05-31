@@ -24,38 +24,40 @@ export function getMockExamQuestions(mode: string): Question[] {
 
   switch (mode) {
     case 'full_exam':
-      // 本番形式模試（50問） - AI生成問題のみのため問題数を調整
+      // 本番形式模試（50問）— 本試験と完全一致の構成
+      // 宅建業法20 / 民法等14 / 法令上の制限8 / 税・その他8
       questionCounts = {
-        'takkengyouhou': 10,
-        'minpou': 6,
-        'hourei': 5,
-        'zeihou': 5
+        'takkengyouhou': 20,
+        'minpou': 14,
+        'hourei': 8,
+        'zeihou': 8,
       };
       break;
     case 'speed_exam':
-      // スピード模試（26問）
+      // スピード模試（26問）— 短時間練習用、本番比率を維持
       questionCounts = {
         'takkengyouhou': 10,
-        'minpou': 6,
-        'hourei': 5,
-        'zeihou': 5
+        'minpou': 7,
+        'hourei': 4,
+        'zeihou': 5,
       };
       break;
     case 'review_exam':
       // 復習重視模試（20問）
       questionCounts = {
-        'takkengyouhou': 7,
-        'minpou': 5,
-        'hourei': 4,
-        'zeihou': 4
+        'takkengyouhou': 8,
+        'minpou': 6,
+        'hourei': 3,
+        'zeihou': 3,
       };
       break;
     default:
+      // 既定は full_exam と同じ
       questionCounts = {
-        'takkengyouhou': 10,
-        'minpou': 6,
-        'hourei': 5,
-        'zeihou': 5
+        'takkengyouhou': 20,
+        'minpou': 14,
+        'hourei': 8,
+        'zeihou': 8,
       };
   }
 

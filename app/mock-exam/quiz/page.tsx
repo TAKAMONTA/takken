@@ -313,6 +313,18 @@ function MockExamQuizContent() {
             <div className="text-4xl font-bold text-purple-600 mb-4">
               {score}%
             </div>
+            {/* 本試験50問モードのみ、35点ボーダーで明示的な合否判定を出す */}
+            {questions.length === 50 && (
+              <div className={`inline-block px-4 py-2 rounded-lg mb-4 font-bold ${
+                correctCount >= 35
+                  ? "bg-green-100 text-green-800"
+                  : "bg-orange-100 text-orange-800"
+              }`}>
+                {correctCount >= 35
+                  ? `🎉 合格ライン到達（35点以上）`
+                  : `あと${35 - correctCount}点で合格ライン（35点）`}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-purple-50 rounded-lg p-3">
                 <div className="text-sm text-gray-700">獲得XP</div>
