@@ -236,8 +236,10 @@ export async function verifyAuthToken(authHeader: string): Promise<string> {
  * @throws Error 認証に失敗した場合
  */
 export async function verifyRequestAuth(request: Request): Promise<string> {
-  const allowDevBypass = process.env.ALLOW_DEV_BYPASS_AUTH === "true";
-  
+  const allowDevBypass =
+    process.env.NODE_ENV !== "production" &&
+    process.env.ALLOW_DEV_BYPASS_AUTH === "true";
+
   const authHeader = request.headers.get("authorization");
 
   if (authHeader && authHeader.startsWith("Bearer ")) {

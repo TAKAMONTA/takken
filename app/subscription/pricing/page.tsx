@@ -336,10 +336,25 @@ export default function PricingPage() {
 
         <div className="mt-8 text-center">
           <button
-            onClick={restorePurchases}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
+            onClick={async () => {
+              setIsProcessing(true);
+              try {
+                await restorePurchases();
+                alert(
+                  "復元処理が完了しました。プレミアム機能が使えるか確認してください。"
+                );
+              } catch (err) {
+                const message =
+                  err instanceof Error ? err.message : "購入の復元に失敗しました";
+                alert(`購入の復元に失敗しました\n\n${message}`);
+              } finally {
+                setIsProcessing(false);
+              }
+            }}
+            disabled={isProcessing || isLoading}
+            className="text-sm text-gray-500 hover:text-gray-700 underline disabled:opacity-50"
           >
-            購入を復元する
+            {isProcessing ? "復元中..." : "購入を復元する"}
           </button>
         </div>
 
