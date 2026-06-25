@@ -13,6 +13,9 @@ import {
 
 function resolveCorsOrigin(request: NextRequest): string {
   const origin = request.headers.get("origin");
+  if (!origin || origin === "null") {
+    return "*";
+  }
   const allowed = new Set<string>([
     "capacitor://localhost",
     "ionic://localhost",
@@ -29,14 +32,17 @@ function resolveCorsOrigin(request: NextRequest): string {
     }
   }
 
-  if (origin && allowed.has(origin)) return origin;
-  return "https://www.takken-study.com";
+  if (allowed.has(origin)) return origin;
+  return "*";
 }
 
 function withCors(request: NextRequest, init: ResponseInit = {}): ResponseInit {
   const headers = new Headers(init.headers);
-  headers.set("Access-Control-Allow-Origin", resolveCorsOrigin(request));
-  headers.set("Vary", "Origin");
+  const allowOrigin = resolveCorsOrigin(request);
+  headers.set("Access-Control-Allow-Origin", allowOrigin);
+  if (allowOrigin !== "*") {
+    headers.set("Vary", "Origin");
+  }
   headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   return { ...init, headers };
