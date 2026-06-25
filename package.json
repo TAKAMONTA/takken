@@ -8,7 +8,7 @@
     "build": "next build",
     "build:ios": "ts-node scripts/release/build-ios.ts",
     "start": "next start",
-    "lint": "eslint app components lib middleware.ts next.config.mjs",
+    "lint": "eslint app components lib next.config.mjs",
     "test:env": "ts-node -r dotenv/config scripts/test/env.ts",
     "test:server-boundaries": "ts-node scripts/test/server-import-boundaries.ts",
     "test:question-dedupe": "ts-node scripts/test/question-dedupe.ts",

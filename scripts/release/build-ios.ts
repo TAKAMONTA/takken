@@ -30,7 +30,6 @@ interface Target {
 
 const TARGETS: Target[] = [
   { src: "app/api", backup: `${BACKUP_DIR}/app/api` },
-  { src: "middleware.ts", backup: `${BACKUP_DIR}/middleware.ts` },
 ];
 
 function abs(rel: string): string {
