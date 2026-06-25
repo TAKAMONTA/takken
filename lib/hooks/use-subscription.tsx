@@ -351,7 +351,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       });
       logger.error("Checkoutセッション作成エラー", error);
       setError(friendlyMessage);
-      return null;
+      throw error;
     }
   }, [getCurrentFirebaseUser, loadSubscription]);
 
@@ -438,12 +438,19 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         await verifyApplePurchaseOnServer(transaction, idToken);
       }
 
+      if (transactions.length === 0) {
+        throw new Error(
+          "復元できる購入が見つかりませんでした。Sandbox用のテスト Apple ID で購入したか確認してください。"
+        );
+      }
+
       await loadSubscription();
       console.log("[NativePurchase] 購入の復元完了");
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       logger.error("購入の復元エラー", error);
-      setError("購入の復元に失敗しました");
+      setError(error.message || "購入の復元に失敗しました");
+      throw error;
     } finally {
       setIsLoading(false);
     }
