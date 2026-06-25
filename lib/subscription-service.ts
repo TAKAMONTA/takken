@@ -2,6 +2,7 @@ import { firestoreService } from './firestore-service';
 import InAppPurchase, { Product, Transaction, Subscription } from '../src/plugins/InAppPurchase';
 import { logger } from './logger';
 import { PLAN_CONFIGS, SubscriptionPlan as AppSubscriptionPlan } from './types/subscription';
+import { verifyApplePurchaseOnServer } from './apple-purchase-client';
 
 /**
  * iOS In-App Purchase対応のサブスクリプション管理サービス
@@ -76,7 +77,7 @@ export class SubscriptionService {
   /**
    * サブスクリプションを購入
    */
-  async purchaseSubscription(planId: string, userId: string): Promise<boolean> {
+  async purchaseSubscription(planId: string, userId: string, idToken: string): Promise<boolean> {
     try {
       const plan = SubscriptionService.PLANS.find(p => p.id === planId);
       if (!plan) {
@@ -88,8 +89,7 @@ export class SubscriptionService {
       });
       
       if (result.transaction) {
-        // Firestoreにサブスクリプション情報を保存
-        await this.saveSubscription(userId, planId, result.transaction);
+        await verifyApplePurchaseOnServer(result.transaction, idToken);
         return true;
       }
       
@@ -188,19 +188,15 @@ export class SubscriptionService {
   /**
    * 購入履歴を復元
    */
-  async restorePurchases(userId: string): Promise<boolean> {
+  async restorePurchases(userId: string, idToken: string): Promise<boolean> {
     try {
       const result = await InAppPurchase.restorePurchases();
       
       if (result.transactions.length > 0) {
-        // 最新のトランザクションを処理
-        const latestTransaction = result.transactions[result.transactions.length - 1];
-        const plan = SubscriptionService.PLANS.find(p => p.productId === latestTransaction.productId);
-        
-        if (plan) {
-          await this.saveSubscription(userId, plan.id, latestTransaction);
-          return true;
+        for (const transaction of result.transactions) {
+          await verifyApplePurchaseOnServer(transaction, idToken);
         }
+        return true;
       }
       
       return false;
@@ -212,7 +208,7 @@ export class SubscriptionService {
   }
 
   /**
-   * サブスクリプション情報をFirestoreに保存
+   * @deprecated サーバー API 経由で保存するため直接使用しない
    */
   private async saveSubscription(userId: string, planId: string, transaction: Transaction): Promise<void> {
     const plan = SubscriptionService.PLANS.find(p => p.id === planId);

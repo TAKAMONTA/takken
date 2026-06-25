@@ -49,7 +49,7 @@ function TrueFalseQuizContent() {
           return;
         }
 
-        const items = getTFQuizSet(law, count);
+        const items = await getTFQuizSet(law, count);
         
         if (items.length === 0) {
           setError(`${getLawDisplayName(law)}の問題データが見つかりません。他のカテゴリをお試しください。`);
@@ -144,10 +144,10 @@ function TrueFalseQuizContent() {
   };
 
   // 再挑戦
-  const handleRetry = () => {
+  const handleRetry = async () => {
     if (!law) return;
     
-    const items = getTFQuizSet(law, count);
+    const items = await getTFQuizSet(law, count);
     setQuizState({
       items,
       currentIndex: 0,

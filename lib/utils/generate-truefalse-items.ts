@@ -1,6 +1,6 @@
 // ○×問題生成ユーティリティ
 import { TrueFalseItem } from '@/lib/types/quiz';
-import { questionsByCategory } from '@/lib/data/questions/index';
+import { getQuestionsByCategory } from '@/lib/data/questions';
 import { frequencyData } from '@/lib/data/frequency-questions';
 import { frequency10y } from '@/lib/data/past-exams/frequency';
 import { logger } from '@/lib/logger';
@@ -26,8 +26,8 @@ type LawSlug = 'takkengyouhou' | 'minpou' | 'hourei' | 'zeihou';
 /**
  * 四択問題から○×アイテムを生成
  */
-export function buildTFItemsFromMCQ(law: LawSlug): TrueFalseItem[] {
-  const questions = questionsByCategory[law] || [];
+export async function buildTFItemsFromMCQ(law: LawSlug): Promise<TrueFalseItem[]> {
+  const questions = await getQuestionsByCategory(law);
   const items: TrueFalseItem[] = [];
 
   questions.forEach(question => {
@@ -277,7 +277,7 @@ function weightedSample<T extends { topicWeight?: number; id?: string }>(items: 
 /**
  * ○×クイズセットを生成（メイン関数）
  */
-export function getTFQuizSet(law: LawSlug, count: number = 10): TrueFalseItem[] {
+export async function getTFQuizSet(law: LawSlug, count: number = 10): Promise<TrueFalseItem[]> {
   try {
     // 入力値の検証
     if (!law || !['takkengyouhou', 'minpou', 'hourei', 'zeihou'].includes(law)) {
@@ -291,7 +291,7 @@ export function getTFQuizSet(law: LawSlug, count: number = 10): TrueFalseItem[] 
     }
 
     // MCQと頻出問題から○×アイテムを生成
-    const mcqItems = buildTFItemsFromMCQ(law);
+    const mcqItems = await buildTFItemsFromMCQ(law);
     const frequencyItems = buildTFItemsFromFrequency(law);
     
     logger.debug(`Generated items for ${law}`, {

@@ -251,8 +251,10 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         const { transaction } = result;
         console.log("[NativePurchase] iOS 決済完了", transaction);
 
-        // TODO: サーバーサイドで検証(Apple Server-to-Server通知等)が必要だが、
-        // 現時点では即時リフレッシュ
+        const idToken = await firebaseUser.getIdToken();
+        const { verifyApplePurchaseOnServer } = await import("@/lib/apple-purchase-client");
+        await verifyApplePurchaseOnServer(transaction, idToken);
+
         await loadSubscription();
 
         // iOSではURLは不要
@@ -422,8 +424,20 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     setIsLoading(true);
     try {
       console.log("[NativePurchase] 購入の復元開始");
+      const firebaseUser = await getCurrentFirebaseUser();
+      if (!firebaseUser) {
+        throw new Error("ログインが必要です");
+      }
+
       const { default: InAppPurchase } = await import("@/src/plugins/InAppPurchase");
-      await InAppPurchase.restorePurchases();
+      const { transactions } = await InAppPurchase.restorePurchases();
+      const idToken = await firebaseUser.getIdToken();
+      const { verifyApplePurchaseOnServer } = await import("@/lib/apple-purchase-client");
+
+      for (const transaction of transactions) {
+        await verifyApplePurchaseOnServer(transaction, idToken);
+      }
+
       await loadSubscription();
       console.log("[NativePurchase] 購入の復元完了");
     } catch (err) {
@@ -433,7 +447,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [loadSubscription]);
+  }, [loadSubscription, getCurrentFirebaseUser]);
 
   // 初期化時にサブスクリプション情報を読み込む
   useEffect(() => {

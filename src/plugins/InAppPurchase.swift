@@ -123,15 +123,16 @@ public class InAppPurchase: CAPPlugin {
        call.resolve(["transactions": []])
     }
     
-    // Helper
     private func formatTransaction(_ transaction: Transaction) -> [String: Any] {
+        let signedInfo = String(data: transaction.jsonRepresentation, encoding: .utf8) ?? ""
         return [
             "transactionId": String(transaction.id),
             "productId": transaction.productID,
             "purchaseDate": transaction.purchaseDate.ISO8601Format(),
             "originalPurchaseDate": transaction.originalPurchaseDate.ISO8601Format(),
             "quantity": transaction.purchasedQuantity,
-            "state": "purchased" // Simplified
+            "state": "purchased",
+            "signedTransactionInfo": signedInfo
         ]
     }
 }

@@ -96,6 +96,11 @@ service cloud.firestore {
       allow write: if isAdmin();  // 管理者のみ更新可能
     }
 
+    // Apple IAP トランザクション冪等性（Admin SDK のみ書込）
+    match /apple_iap_transactions/{transactionId} {
+      allow read, write: if isAdmin();
+    }
+
     // ユーザープロファイル
     match /users/{userId} {
       allow read: if isAuthenticated() && isOwner(userId);

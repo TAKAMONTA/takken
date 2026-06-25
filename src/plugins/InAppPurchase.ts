@@ -48,6 +48,8 @@ export interface Transaction {
   originalPurchaseDate?: string;
   quantity: number;
   state: 'purchased' | 'restored' | 'failed' | 'deferred';
+  /** StoreKit 2 の署名付きトランザクション（JWS）。サーバー検証用 */
+  signedTransactionInfo?: string;
 }
 
 export interface Subscription {
