@@ -42,16 +42,10 @@ function parseServiceAccountKey(key: string): any | null {
   }
 
   // JSON文字列としてパースを試行
-  try {
-    // 改行や余計なクォートを除去
-    const cleaned = trimmed
-      .replace(/^["']|["']$/g, "") // 先頭・末尾のクォートを除去
-      .replace(/\\n/g, "\n") // エスケープされた改行を実際の改行に変換
-      .replace(/\\"/g, '"'); // エスケープされたダブルクォートを実際のクォートに変換
-
-    const parsed = JSON.parse(cleaned);
-    
-    // サービスアカウントキーの形式を検証
+  // 注意: 正しいサービスアカウントJSONは private_key 内に "\\n"（エスケープ済み改行）を
+  // 含む有効なJSON。JSON.parse 前に \n を実改行へ置換すると JSON が壊れるため、
+  // まず生の文字列をそのままパースし、ダメな場合のみクリーニングを試みる。
+  const validate = (parsed: any): any | null => {
     if (
       typeof parsed === "object" &&
       parsed !== null &&
@@ -60,19 +54,33 @@ function parseServiceAccountKey(key: string): any | null {
     ) {
       return parsed;
     }
-    
     logger.warn("サービスアカウントキーの形式が不正です", {
-      hasPrivateKey: !!parsed.private_key,
-      hasProjectId: !!parsed.project_id,
+      hasPrivateKey: !!parsed?.private_key,
+      hasProjectId: !!parsed?.project_id,
     });
     return null;
-  } catch (parseError) {
-    logger.warn("FIREBASE_SERVICE_ACCOUNT_KEYのパースに失敗しました", {
-      error: parseError instanceof Error ? parseError.message : String(parseError),
-      keyLength: trimmed.length,
-      keyPreview: trimmed.substring(0, 50) + "...",
-    });
-    return null;
+  };
+
+  // 1) 先頭・末尾の囲みクォートだけ除去して、そのままJSONとしてパース
+  const unwrapped = trimmed.replace(/^["']|["']$/g, "");
+  try {
+    return validate(JSON.parse(unwrapped));
+  } catch (primaryError) {
+    // 2) フォールバック: エスケープ崩れの可能性に対応してクリーニング後に再試行
+    try {
+      const cleaned = unwrapped
+        .replace(/\\n/g, "\n")
+        .replace(/\\"/g, '"');
+      return validate(JSON.parse(cleaned));
+    } catch (parseError) {
+      logger.warn("FIREBASE_SERVICE_ACCOUNT_KEYのパースに失敗しました", {
+        error:
+          parseError instanceof Error ? parseError.message : String(parseError),
+        keyLength: trimmed.length,
+        keyPreview: trimmed.substring(0, 50) + "...",
+      });
+      return null;
+    }
   }
 }
 
