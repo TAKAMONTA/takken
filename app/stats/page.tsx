@@ -11,8 +11,8 @@ import { summarizeByCategory } from '@/lib/question-mastery';
 const menuItems = [
   { id: 'progress', title: '学習進捗', description: '分野別の進捗を確認', icon: 'ri-line-chart-line', link: '/stats/progress' },
   { id: 'schedule', title: '学習スケジュール', description: '計画と残り時間', icon: 'ri-calendar-2-line', link: '/stats/schedule' },
-  { id: 'analysis', title: '弱点分析', description: '間違いやすい分野を特定', icon: 'ri-flask-line', link: '/stats/analysis' },
-  { id: 'achievements', title: '実績', description: '獲得したバッジ一覧', icon: 'ri-award-line', link: '/stats/achievements' },
+  { id: 'weak-points', title: '弱点克服', description: '間違いやすい分野を復習', icon: 'ri-target-line', link: '/weak-points' },
+  { id: 'mock-exam', title: '模試', description: '本番配分50問で実力チェック', icon: 'ri-file-list-3-line', link: '/mock-exam' },
 ];
 
 export default function Stats() {

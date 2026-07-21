@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_借地法: Question[] = [
   {
-    "id": 100110,
+    "id": 200010,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "借地権の存続期間は、当初50年である。",
@@ -22,7 +22,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100111,
+    "id": 200011,
     "question": "借地法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "借地権の存続期間が満了し、更新がない場合、借地権者は建物買取請求権を行使できる。",
@@ -42,7 +42,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100112,
+    "id": 200012,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "借地権の存続期間は、契約により15年に短縮することができる。",
@@ -62,7 +62,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100113,
+    "id": 200013,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "AがBに対して土地を貸し、借地契約を締結した場合、一度も更新されないまま借地権の存続期間は10年である。",
@@ -82,7 +82,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100114,
+    "id": 200014,
     "question": "借地法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "AがBに対して土地を貸し、定期借地権を設定した場合、その存続期間は基本的には50年以上である。",
@@ -102,7 +102,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100115,
+    "id": 200015,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "借地権を設定する際には、必ず公正証書による契約が必要である。",
@@ -122,7 +122,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100116,
+    "id": 200016,
     "question": "借地法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "AがBに対して土地を貸し、借地権が設定された後にBが建物を新築した場合、この建物を登記することで借地権を第三者に対抗できる。",
@@ -142,7 +142,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100117,
+    "id": 200017,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "定期借地権は、更新できないため、契約期間満了後は自動的に消滅する。",
@@ -162,7 +162,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100118,
+    "id": 200018,
     "question": "借地法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "AがBから土地を借りて住宅を建てた場合、借地権の存続期間は10年である。",
@@ -182,7 +182,7 @@ export const trendAI_借地法: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100119,
+    "id": 200019,
     "question": "借地法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "IがJとの間で定期借地権を設定し、契約で期間を50年とした場合、この契約は有効である。",

@@ -1,13 +1,11 @@
 import { firestoreService } from './firestore-service';
 import InAppPurchase, { Product, Transaction, Subscription } from '../src/plugins/InAppPurchase';
 import { logger } from './logger';
-import { PLAN_CONFIGS, SubscriptionPlan as AppSubscriptionPlan } from './types/subscription';
-import { verifyApplePurchaseOnServer } from './apple-purchase-client';
 
 /**
  * iOS In-App Purchase対応のサブスクリプション管理サービス
  * - iOSアプリでのみ利用可能
- * - Web版のStripe決済とは別に、App Storeのアプリ内課金を扱う
+ * - Stripeは使用しない（2025年10月削除）
  */
 export interface SubscriptionPlan {
   id: string;
@@ -29,24 +27,38 @@ export interface UserSubscription {
 
 export class SubscriptionService {
   private static instance: SubscriptionService;
-  private static readonly PREMIUM_CONFIG = PLAN_CONFIGS[AppSubscriptionPlan.PREMIUM];
   
   // サブスクリプションプラン定義
   public static readonly PLANS: SubscriptionPlan[] = [
     {
-      id: AppSubscriptionPlan.PREMIUM,
+      id: 'premium_monthly',
       name: 'プレミアムプラン（月額）',
-      price: SubscriptionService.PREMIUM_CONFIG.price,
+      price: 500,
       features: [
-        'AI機能無制限利用',
-        '広告完全非表示',
-        '全年度過去問アクセス',
-        'AI問題生成機能',
+        '全問題アクセス（AI予想問題）',
+        'AI解説・質問の無制限利用',
+        '本番配分の模試',
+        '広告非表示',
         '詳細学習分析・レポート',
         'プッシュ通知・学習リマインダー',
-        'オフライン問題ダウンロード拡張'
+        'オフライン学習の拡張'
       ],
-      productId: SubscriptionService.PREMIUM_CONFIG.applePriceId || 'com.takamonta.takken.premium.monthly'
+      productId: 'com.takamonta.takken.premium.monthly'
+    },
+    {
+      id: 'premium_yearly',
+      name: 'プレミアムプラン（年額）',
+      price: 4500,
+      features: [
+        '全問題アクセス（AI予想問題）',
+        'AI解説・質問の無制限利用',
+        '本番配分の模試',
+        '広告非表示',
+        '詳細学習分析・レポート',
+        'プッシュ通知・学習リマインダー',
+        'オフライン学習の拡張'
+      ],
+      productId: 'com.takamonta.takken.premium.yearly'
     }
   ];
 
@@ -77,7 +89,7 @@ export class SubscriptionService {
   /**
    * サブスクリプションを購入
    */
-  async purchaseSubscription(planId: string, userId: string, idToken: string): Promise<boolean> {
+  async purchaseSubscription(planId: string, userId: string): Promise<boolean> {
     try {
       const plan = SubscriptionService.PLANS.find(p => p.id === planId);
       if (!plan) {
@@ -89,7 +101,8 @@ export class SubscriptionService {
       });
       
       if (result.transaction) {
-        await verifyApplePurchaseOnServer(result.transaction, idToken);
+        // Firestoreにサブスクリプション情報を保存
+        await this.saveSubscription(userId, planId, result.transaction);
         return true;
       }
       
@@ -188,15 +201,19 @@ export class SubscriptionService {
   /**
    * 購入履歴を復元
    */
-  async restorePurchases(userId: string, idToken: string): Promise<boolean> {
+  async restorePurchases(userId: string): Promise<boolean> {
     try {
       const result = await InAppPurchase.restorePurchases();
       
       if (result.transactions.length > 0) {
-        for (const transaction of result.transactions) {
-          await verifyApplePurchaseOnServer(transaction, idToken);
+        // 最新のトランザクションを処理
+        const latestTransaction = result.transactions[result.transactions.length - 1];
+        const plan = SubscriptionService.PLANS.find(p => p.productId === latestTransaction.productId);
+        
+        if (plan) {
+          await this.saveSubscription(userId, plan.id, latestTransaction);
+          return true;
         }
-        return true;
       }
       
       return false;
@@ -208,7 +225,7 @@ export class SubscriptionService {
   }
 
   /**
-   * @deprecated サーバー API 経由で保存するため直接使用しない
+   * サブスクリプション情報をFirestoreに保存
    */
   private async saveSubscription(userId: string, planId: string, transaction: Transaction): Promise<void> {
     const plan = SubscriptionService.PLANS.find(p => p.id === planId);

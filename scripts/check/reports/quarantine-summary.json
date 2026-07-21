@@ -1,0 +1,10 @@
+{
+  "quarantinedAt": "2026-07-19T00:00:00.000Z",
+  "policy": "auto-isolate without human review",
+  "quarantinedIds": [56149, 56150, 56151, 1008, 1009, 109914, 100004, 3006, 3007, 3008, 3009],
+  "excludedFiles": [
+    "lib/data/questions/takkengyouhou/generated-50/advanced-5.ts"
+  ],
+  "replacementQuestions": [900035, 900037, 900038],
+  "notes": "See lib/question-quality/quarantine.ts"
+}

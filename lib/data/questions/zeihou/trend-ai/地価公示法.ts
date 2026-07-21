@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_地価公示法: Question[] = [
   {
-    "id": 100237,
+    "id": 400020,
     "question": "地価公示法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "地価公示は、土地鑑定委員会が毎年4月1日時点の価格を公示する制度である。",
@@ -22,7 +22,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100238,
+    "id": 400021,
     "question": "地価公示法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "地価公示法による公示価格は、土地の売買契約において法的拘束力を持たない。",
@@ -42,7 +42,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100239,
+    "id": 400022,
     "question": "地価公示法に基づく次の記述のうち、正しいものはどれか。",
     "options": [
       "地価公示に基づく標準地の選定は、毎年土地の価格が最も高い地域から選ばれる。",
@@ -62,7 +62,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100240,
+    "id": 400023,
     "question": "地価公示法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "土地鑑定委員会は、毎年1月1日時点の価格を判定し、1月末までに公示する。",
@@ -82,7 +82,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100241,
+    "id": 400024,
     "question": "地価公示法に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "土地鑑定委員会が判定した価格は、一般の土地取引価格の上限を示す。",
@@ -102,7 +102,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100242,
+    "id": 400025,
     "question": "地価公示法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "地価公示法による価格は、土地の競売において基準価格として使用される。",
@@ -122,7 +122,7 @@ export const trendAI_地価公示法: Question[] = [
     "frequency": "B"
   },
   {
-    "id": 100243,
+    "id": 400026,
     "question": "地価公示法に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "A市における標準地の選定は、その市の市長が行い、土地鑑定委員会が承認する。",

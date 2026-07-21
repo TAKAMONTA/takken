@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css');
+@import url('/fonts/remixicon/remixicon.css');
 
 @tailwind base;
 @tailwind components;
@@ -39,6 +39,21 @@
     
     --shadow-subtle: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-moderate: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+    /* Study UI */
+    --study-bg: 210 24% 97%;
+    --study-bg-end: 200 18% 94%;
+    --study-surface: 0 0% 100%;
+    --study-ink: 215 28% 14%;
+    --study-muted: 215 12% 46%;
+    --study-accent: 178 42% 28%;
+    --study-accent-soft: 178 32% 92%;
+    --study-beginner: 168 45% 32%;
+    --study-beginner-soft: 168 35% 93%;
+    --study-border: 214 16% 88%;
+    --tap-min: 44px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
   }
 
   .dark {
@@ -125,6 +140,112 @@
 }
 
 @layer components {
+  /* 学習画面シェル */
+  .study-shell {
+    min-height: 100dvh;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--study-bg)) 0%,
+      hsl(var(--study-bg-end)) 100%
+    );
+    color: hsl(var(--study-ink));
+    padding-top: var(--safe-top);
+  }
+
+  .study-card {
+    @apply rounded-xl border bg-white;
+    border-color: hsl(var(--study-border));
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .study-btn {
+    @apply inline-flex w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors;
+    min-height: var(--tap-min);
+    background: hsl(var(--study-accent));
+    color: #fff;
+  }
+
+  .study-btn:hover {
+    filter: brightness(1.05);
+  }
+
+  .study-btn-secondary {
+    @apply inline-flex w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors;
+    min-height: var(--tap-min);
+    background: hsl(var(--study-surface));
+    color: hsl(var(--study-ink));
+    border: 1px solid hsl(var(--study-border));
+  }
+
+  .study-btn-beginner {
+    @apply inline-flex w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-colors;
+    min-height: var(--tap-min);
+    background: hsl(var(--study-beginner));
+    color: #fff;
+  }
+
+  .study-option {
+    @apply flex w-full items-start gap-3 rounded-xl border px-4 py-3.5 text-left transition-colors;
+    min-height: var(--tap-min);
+    border-color: hsl(var(--study-border));
+    background: #fff;
+  }
+
+  .study-option:active {
+    background: hsl(var(--study-accent-soft));
+  }
+
+  .study-option-selected {
+    border-color: hsl(var(--study-accent));
+    background: hsl(var(--study-accent-soft));
+  }
+
+  .study-option-beginner-selected {
+    border-color: hsl(var(--study-beginner));
+    background: hsl(var(--study-beginner-soft));
+  }
+
+  .study-bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-40 border-t bg-white/95 backdrop-blur-sm;
+    border-color: hsl(var(--study-border));
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .study-bottom-nav-inner {
+    @apply mx-auto flex max-w-md items-stretch justify-around px-2;
+    min-height: calc(var(--tap-min) + 12px);
+  }
+
+  .study-nav-item {
+    @apply flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-medium;
+    min-height: var(--tap-min);
+    color: hsl(var(--study-muted));
+  }
+
+  .study-nav-item-active {
+    color: hsl(var(--study-accent));
+  }
+
+  .study-cta {
+    @apply block rounded-xl p-4 text-white transition-colors;
+    min-height: var(--tap-min);
+    background: hsl(var(--study-accent));
+  }
+
+  .study-cta:hover {
+    filter: brightness(1.06);
+  }
+
+  .study-premium {
+    @apply block rounded-xl p-4 text-white;
+    min-height: var(--tap-min);
+    background: linear-gradient(
+      135deg,
+      hsl(178 42% 26%) 0%,
+      hsl(200 35% 28%) 100%
+    );
+  }
+
   /* TSDO-inspired component styles */
   .card-minimal {
     @apply bg-card border border-border rounded-lg p-6;
@@ -239,6 +360,56 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .tap-target {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+  }
+
+
+  .pb-safe {
+    padding-bottom: calc(1.5rem + var(--safe-bottom));
+  }
+
+  .border-study-border {
+    border-color: hsl(var(--study-border));
+  }
+
+  .bg-study-accent {
+    background-color: hsl(var(--study-accent));
+  }
+
+  .bg-study-beginner {
+    background-color: hsl(var(--study-beginner));
+  }
+
+  .text-study-beginner {
+    color: hsl(var(--study-beginner));
+  }
+
+  .pb-safe-nav {
+    padding-bottom: calc(5.5rem + var(--safe-bottom));
+  }
+
+  .text-study-ink {
+    color: hsl(var(--study-ink));
+  }
+
+  .text-study-muted {
+    color: hsl(var(--study-muted));
+  }
+
+  .text-study-accent {
+    color: hsl(var(--study-accent));
+  }
+
+  .bg-study-accent-soft {
+    background-color: hsl(var(--study-accent-soft));
+  }
+
+  .bg-study-beginner-soft {
+    background-color: hsl(var(--study-beginner-soft));
   }
   
   .grid-auto-fit {

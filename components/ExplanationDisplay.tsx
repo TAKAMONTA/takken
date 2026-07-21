@@ -28,9 +28,11 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
   // 解説を段落に分割
   const paragraphs = splitIntoParagraphs(explanation);
 
-  // 段落の種類を判定する関数
+  // 段落の種類を判定する関数（標準見出し【正解】【各選択肢の解説】【ポイント】対応）
   const getParagraphType = (paragraph: string) => {
-    if (paragraph.includes('【基本解説】')) return 'basic';
+    if (paragraph.includes('【基本解説】') || paragraph.includes('【正解】')) return 'basic';
+    if (paragraph.includes('【各選択肢の解説】') || paragraph.includes('【選択肢の解説】')) return 'process';
+    if (paragraph.includes('【ポイント】') || paragraph.includes('【重要ポイント】')) return 'memory';
     if (paragraph.includes('【🎯 ここが引っ掛け！】')) return 'trap';
     if (paragraph.includes('【解法・思考プロセス】')) return 'process';
     if (paragraph.includes('【💡 記憶法・覚え方】')) return 'memory';
@@ -95,7 +97,9 @@ const ExplanationDisplay: React.FC<ExplanationDisplayProps> = ({
 
   // 見出しに対応するアイコンを取得する関数
   const getHeadingIcon = (heading: string) => {
-    if (heading.includes('基本解説')) return '📖';
+    if (heading.includes('基本解説') || heading === '正解') return '📖';
+    if (heading.includes('各選択肢') || heading.includes('選択肢の解説')) return '🧠';
+    if (heading.includes('ポイント') || heading.includes('重要ポイント')) return '💡';
     if (heading.includes('引っ掛け')) return '🎯';
     if (heading.includes('思考プロセス')) return '🧠';
     if (heading.includes('記憶法') || heading.includes('覚え方')) return '💡';

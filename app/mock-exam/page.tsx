@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { takkenExamConfig } from '@/lib/exam-config';
 import { firestoreService } from '@/lib/firestore-service';
-import { requireCachedUserForCurrentAuth } from '@/lib/auth-cache';
 
 const examModes = [
   {
@@ -78,26 +76,15 @@ export default function MockExam() {
   });
 
   useEffect(() => {
-    let cancelled = false;
-
-    requireCachedUserForCurrentAuth<any>(() => router.push('/auth/login'))
-      .then((userData) => {
-        if (!userData || cancelled) {
-          return;
-        }
-
+    const savedUser = localStorage.getItem('takken_user');
+    if (savedUser) {
+      const userData = JSON.parse(savedUser);
       setUser(userData);
-      fetchMockExamData(userData.id);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      fetchMockExamData(userData.uid);
+    } else {
+      router.push('/');
+    }
+    setLoading(false);
   }, [router]);
 
   const fetchMockExamData = async (userId: string) => {
@@ -115,15 +102,8 @@ export default function MockExam() {
         return (exam.rank && exam.rank < best) ? exam.rank : best;
       }, undefined);
 
-      // 合格可能性の honest 推定。本試験の合格ラインは50問中35問正解（=70%）。
-      // 平均点が合格ラインから乖離した分を線形で減点/加点する。
-      // - 平均 70% 以上: 50% + 上振れ分を加算（最大 95%）
-      // - 平均 70% 未満: 50% から下振れ分を減算（最小  5%）
-      // 旧仮ロジック (= 50 + score*0.5) は低スコアでも常に 50% 以上を返して
-      // ユーザーを誤誘導していたため撤去。
-      const PASS_LINE = 70;
-      const diff = averageScore - PASS_LINE;
-      const passProbability = Math.max(5, Math.min(95, 50 + diff * 1.5));
+      // 合格可能性を計算 (仮のロジック)
+      const passProbability = Math.min(50 + averageScore * 0.5, 95);
 
       setStats({
         examCount,
@@ -156,7 +136,7 @@ export default function MockExam() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-2xl font-bold text-gray-600">Loading...</div>
       </div>
     );
@@ -164,11 +144,11 @@ export default function MockExam() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">ログインが必要です</p>
           <Link href="/">
-            <button className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold !rounded-button">
+            <button className="study-btn max-w-xs">
               ホームに戻る
             </button>
           </Link>
@@ -180,27 +160,23 @@ export default function MockExam() {
   const selectedExam = examModes.find(mode => mode.id === selectedMode);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 pb-20">
-      {/* ヘッダー */}
-      <div className="bg-white shadow-sm border-b fixed top-0 w-full z-10">
-        <div className="max-w-md mx-auto px-4 py-4 flex items-center">
-          <Link href="/dashboard" className="text-purple-600 mr-4">
-            <div className="w-5 h-5 flex items-center justify-center">
-              <i className="ri-arrow-left-line text-xl"></i>
-            </div>
+    <div className="study-shell pb-safe-nav">
+      <div className="fixed top-0 z-10 w-full border-b border-study-border bg-white/90 backdrop-blur-sm" style={{ paddingTop: 'var(--safe-top)' }}>
+        <div className="mx-auto flex max-w-md items-center px-4 py-4">
+          <Link href="/dashboard" className="tap-target mr-3 flex items-center justify-center text-study-accent">
+            <i className="ri-arrow-left-line text-xl"></i>
           </Link>
-          <h1 className="text-xl font-bold text-gray-800">{takkenExamConfig.eraYearLabel}予想模試</h1>
+          <h1 className="text-xl font-bold text-study-ink">令和7年度予想模試</h1>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-20 pb-6 space-y-6">
-        {/* 予想問題情報 */}
-        <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-xl p-6 text-white">
+      <div className="mx-auto max-w-md space-y-6 px-4 pb-6 pt-20">
+        <div className="study-cta rounded-xl p-6">
           <div className="text-center">
             <div className="text-3xl mb-2">🎯</div>
-            <h2 className="font-bold text-lg mb-2">{takkenExamConfig.eraYearLabel}予想模試</h2>
+            <h2 className="font-bold text-lg mb-2">令和7年度予想模試</h2>
             <p className="text-sm opacity-90 mb-4">
-              最新の法改正を反映した{takkenExamConfig.targetYear}年度予想問題
+              最新の法改正を反映した2025年度予想問題
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-white/20 rounded-lg p-3">
@@ -216,11 +192,11 @@ export default function MockExam() {
         </div>
 
         {/* 模試統計 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-gray-800">🏆 模試成績</h2>
+        <div className="study-card p-6">
+          <h2 className="mb-4 text-lg font-bold text-study-ink">🏆 模試成績</h2>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-purple-600">{stats.examCount}</div>
+              <div className="text-2xl font-bold text-study-accent">{stats.examCount}</div>
               <div className="text-xs text-gray-500">受験回数</div>
             </div>
             <div>
@@ -228,7 +204,7 @@ export default function MockExam() {
               <div className="text-xs text-gray-500">平均得点</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">{stats.bestRank}</div>
+              <div className="text-2xl font-bold text-study-accent">{stats.bestRank}</div>
               <div className="text-xs text-gray-500">最高ランク</div>
             </div>
           </div>
@@ -236,16 +212,16 @@ export default function MockExam() {
 
         {/* 模試モード選択 */}
         <div className="space-y-4">
-          <h3 className="font-bold text-lg text-gray-800">📋 模試モードを選択</h3>
+          <h3 className="text-lg font-bold text-study-ink">📋 模試モードを選択</h3>
           <div className="space-y-3">
             {examModes.map((mode) => (
               <div
                 key={mode.id}
                 onClick={() => setSelectedMode(mode.id)}
-                className={`${mode.bgColor} rounded-xl p-4 border-2 transition-all cursor-pointer ${
+                className={`study-card cursor-pointer border-2 p-4 transition-all ${
                   selectedMode === mode.id
-                    ? `${mode.borderColor} border-opacity-100 shadow-md`
-                    : 'border-transparent hover:border-gray-200'
+                    ? 'border-study-accent bg-study-accent-soft shadow-md'
+                    : 'hover:border-study-border'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -281,7 +257,7 @@ export default function MockExam() {
 
         {/* 選択中の模試詳細 */}
         {selectedExam && (
-          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-6 text-white">
+          <div className="study-premium rounded-xl p-6">
             <div className="text-center">
               <div className="text-3xl mb-2">{selectedExam.icon}</div>
               <h3 className="font-bold text-lg mb-2">{selectedExam.title}</h3>
@@ -305,10 +281,10 @@ export default function MockExam() {
           </div>
         )}
 
-        {/* 予想問題の特徴 */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 className="font-bold text-sm text-blue-800 mb-2">✨ {takkenExamConfig.eraYearLabel}予想問題の特徴</h3>
-          <ul className="text-xs text-blue-700 space-y-1">
+        {/* 令和7年度予想問題の特徴 */}
+        <div className="study-card border border-study-border p-4">
+          <h3 className="mb-2 text-sm font-bold text-study-ink">✨ 令和7年度予想問題の特徴</h3>
+          <ul className="space-y-1 text-xs text-study-muted">
             <li>• 令和6年7月・令和7年4月施行の最新法改正を反映</li>
             <li>• 宅建業法の免許申請手続きの変更に対応</li>
             <li>• 建築基準法の確認要件統一に対応</li>
@@ -328,8 +304,8 @@ export default function MockExam() {
         </div>
 
         {/* 最近の模試履歴 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-gray-800">📊 最近の模試結果</h3>
+        <div className="study-card p-6">
+          <h3 className="mb-4 text-lg font-bold text-study-ink">📊 最近の模試結果</h3>
           <div className="space-y-3">
             {recentExams.length > 0 ? (
               recentExams.map((exam, index) => (
@@ -360,8 +336,8 @@ export default function MockExam() {
         </div>
 
         {/* 合格予測 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 text-gray-800">🎯 合格予測</h3>
+        <div className="study-card p-6">
+          <h3 className="mb-4 text-lg font-bold text-study-ink">🎯 合格予測</h3>
           <div className="text-center mb-4">
             <div className={`text-3xl font-bold ${getScoreColor(stats.passProbability)} mb-2`}>{stats.passProbability.toFixed(0)}%</div>
             <div className="text-sm text-gray-600">現在の合格可能性</div>
@@ -377,50 +353,40 @@ export default function MockExam() {
         </div>
 
         {/* 模試開始ボタン */}
-        <div className="sticky bottom-20">
+        <div className="sticky bottom-24">
           <button
             onClick={handleStartExam}
-            className="w-full bg-red-600 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all !rounded-button"
+            className="study-btn text-lg"
           >
             🚀 模試を開始する
           </button>
         </div>
       </div>
 
-      {/* ボトムナビゲーション */}
-      <div className="bg-white border-t fixed bottom-0 w-full">
-        <div className="max-w-md mx-auto px-0 py-2">
-          <div className="grid grid-cols-4 gap-0">
-            <Link href="/dashboard" className="flex flex-col items-center justify-center py-2 px-1">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <i className="ri-home-line text-gray-400 text-lg"></i>
-              </div>
-              <span className="text-xs text-gray-400 mt-1">ホーム</span>
-            </Link>
-            
-            <Link href="/practice" className="flex flex-col items-center justify-center py-2 px-1">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <i className="ri-book-line text-gray-400 text-lg"></i>
-              </div>
-              <span className="text-xs text-gray-400 mt-1">学習</span>
-            </Link>
-            
-            <Link href="/stats" className="flex flex-col items-center justify-center py-2 px-1">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <i className="ri-bar-chart-line text-gray-400 text-lg"></i>
-              </div>
-              <span className="text-xs text-gray-400 mt-1">統計</span>
-            </Link>
-            
-            <Link href="/profile" className="flex flex-col items-center justify-center py-2 px-1">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <i className="ri-user-line text-gray-400 text-lg"></i>
-              </div>
-              <span className="text-xs text-gray-400 mt-1">プロフィール</span>
-            </Link>
-          </div>
+      <nav className="study-bottom-nav" aria-label="メインメニュー">
+        <div className="study-bottom-nav-inner">
+          <Link href="/dashboard" className="study-nav-item">
+            <i className="ri-home-line text-xl"></i>
+            <span>ホーム</span>
+          </Link>
+          <Link href="/practice" className="study-nav-item">
+            <i className="ri-book-open-line text-xl"></i>
+            <span>学習</span>
+          </Link>
+          <Link href="/mock-exam" className="study-nav-item study-nav-item-active">
+            <i className="ri-file-list-3-line text-xl"></i>
+            <span>模試</span>
+          </Link>
+          <Link href="/weak-points" className="study-nav-item">
+            <i className="ri-target-line text-xl"></i>
+            <span>弱点</span>
+          </Link>
+          <Link href="/profile" className="study-nav-item">
+            <i className="ri-user-line text-xl"></i>
+            <span>設定</span>
+          </Link>
         </div>
-      </div>
+      </nav>
     </div>
   );
 }

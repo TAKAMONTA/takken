@@ -1,0 +1,30 @@
+{
+  "scannedAt": "2026-07-19T08:36:55.616Z",
+  "minScore": 4,
+  "results": [
+    {
+      "questionId": 1,
+      "scoreBefore": null,
+      "scoreAfter": null,
+      "status": "failed",
+      "improvements": [
+        "fetch failed"
+      ]
+    },
+    {
+      "questionId": 1,
+      "scoreBefore": null,
+      "scoreAfter": null,
+      "status": "failed",
+      "improvements": [
+        "fetch failed"
+      ]
+    }
+  ],
+  "summary": {
+    "improved": 0,
+    "kept": 0,
+    "failed": 2,
+    "skipped": 0
+  }
+}

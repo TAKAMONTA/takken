@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_宅建士: Question[] = [
   {
-    "id": 100000,
+    "id": 100040,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "宅地建物取引士証の有効期間は3年である。",
@@ -22,7 +22,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100001,
+    "id": 100041,
     "question": "宅建士に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "宅地建物取引士は、登録した都道府県を変更した場合、登録の移転を申請することができる。",
@@ -42,7 +42,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100002,
+    "id": 100042,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "宅地建物取引士証の有効期間が経過した場合、自動的に更新される。",
@@ -62,7 +62,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100003,
+    "id": 100043,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "宅建士証の有効期間は3年である。",
@@ -82,7 +82,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100004,
+    "id": 100044,
     "question": "宅建士に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "宅地建物取引業者は、重要事項説明書を作成する際に、宅地建物取引士が署名・押印する必要がある。",
@@ -102,7 +102,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100005,
+    "id": 100045,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "宅地建物取引士は、取引の際に宅建士証を携帯する必要はない。",
@@ -122,7 +122,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100006,
+    "id": 100046,
     "question": "宅建士に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "重要事項説明は、宅地建物取引士が宅建士証を携帯しないままで行うことができる。",
@@ -142,7 +142,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100007,
+    "id": 100047,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "宅建士が住所を変更した場合、変更の届出は不要である。",
@@ -162,7 +162,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100008,
+    "id": 100048,
     "question": "宅建士に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aは宅地建物取引士としての登録を受けた後、居住地が変更になったが、1か月以内に変更の届出をしたため、宅建士証の更新手続きをする必要はない。",
@@ -182,7 +182,7 @@ export const trendAI_宅建士: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100009,
+    "id": 100049,
     "question": "宅建士に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "Eは宅地建物取引士として、重要事項説明書を交付し、売主の代理人として買主に説明を行った。この場合、Eは宅建士証を提示する必要がある。",

@@ -21,10 +21,9 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning={true}>
       <head>
         <link
-          href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
+          href="/fonts/remixicon/remixicon.css"
           rel="stylesheet"
         />
-
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
 

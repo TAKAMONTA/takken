@@ -12,6 +12,10 @@ import {
   getFrequencyCount,
 } from "./data/past-exams/frequency";
 import { allQuestions } from "./data/questions/index";
+import {
+  assignFrequencyGrades,
+  sortByGradeABC,
+} from "./question-quality/grades";
 
 // 基本学習記録データ（一時的に空）
 export const LEARNING_RECORDS: Omit<
@@ -179,11 +183,8 @@ export function getFrequencyQuestions(
   limit: number = 10
 ): Question[] {
   const categoryQuestions = allQuestions.filter((q) => q.category === category);
-
-  // 頻出度順にソート（一時的に無効化）
-  const sortedQuestions = categoryQuestions;
-
-  return sortedQuestions.slice(0, limit);
+  const graded = assignFrequencyGrades(categoryQuestions);
+  return sortByGradeABC(graded).slice(0, limit);
 }
 
 // クイックテスト用の問題取得

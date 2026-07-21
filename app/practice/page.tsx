@@ -39,95 +39,81 @@ export default function Practice() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-muted-foreground">読み込み中...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* シンプルなヘッダー */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
+    <div className="study-shell">
+      <header className="border-b border-study-border bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto max-w-md px-4 py-4">
           <div className="flex items-center space-x-3">
             <Link
               href="/dashboard"
-              className="text-gray-600 hover:text-gray-900"
+              className="tap-target flex items-center justify-center text-study-muted hover:text-study-ink"
             >
               <i className="ri-arrow-left-line text-xl"></i>
             </Link>
-            <h1 className="text-lg font-medium text-gray-900">AI予想問題</h1>
+            <h1 className="text-lg font-semibold text-study-ink">AI予想問題</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6">
-        {/* シンプルな分野選択 */}
-        <div className="space-y-2">
+      <main className="mx-auto max-w-md px-4 py-6 pb-safe-nav">
+        <div className="space-y-3">
           {practiceCategories.map((category) => (
             <Link
               key={category.id}
               href={`/practice/detail?category=${category.id}`}
             >
-              <div className="bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-900 font-medium">
+              <div className="study-card mb-3 p-4 transition-colors hover:bg-study-accent-soft/50">
+                <div className="flex min-h-[44px] items-center justify-between">
+                  <span className="font-medium text-study-ink">
                     {category.name}
                   </span>
-                  <i className="ri-arrow-right-s-line text-gray-400"></i>
+                  <i className="ri-arrow-right-s-line text-study-muted"></i>
                 </div>
               </div>
             </Link>
           ))}
         </div>
 
-        {/* 弱点克服 */}
         <div className="mt-6">
           <Link href="/weak-points">
-            <div className="bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-900 font-medium">弱点克服</span>
-                <i className="ri-arrow-right-s-line text-gray-400"></i>
+            <div className="study-card p-4 transition-colors hover:bg-study-accent-soft/50">
+              <div className="flex min-h-[44px] items-center justify-between">
+                <span className="font-medium text-study-ink">弱点克服</span>
+                <i className="ri-arrow-right-s-line text-study-muted"></i>
               </div>
             </div>
           </Link>
         </div>
       </main>
 
-      {/* シンプルなボトムナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="max-w-md mx-auto px-4">
-          <div className="flex justify-around items-center h-16">
-            <Link
-              href="/dashboard"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-home-line text-xl"></i>
-              <span className="text-xs">ホーム</span>
-            </Link>
-            <Link
-              href="/practice"
-              className="flex flex-col items-center space-y-1 text-blue-600"
-            >
-              <i className="ri-book-open-fill text-xl"></i>
-              <span className="text-xs">学習</span>
-            </Link>
-            <Link
-              href="/stats"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-bar-chart-line text-xl"></i>
-              <span className="text-xs">分析</span>
-            </Link>
-            <Link
-              href="/profile"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-user-line text-xl"></i>
-              <span className="text-xs">設定</span>
-            </Link>
-          </div>
+      <nav className="study-bottom-nav" aria-label="メインメニュー">
+        <div className="study-bottom-nav-inner">
+          <Link href="/dashboard" className="study-nav-item">
+            <i className="ri-home-line text-xl"></i>
+            <span>ホーム</span>
+          </Link>
+          <Link href="/practice" className="study-nav-item study-nav-item-active">
+            <i className="ri-book-open-line text-xl"></i>
+            <span>学習</span>
+          </Link>
+          <Link href="/mock-exam" className="study-nav-item">
+            <i className="ri-file-list-3-line text-xl"></i>
+            <span>模試</span>
+          </Link>
+          <Link href="/weak-points" className="study-nav-item">
+            <i className="ri-target-line text-xl"></i>
+            <span>弱点</span>
+          </Link>
+          <Link href="/profile" className="study-nav-item">
+            <i className="ri-user-line text-xl"></i>
+            <span>設定</span>
+          </Link>
         </div>
       </nav>
     </div>

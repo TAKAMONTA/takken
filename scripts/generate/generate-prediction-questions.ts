@@ -84,6 +84,19 @@ const ZEIHOU_TOPICS = [
   { name: '不動産鑑定評価基準', count: 15, type: 'fundamental' },
 ];
 
+const CATEGORY_ID_START: Record<string, number> = {
+  takkengyouhou: 102000,
+  minpou: 202000,
+  hourei: 302000,
+  zeihou: 403000,
+};
+const idCounters: Record<string, number> = { ...CATEGORY_ID_START };
+function allocId(category: string): number {
+  const id = idCounters[category] ?? 901000;
+  idCounters[category] = id + 1;
+  return id;
+}
+
 // ========================================
 // プロンプト生成関数
 // ========================================
@@ -114,7 +127,7 @@ function createPredictionPrompt(
 【難易度】${difficulty}
 ${difficultyDesc}
 
-【問題数】${Math.ceil(topic.count / 3)}問
+【問題数】${Math.min(5, Math.ceil(topic.count / 3))}問
 
 【出力形式】
 以下のTypeScript形式で、コメントなしで直接コードのみを出力してください:
@@ -154,7 +167,7 @@ export const ${category}PredictionQuestions_${topic.name.replace(/[・（）\s]/
     topic: "${topic.name}",
     tags: ["AI予想問題", "${topic.type}"]
   },
-  // 以下同様に${Math.ceil(topic.count / 3)}問すべて出力
+  // 以下同様に指定数の問すべて出力
 ];
 \`\`\`
 
@@ -166,7 +179,8 @@ export const ${category}PredictionQuestions_${topic.name.replace(/[・（）\s]/
 5. 実際の試験で出そうなリアルな問題を作成
 6. ${topic.type === 'latest' ? '最新の法改正や制度変更を反映' : ''}
 7. 引っかけ問題ではなく、正統的な良問を作成
-8. 各問題は独立しており、重複がないこと`;
+9. 実際の過去問の文言を複製・ほぼ同一の言い換えをしないこと（オリジナルの事例で出題）
+10. 各問題の事例・数値・登場人物を変え、問題文が互いに重複しないこと`;
 }
 
 // ========================================
@@ -241,9 +255,14 @@ function saveToFile(
   const sanitizedTopic = topic.replace(/[・（）\s]/g, '_');
   const fileName = `${sanitizedTopic}_${difficulty}.ts`;
   const filePath = path.join(baseDir, fileName);
+  const outPath = fs.existsSync(filePath)
+    ? path.join(baseDir, fileName.replace(/\.ts$/, '_b2.ts'))
+    : filePath;
 
-  fs.writeFileSync(filePath, content + '\n', 'utf-8');
-  console.log(`    ✅ 保存: ${fileName}`);
+  // 生成文中の id をカテゴリ名前空間の連番に振り直す
+  const remapped = content.replace(/"?id"?\s*:\s*\d+/g, () => `id: ${allocId(category)}`);
+  fs.writeFileSync(outPath, remapped + '\n', 'utf-8');
+  console.log(`    ✅ 保存: ${path.basename(outPath)}`);
 }
 
 // ========================================

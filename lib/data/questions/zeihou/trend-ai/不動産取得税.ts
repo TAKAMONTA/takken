@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_不動産取得税: Question[] = [
   {
-    "id": 100217,
+    "id": 400000,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "不動産取得税は市町村税であり、課税標準は固定資産税評価額である。",
@@ -22,7 +22,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100218,
+    "id": 400001,
     "question": "不動産取得税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "不動産取得税は新築住宅において、課税標準から1200万円が控除される。",
@@ -42,7 +42,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100219,
+    "id": 400002,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "不動産取得税の標準税率は、住宅用不動産に限り3%である。",
@@ -62,7 +62,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100220,
+    "id": 400003,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "AがBに新築住宅を2,000万円で購入した場合、課税標準から1,200万円の控除は受けられない。",
@@ -82,7 +82,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100221,
+    "id": 400004,
     "question": "不動産取得税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "CがDから土地を取得し、固定資産税評価額が8万円であった場合、不動産取得税は課されない。",
@@ -102,7 +102,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100222,
+    "id": 400005,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "IがJから住宅を購入し、固定資産税評価額が800万円の場合、課税標準は800万円となる。",
@@ -122,7 +122,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100223,
+    "id": 400006,
     "question": "不動産取得税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "不動産取得税は、取得した不動産の固定資産税評価額を基に計算される。",
@@ -142,7 +142,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100224,
+    "id": 400007,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "不動産取得税は、購入価格を基に計算される。",
@@ -162,7 +162,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100225,
+    "id": 400008,
     "question": "不動産取得税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "不動産取得税は国税であり、国が徴収するものである。",
@@ -182,7 +182,7 @@ export const trendAI_不動産取得税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100226,
+    "id": 400009,
     "question": "不動産取得税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "土地の不動産取得税は、固定資産税評価額が10万円以上の場合に課税される。",

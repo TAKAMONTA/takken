@@ -109,11 +109,11 @@ function FeatureLimitMessage({
       aiExplanationLimit: "AI解説",
       advancedAnalytics: "高度な分析",
       successPatternAnalysis: "合格者パターン分析",
-      spacedRepetition: "スペーシング復習",
+      spacedRepetition: "復習サポート",
       adFree: "広告非表示",
       offlineQuestions: "オフライン問題",
       customStudyPlans: "カスタム学習プラン",
-      pastExamYears: "過去問年数",
+      pastExamYears: "全問題アクセス",
     };
     return featureNames[feature] || feature;
   };

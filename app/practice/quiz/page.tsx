@@ -22,9 +22,6 @@ import { logger } from "@/lib/logger";
 import StudyInfoSection from "@/components/StudyInfoSection";
 import LessonScreen from "@/components/LessonScreen";
 import { getLessonForQuestion, getDefaultLesson } from "@/lib/data/lessons";
-import { requireCachedUserForCurrentAuth, setCachedUser } from "@/lib/auth-cache";
-import QuestionMetaBadges from "@/components/QuestionMetaBadges";
-import { firestoreService } from "@/lib/firestore-service";
 
 function QuizContent() {
   const router = useRouter();
@@ -53,14 +50,17 @@ function QuizContent() {
   const [showLesson, setShowLesson] = useState(isBeginnerMode);
 
   useEffect(() => {
+    const savedUser = localStorage.getItem("takken_user");
+    if (savedUser) {
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+    } else {
+      router.push("/");
+      return;
+    }
+
     // 問題を動的に取得
     const loadQuestions = async () => {
-      const cachedUser = await requireCachedUserForCurrentAuth<UserProfile>(() =>
-        router.push("/auth/login")
-      );
-      if (!cachedUser) return;
-      setUser(cachedUser);
-
       if (!categoryParam) return;
 
       try {
@@ -76,20 +76,23 @@ function QuizContent() {
 
         let selectedQuestions = [...categoryQuestions];
 
-        // 初級モードは「基礎」難易度を優先、中級は全難易度
+        // 初級: 頻出グレードA → 基礎難易度の順で優先
         if (isBeginnerMode) {
+          const gradeA = selectedQuestions.filter((q) => q.grade === "A");
           const basicQuestions = selectedQuestions.filter(
             (q) => q.difficulty === "基礎"
           );
-          // 基礎問題が十分あればそこから選ぶ
-          if (basicQuestions.length >= 5) {
+          if (gradeA.length >= 5) {
+            selectedQuestions = gradeA;
+          } else if (basicQuestions.length >= 5) {
             selectedQuestions = basicQuestions;
           }
         }
 
+        const sessionSize = isBeginnerMode ? 5 : 10;
         selectedQuestions = selectedQuestions
           .sort(() => Math.random() - 0.5)
-          .slice(0, Math.min(10, selectedQuestions.length));
+          .slice(0, Math.min(sessionSize, selectedQuestions.length));
 
         setQuestions(selectedQuestions);
 
@@ -164,26 +167,6 @@ function QuizContent() {
 
     // 1問解答するごとに記録を保存
     saveProgressAfterAnswer(isCorrect);
-
-    // per-question 習熟度記録（弱点克服・間隔反復の土台）
-    // fire-and-forget で UI を待たせない。失敗時も localStorage フォールバックで継続。
-    if (user?.id && currentQuestion) {
-      void firestoreService
-        .recordQuestionAnswer(user.id, {
-          questionId: Number(currentQuestion.id),
-          category: currentQuestion.category,
-          topic: currentQuestion.topic,
-          difficulty: currentQuestion.difficulty,
-          selectedAnswer: selectedAnswer as number,
-          correctAnswer: currentQuestion.correctAnswer,
-        })
-        .catch((err) => {
-          const e = err instanceof Error ? err : new Error(String(err));
-          logger.error("Failed to record question mastery", e, {
-            questionId: currentQuestion.id,
-          });
-        });
-    }
   };
 
   const saveProgressAfterAnswer = (isCorrect: boolean) => {
@@ -263,7 +246,7 @@ function QuizContent() {
     }
 
     setUser(updatedUser);
-    setCachedUser(updatedUser);
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
 
     // Analytics システムにも1問ずつ保存
     try {
@@ -321,9 +304,7 @@ function QuizContent() {
     // ユーザーデータを更新
     const updatedUser = { ...user };
 
-    // 学習履歴の sessions カウントのみ更新（questionsAnswered/correctAnswers/
-    // studyTimeMinutes は saveProgressAfterAnswer が既に1問ごと加算済み。
-    // ここで再加算すると2倍にカウントされる double-counting バグになる）
+    // 学習履歴を更新
     if (!updatedUser.studyHistory) {
       updatedUser.studyHistory = [];
     }
@@ -334,20 +315,21 @@ function QuizContent() {
     );
 
     if (todayRecord) {
+      todayRecord.questionsAnswered += questions.length;
+      todayRecord.correctAnswers += correctCount;
+      todayRecord.studyTimeMinutes += studyTimeMinutes;
       todayRecord.sessions += 1;
     } else {
-      // saveProgressAfterAnswer が走らなかったエッジケース用に最低限の record を作る
       updatedUser.studyHistory.push({
         date: today,
-        questionsAnswered: 0,
-        correctAnswers: 0,
+        questionsAnswered: questions.length,
+        correctAnswers: correctCount,
         studyTimeMinutes: studyTimeMinutes,
         sessions: 1,
       });
     }
 
-    // 総学習統計の totalSessions のみ更新（totalQuestions / totalCorrect /
-    // totalStudyTime は saveProgressAfterAnswer 側で per-question に加算済み）
+    // 総学習統計を更新
     if (!updatedUser.totalStats) {
       updatedUser.totalStats = {
         totalQuestions: 0,
@@ -357,6 +339,9 @@ function QuizContent() {
       };
     }
 
+    updatedUser.totalStats.totalQuestions += questions.length;
+    updatedUser.totalStats.totalCorrect += correctCount;
+    updatedUser.totalStats.totalStudyTime += studyTimeMinutes;
     updatedUser.totalStats.totalSessions += 1;
 
     // 連続学習日数を更新
@@ -394,7 +379,7 @@ function QuizContent() {
     }
 
     setUser(updatedUser);
-    setCachedUser(updatedUser);
+    localStorage.setItem("takken_user", JSON.stringify(updatedUser));
 
     // Analytics システムにも学習セッションを保存
     try {
@@ -433,7 +418,7 @@ function QuizContent() {
 
   if (!user || questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-2xl font-bold text-gray-600">Loading...</div>
       </div>
     );
@@ -463,24 +448,24 @@ function QuizContent() {
     const score = Math.round((correctCount / questions.length) * 100);
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
-        <div className="bg-white shadow-sm border-b">
-          <div className="max-w-md mx-auto px-4 py-4">
-            <h1 className="text-xl font-bold text-gray-800 text-center">
+      <div className="study-shell">
+        <div className="border-b border-study-border bg-white/90 backdrop-blur-sm">
+          <div className="mx-auto max-w-md px-4 py-4">
+            <h1 className="text-center text-xl font-bold text-study-ink">
               結果発表
             </h1>
           </div>
         </div>
 
-        <div className="max-w-md mx-auto px-4 py-8 space-y-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm text-center">
+        <div className="mx-auto max-w-md space-y-6 px-4 py-8">
+          <div className="study-card p-6 text-center">
             <div className="text-4xl mb-4">
               {score >= 80 ? "🎉" : score >= 60 ? "😊" : "😅"}
             </div>
 
             {/* レベルバッジ */}
             {isBeginnerMode && (
-              <span className="inline-block bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full mb-3">
+              <span className="mb-3 inline-block rounded-full bg-study-beginner-soft px-3 py-1 text-xs font-bold text-study-beginner">
                 🌱 初級モード
               </span>
             )}
@@ -488,7 +473,7 @@ function QuizContent() {
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               {correctCount}/{questions.length}問正解
             </h2>
-            <div className="text-3xl font-bold text-purple-600 mb-2">
+            <div className="text-3xl font-bold text-study-accent mb-2">
               {score}%
             </div>
             <p className="text-gray-600 mb-4">
@@ -504,8 +489,8 @@ function QuizContent() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="font-bold text-lg mb-4 text-gray-800">
+          <div className="study-card p-6">
+            <h3 className="mb-4 text-lg font-bold text-study-ink">
               📊 詳細結果
             </h3>
             <div className="space-y-3">
@@ -538,24 +523,54 @@ function QuizContent() {
             </div>
           </div>
 
+          <div className="study-card p-4 text-left">
+            <p className="mb-1 text-sm font-medium text-study-ink">次のアクション</p>
+            <p className="text-sm text-study-muted">
+              正答率 {score}%
+              {score < 70
+                ? " — 弱点分野の復習がおすすめです"
+                : " — 模試で実力を確認しましょう"}
+            </p>
+          </div>
+
           <div className="space-y-3">
+            <Link
+              href={`/practice/quiz?category=${categoryParam}${subcategoryParam ? `&subcategory=${subcategoryParam}` : ""}${isBeginnerMode ? "&level=beginner" : ""}`}
+            >
+              <button className="study-btn">
+                もう1セット
+              </button>
+            </Link>
             {/* 初級で好成績なら中級への誘導 */}
             {isBeginnerMode && score >= 70 && (
               <Link
                 href={`/practice/quiz?category=${categoryParam}&subcategory=${subcategoryParam}&level=intermediate`}
               >
-                <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button mb-2">
+                <button className="study-btn mb-2">
                   🔥 中級に挑戦する
                 </button>
               </Link>
             )}
+            {score < 70 ? (
+              <Link href="/weak-points">
+                <button className="study-btn">
+                  弱点克服へ進む
+                </button>
+              </Link>
+            ) : (
+              <Link href="/mock-exam">
+                <button className="study-btn">
+                  模試（50問）に挑戦
+                </button>
+              </Link>
+            )}
             <Link href="/practice">
-              <button className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button">
-                もう一度挑戦する
+              <button className="study-btn-secondary">
+                分野一覧へ
               </button>
             </Link>
             <Link href="/dashboard">
-              <button className="w-full bg-gray-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-gray-700 transition-colors !rounded-button">
+              <button className="study-btn-secondary">
                 ホームに戻る
               </button>
             </Link>
@@ -567,55 +582,56 @@ function QuizContent() {
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-2xl font-bold text-gray-600">Loading...</div>
       </div>
     );
   }
 
-  // テーマカラー（初級=エメラルド、中級=パープル）
-  const themeColor = isBeginnerMode ? "emerald" : "purple";
-  const bgGradient = isBeginnerMode
-    ? "from-emerald-50 to-blue-50"
-    : "from-blue-50 to-purple-50";
-
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${bgGradient}`}>
+    <div className="study-shell">
       {/* ヘッダー */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/practice" className="text-purple-600">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <i className="ri-arrow-left-line text-xl"></i>
-              </div>
+      <div className="sticky top-0 z-20 border-b border-study-border bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto max-w-md px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href="/dashboard"
+              className="tap-target inline-flex items-center gap-1 rounded-lg px-2 text-sm font-medium text-study-accent"
+            >
+              <span aria-hidden>←</span>
+              <span>ホーム</span>
             </Link>
-            <div className="text-center">
+            <div className="min-w-0 text-center">
               <div className="flex items-center justify-center gap-2">
                 {isBeginnerMode && (
-                  <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-study-beginner-soft px-1.5 py-0.5 text-[10px] font-bold text-study-beginner">
                     初級
                   </span>
                 )}
-                <div className="text-sm text-gray-500">
+                <div className="text-sm font-medium text-study-ink">
                   {currentQuestionIndex + 1} / {questions.length}
                 </div>
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-study-muted">
                 残り時間: {formatTime(timeLeft)}
               </div>
             </div>
-            <div className="w-5"></div>
+            <Link
+              href="/practice"
+              className="tap-target inline-flex items-center justify-center rounded-lg px-2 text-xs font-medium text-study-muted"
+            >
+              一覧
+            </Link>
           </div>
         </div>
       </div>
 
       {/* プログレスバー */}
-      <div className="max-w-md mx-auto px-4 py-2">
-        <div className="bg-gray-200 rounded-full h-2">
+      <div className="mx-auto max-w-md px-4 py-3">
+        <div className="h-2.5 rounded-full bg-study-border">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
-              isBeginnerMode ? "bg-emerald-500" : "bg-purple-500"
+            className={`h-2.5 rounded-full transition-all duration-300 ${
+              isBeginnerMode ? "bg-study-beginner" : "bg-study-accent"
             }`}
             style={{
               width: `${
@@ -627,9 +643,17 @@ function QuizContent() {
       </div>
 
       {/* 問題表示 */}
-      <div className="max-w-md mx-auto px-4 py-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <QuestionMetaBadges question={currentQuestion} className="mb-4" />
+      <div className="mx-auto max-w-md px-4 py-6 pb-safe">
+        <div className="study-card p-5 sm:p-6">
+          {/* 問題情報 */}
+          <div className="flex items-center justify-between mb-4 text-xs">
+            <span className="rounded bg-study-accent-soft px-2 py-1 text-study-accent">
+              {currentQuestion.category}
+            </span>
+            <span className="text-gray-500">
+              {currentQuestion.year} {currentQuestion.difficulty}
+            </span>
+          </div>
 
           {/* 問題文 */}
           <div className="mb-6">
@@ -712,48 +736,46 @@ function QuizContent() {
             )}
 
           {/* 選択肢 */}
-          <div className="space-y-3 mb-6">
+          <div className="mb-6 space-y-3">
             {currentQuestion.options.map((option: string, index: number) => (
               <button
                 key={index}
                 onClick={() => handleAnswerSelect(index)}
                 disabled={showExplanation}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all !rounded-button ${
+                className={`study-option ${
                   showExplanation
                     ? index === currentQuestion.correctAnswer
                       ? "border-green-500 bg-green-50"
                       : selectedAnswer === index
                       ? "border-red-500 bg-red-50"
-                      : "border-gray-200"
+                      : ""
                     : selectedAnswer === index
                     ? isBeginnerMode
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-purple-500 bg-purple-50"
-                    : "border-gray-200 hover:border-purple-300"
+                      ? "study-option-beginner-selected"
+                      : "study-option-selected"
+                    : ""
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
-                      showExplanation
-                        ? index === currentQuestion.correctAnswer
-                          ? "border-green-500 bg-green-500 text-white"
-                          : selectedAnswer === index
-                          ? "border-red-500 bg-red-500 text-white"
-                          : "border-gray-300"
+                <div
+                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold ${
+                    showExplanation
+                      ? index === currentQuestion.correctAnswer
+                        ? "border-green-500 bg-green-500 text-white"
                         : selectedAnswer === index
-                        ? isBeginnerMode
-                          ? "border-emerald-500 bg-emerald-500 text-white"
-                          : "border-purple-500 bg-purple-500 text-white"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {index + 1}
-                  </div>
-                  <span className="text-sm text-gray-800 flex-1">
-                    {option}
-                  </span>
+                        ? "border-red-500 bg-red-500 text-white"
+                        : "border-study-border text-study-muted"
+                      : selectedAnswer === index
+                      ? isBeginnerMode
+                        ? "border-study-beginner bg-study-beginner text-white"
+                        : "border-study-accent bg-study-accent text-white"
+                      : "border-study-border text-study-muted"
+                  }`}
+                >
+                  {index + 1}
                 </div>
+                <span className="flex-1 text-[15px] leading-relaxed text-study-ink">
+                  {option}
+                </span>
               </button>
             ))}
           </div>
@@ -765,9 +787,6 @@ function QuizContent() {
               isCorrect={selectedAnswer === currentQuestion.correctAnswer}
               correctAnswer={currentQuestion.correctAnswer}
               options={currentQuestion.options}
-              relatedArticles={currentQuestion.relatedArticles}
-              topic={currentQuestion.topic}
-              source={currentQuestion.source}
               className="mb-6"
             />
           )}
@@ -785,22 +804,14 @@ function QuizContent() {
               <button
                 onClick={handleAnswerSubmit}
                 disabled={selectedAnswer === null}
-                className={`w-full text-white py-3 px-6 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed !rounded-button ${
-                  isBeginnerMode
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-purple-600 hover:bg-purple-700"
-                }`}
+                className={`${isBeginnerMode ? "study-btn-beginner" : "study-btn"} disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 回答する
               </button>
             ) : (
               <button
                 onClick={handleNextQuestion}
-                className={`w-full text-white py-3 px-6 rounded-lg font-bold transition-colors !rounded-button ${
-                  isBeginnerMode
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-purple-600 hover:bg-purple-700"
-                }`}
+                className={isBeginnerMode ? "study-btn-beginner" : "study-btn"}
               >
                 {currentQuestionIndex < questions.length - 1
                   ? isBeginnerMode
@@ -815,7 +826,7 @@ function QuizContent() {
                   saveResults();
                   router.push("/dashboard");
                 }}
-                className="w-full bg-gray-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-gray-700 transition-colors !rounded-button"
+                className="study-btn-secondary"
               >
                 学習記録を保存してトップページに戻る
               </button>
@@ -838,7 +849,7 @@ export default function Quiz() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="study-shell flex items-center justify-center">
           <div className="text-2xl font-bold text-gray-600">Loading...</div>
         </div>
       }

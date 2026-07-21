@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signInWithEmailAndPassword, OAuthProvider } from "firebase/auth";
@@ -16,6 +16,40 @@ export default function Login() {
   });
   const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
+
+  const [showPreviewLogin, setShowPreviewLogin] = useState(false);
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    setShowPreviewLogin(host === "localhost" || host === "127.0.0.1");
+  }, []);
+
+  /** ローカル開発・シミュレータ Safari 向け見た目確認（本番では非表示） */
+  const handlePreviewLogin = () => {
+    const userData = {
+      id: "preview-user",
+      uid: "preview-user",
+      username: "確認用",
+      name: "確認用",
+      email: "preview@localhost",
+      joinedAt: new Date().toISOString(),
+      streak: {
+        currentStreak: 3,
+        longestStreak: 3,
+        lastStudyDate: new Date().toISOString().slice(0, 10),
+        studyDates: [],
+      },
+      progress: {
+        totalQuestions: 0,
+        correctAnswers: 0,
+        studyTimeMinutes: 0,
+        categoryProgress: {},
+      },
+      learningRecords: [],
+    };
+    localStorage.setItem("takken_user", JSON.stringify(userData));
+    router.push("/dashboard");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +243,11 @@ export default function Login() {
       const { initializeFirebase } = await import(
         "../../../lib/firebase-client"
       );
-      const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+      const {
+        GoogleAuthProvider,
+        signInWithPopup,
+        signInWithRedirect,
+      } = await import("firebase/auth");
 
       const firebaseInstance = await Promise.resolve(initializeFirebase());
       const { auth } = firebaseInstance;
@@ -222,6 +260,13 @@ export default function Login() {
       }
 
       const provider = new GoogleAuthProvider();
+      // iOS Safari / モバイルでは popup が operation-not-supported になる
+      const ua = navigator.userAgent || "";
+      const preferRedirect = /iPhone|iPad|iPod|Android/i.test(ua);
+      if (preferRedirect) {
+        await signInWithRedirect(auth as any, provider);
+        return;
+      }
       const userCred = await signInWithPopup(auth as any, provider);
       await persistTakkenSessionFromFirebaseUser(userCred.user, router);
     } catch (error: unknown) {
@@ -265,7 +310,7 @@ export default function Login() {
         return;
       }
 
-      if (Capacitor.getPlatform() === "ios") {
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
         const { SignInWithApple } = await import(
           "@capacitor-community/apple-sign-in"
         );
@@ -440,6 +485,16 @@ export default function Login() {
                 <span className="text-2xl">🚀</span>
                 <span>Googleでログイン</span>
               </button>
+
+              {showPreviewLogin && (
+                <button
+                  type="button"
+                  onClick={handlePreviewLogin}
+                  className="mt-3 w-full rounded-lg border border-dashed border-study-border bg-study-accent-soft/40 py-4 text-base font-medium text-study-ink"
+                >
+                  見た目確認用で入る（開発のみ）
+                </button>
+              )}
 
               <div className="mt-8 text-center">
                 <p className="text-sm text-muted-foreground">

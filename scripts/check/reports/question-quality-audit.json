@@ -1,0 +1,15 @@
+{
+  "scannedAt": "2026-07-20T11:49:48.850Z",
+  "totalQuestions": 1039,
+  "issueCount": 0,
+  "byPriority": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "issues": [],
+  "publishedCount": 1039,
+  "stillInPoolButQuarantined": 0,
+  "criticalQuestionIds": []
+}

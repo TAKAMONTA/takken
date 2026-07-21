@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_固定資産税: Question[] = [
   {
-    "id": 100227,
+    "id": 400010,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "固定資産税は毎年4月1日現在の所有者に課税される。",
@@ -22,7 +22,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100228,
+    "id": 400011,
     "question": "固定資産税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "固定資産税は東京23区では都税として扱われる。",
@@ -42,7 +42,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100229,
+    "id": 400012,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "固定資産税は、土地と建物に対してのみ課税され、償却資産には課税されない。",
@@ -62,7 +62,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100230,
+    "id": 400013,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aが2023年12月31日に所有する土地をBに売却し、引渡しを完了した場合、2024年の固定資産税はBが負担する。",
@@ -82,7 +82,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100231,
+    "id": 400014,
     "question": "固定資産税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "Fが2024年1月2日に新築した住宅には、一定期間、税額の軽減措置が適用される。",
@@ -102,7 +102,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100232,
+    "id": 400015,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Jが2023年12月に新築した住宅の固定資産税は3年間、税率が0.7%に軽減される。",
@@ -122,7 +122,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100233,
+    "id": 400016,
     "question": "固定資産税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "Nが所有する住宅用地は、面積に応じて課税標準が1/6または1/3に軽減される。",
@@ -142,7 +142,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100234,
+    "id": 400017,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Rが2023年12月31日に所有する土地は、翌年の固定資産税がRに課される。",
@@ -162,7 +162,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100235,
+    "id": 400018,
     "question": "固定資産税に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "固定資産税は、1月1日現在の所有者ではなく、4月1日現在の所有者に課税される。",
@@ -182,7 +182,7 @@ export const trendAI_固定資産税: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100236,
+    "id": 400019,
     "question": "固定資産税に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "固定資産税は市町村税であり、東京23区の場合は都税として課税される。",

@@ -18,6 +18,10 @@ import StudyInfoSection from "@/components/StudyInfoSection";
 import { UserProfile } from "@/lib/types";
 import SubscriptionBadge from "@/components/SubscriptionBadge";
 import AIUsageIndicator from "@/components/AIUsageIndicator";
+import {
+  getTodayQuestionsAnswered,
+  getWeaknessItems,
+} from "@/lib/weakness-helper";
 
 // シンプルな学習オプション
 const quickActions = [
@@ -34,6 +38,13 @@ const quickActions = [
     icon: "ri-target-line",
     description: "苦手な問題を再挑戦",
     route: "/weak-points",
+  },
+  {
+    id: "mock-exam",
+    title: "模試",
+    icon: "ri-file-list-3-line",
+    description: "本番配分50問で実力チェック",
+    route: "/mock-exam",
   },
 ];
 
@@ -239,22 +250,22 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="study-shell">
       {/* シンプルなヘッダー */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4 space-y-3">
+      <header className="border-b border-study-border bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto max-w-md space-y-3 px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-study-accent">
+                <span className="text-lg font-bold text-white">
                   {user?.name?.charAt(0) || "U"}
                 </span>
               </div>
               <div>
-                <h1 className="text-lg font-medium text-gray-900">
+                <h1 className="text-lg font-semibold text-study-ink">
                   こんにちは、{user?.name || "ユーザー"}さん！
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-study-muted">
                   今日も学習を頑張りましょう
                 </p>
               </div>
@@ -265,56 +276,39 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 pb-24">
+      <main className="mx-auto max-w-md px-4 py-6 pb-safe-nav">
         {/* 植物機能は削除 */}
 
         {/* AI Teacher Section */}
         <section className="mb-6">
           <AITeacher
             userContext={userContext}
-            className="bg-white rounded-lg border border-gray-200"
+            className="study-card"
           />
         </section>
 
         {/* 学習進捗セクション */}
         <section className="mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center">
-                <div className="text-green-600 text-2xl mr-3">📈</div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">学習進捗</h3>
-                  <p className="text-sm text-gray-600">今日の学習状況を確認</p>
-                </div>
+          <div className="study-card p-4">
+            <div className="mb-3 flex items-center">
+              <div className="mr-3 text-2xl text-study-accent">📈</div>
+              <div>
+                <h3 className="font-semibold text-study-ink">学習進捗</h3>
+                <p className="text-sm text-study-muted">今日の学習状況を確認</p>
               </div>
-              <Link href="/stats/progress">
-                <div className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-gray-50 rounded">
-                <p className="text-2xl font-bold text-green-600">
+              <div className="rounded-lg bg-study-accent-soft p-3 text-center">
+                <p className="text-2xl font-bold text-study-accent">
                   {userContext.streak}
                 </p>
-                <p className="text-sm text-gray-600">連続学習日数</p>
+                <p className="text-sm text-study-muted">連続学習日数</p>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded">
-                <p className="text-2xl font-bold text-blue-600">0</p>
-                <p className="text-sm text-gray-600">今日の問題数</p>
+              <div className="rounded-lg bg-study-accent-soft p-3 text-center">
+                <p className="text-2xl font-bold text-study-accent">
+                  {getTodayQuestionsAnswered(user)}
+                </p>
+                <p className="text-sm text-study-muted">今日の問題数</p>
               </div>
             </div>
           </div>
@@ -322,19 +316,19 @@ export default function Dashboard() {
 
         {/* 苦手分野セクション */}
         <section className="mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
+          <div className="study-card p-4">
+            <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center">
-                <div className="text-orange-600 text-2xl mr-3">🎯</div>
+                <div className="mr-3 text-2xl text-study-accent">🎯</div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">苦手分野</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="font-semibold text-study-ink">苦手分野</h3>
+                  <p className="text-sm text-study-muted">
                     重点的に学習すべき分野
                   </p>
                 </div>
               </div>
               <Link href="/weak-points">
-                <div className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <div className="cursor-pointer text-study-muted hover:text-study-ink">
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -351,21 +345,65 @@ export default function Dashboard() {
                 </div>
               </Link>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded">
-              <p className="text-sm text-orange-700">
-                苦手分野を特定するには、まず問題を解いてみましょう
-              </p>
-            </div>
+            {(() => {
+              const items = user ? getWeaknessItems(user.id) : [];
+              const top = items[0];
+              if (!top || top.isDefault) {
+                return (
+                  <div className="rounded-lg bg-study-accent-soft p-3 text-center">
+                    <p className="mb-2 text-sm text-study-ink">
+                      まずは宅建業法から始めてみましょう
+                    </p>
+                    <Link
+                      href="/practice/quiz?category=takkengyouhou&level=beginner"
+                      className="inline-block text-sm font-medium text-study-accent"
+                    >
+                      基礎5問を解く →
+                    </Link>
+                  </div>
+                );
+              }
+              return (
+                <div className="rounded-lg bg-study-accent-soft p-3">
+                  <p className="text-sm font-medium text-study-ink">
+                    {top.icon} {top.name}（正答率 {top.accuracy}%）
+                  </p>
+                  <p className="mb-2 mt-1 text-xs text-study-muted">{top.reason}</p>
+                  <Link
+                    href={`/weak-points`}
+                    className="text-sm font-medium text-study-accent"
+                  >
+                    弱点克服を始める →
+                  </Link>
+                </div>
+              );
+            })()}
           </div>
+        </section>
+
+        {/* 初回ワンタップ */}
+        <section className="mb-6">
+          <Link href="/practice/quiz?category=takkengyouhou&level=beginner">
+            <div className="study-cta">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="mb-1 text-sm text-white/80">今日のおすすめ（頻出A）</p>
+                  <p className="text-lg font-bold">宅建業法 基礎をサクッと</p>
+                  <p className="mt-1 text-sm text-white/80">約5問・ワンタップで開始</p>
+                </div>
+                <i className="ri-play-circle-fill text-4xl text-white/70"></i>
+              </div>
+            </div>
+          </Link>
         </section>
 
         {/* Study Menu */}
         <section className="mb-8">
           <div className="text-center mb-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="mb-2 text-xl font-bold text-study-ink">
               学習を始めよう
             </h3>
-            <p className="text-gray-600">
+            <p className="text-study-muted">
               宅建試験の合格を目指して学習しましょう
             </p>
           </div>
@@ -374,7 +412,7 @@ export default function Dashboard() {
             {quickActions.map((action, index) => (
               <Link key={action.id} href={action.route}>
                 <motion.div
-                  className="bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+                  className="study-card p-4 transition-colors hover:bg-study-accent-soft/50"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
@@ -382,14 +420,14 @@ export default function Dashboard() {
                   whileTap={{ scale: 0.99 }}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <i className={`${action.icon} text-primary text-lg`}></i>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-study-accent-soft">
+                      <i className={`${action.icon} text-xl text-study-accent`} aria-hidden />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">
+                      <h4 className="mb-1 font-medium text-study-ink">
                         {action.title}
                       </h4>
-                      <p className="text-gray-600 text-sm">
+                      <p className="text-sm text-study-muted">
                         {action.description}
                       </p>
                     </div>
@@ -405,7 +443,7 @@ export default function Dashboard() {
         <section className="mb-6">
           <Link href="/subscription/pricing">
             <motion.div
-              className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg p-4 text-white shadow-lg"
+              className="study-premium"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -455,7 +493,7 @@ export default function Dashboard() {
         <footer className="mt-8 pt-6 border-t border-gray-200">
           <div className="text-center space-y-2">
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
-              <Link href="/subscription/pricing" className="hover:text-gray-700 font-medium text-purple-600">
+              <Link href="/subscription/pricing" className="font-medium text-study-accent hover:opacity-80">
                 料金プラン
               </Link>
               <Link href="/legal" className="hover:text-gray-700">
@@ -476,45 +514,28 @@ export default function Dashboard() {
       </main>
 
       {/* シンプルなボトムナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="max-w-md mx-auto px-4">
-          <div className="flex justify-around items-center h-16">
-            <Link
-              href="/dashboard"
-              className="flex flex-col items-center space-y-1 text-blue-600"
-            >
-              <i className="ri-home-line text-xl"></i>
-              <span className="text-xs">ホーム</span>
-            </Link>
-            <Link
-              href="/practice"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-book-open-line text-xl"></i>
-              <span className="text-xs">学習</span>
-            </Link>
-            <Link
-              href="/subscription/pricing"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-vip-crown-line text-xl"></i>
-              <span className="text-xs">プラン</span>
-            </Link>
-            <Link
-              href="/stats"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-bar-chart-line text-xl"></i>
-              <span className="text-xs">分析</span>
-            </Link>
-            <Link
-              href="/profile"
-              className="flex flex-col items-center space-y-1 text-gray-600 hover:text-gray-900"
-            >
-              <i className="ri-user-line text-xl"></i>
-              <span className="text-xs">設定</span>
-            </Link>
-          </div>
+      <nav className="study-bottom-nav" aria-label="メインメニュー">
+        <div className="study-bottom-nav-inner">
+          <Link href="/dashboard" className="study-nav-item study-nav-item-active">
+            <i className="ri-home-line text-xl"></i>
+            <span>ホーム</span>
+          </Link>
+          <Link href="/practice" className="study-nav-item">
+            <i className="ri-book-open-line text-xl"></i>
+            <span>学習</span>
+          </Link>
+          <Link href="/mock-exam" className="study-nav-item">
+            <i className="ri-file-list-3-line text-xl"></i>
+            <span>模試</span>
+          </Link>
+          <Link href="/weak-points" className="study-nav-item">
+            <i className="ri-target-line text-xl"></i>
+            <span>弱点</span>
+          </Link>
+          <Link href="/profile" className="study-nav-item">
+            <i className="ri-user-line text-xl"></i>
+            <span>設定</span>
+          </Link>
         </div>
       </nav>
     </div>

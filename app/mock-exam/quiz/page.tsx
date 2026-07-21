@@ -265,7 +265,7 @@ function MockExamQuizContent() {
     answers.filter((answer) => answer !== null).length;
 
   const getRank = (percentage: number) => {
-    if (percentage >= 85) return { rank: "S", color: "bg-purple-500" };
+    if (percentage >= 85) return { rank: "S", color: "bg-study-accent" };
     if (percentage >= 75) return { rank: "A", color: "bg-green-500" };
     if (percentage >= 65) return { rank: "B", color: "bg-blue-500" };
     if (percentage >= 50) return { rank: "C", color: "bg-orange-500" };
@@ -274,7 +274,7 @@ function MockExamQuizContent() {
 
   if (!user || questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-2xl font-bold text-gray-600">Loading...</div>
       </div>
     );
@@ -290,7 +290,7 @@ function MockExamQuizContent() {
     const rankInfo = getRank(score);
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
+      <div className="study-shell">
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-md mx-auto px-4 py-4">
             <h1 className="text-xl font-bold text-gray-800 text-center">
@@ -301,7 +301,7 @@ function MockExamQuizContent() {
 
         <div className="max-w-md mx-auto px-4 py-8 space-y-6">
           {/* 総合結果 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm text-center">
+          <div className="study-card p-6 text-center">
             <div
               className={`w-16 h-16 rounded-full ${rankInfo.color} text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4`}
             >
@@ -310,7 +310,7 @@ function MockExamQuizContent() {
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               {correctCount}/{questions.length}問正解
             </h2>
-            <div className="text-4xl font-bold text-purple-600 mb-4">
+            <div className="mb-4 text-4xl font-bold text-study-accent">
               {score}%
             </div>
             {/* 本試験50問モードのみ、35点ボーダーで明示的な合否判定を出す */}
@@ -326,9 +326,9 @@ function MockExamQuizContent() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-purple-50 rounded-lg p-3">
+              <div className="rounded-lg bg-study-accent-soft p-3">
                 <div className="text-sm text-gray-700">獲得XP</div>
-                <div className="text-xl font-bold text-purple-600">
+                <div className="text-xl font-bold text-study-accent">
                   +{xpEarned}
                 </div>
               </div>
@@ -342,7 +342,7 @@ function MockExamQuizContent() {
           </div>
 
           {/* 分野別結果 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="study-card p-6">
             <h3 className="font-bold text-lg mb-4 text-gray-800">
               📊 分野別成績
             </h3>
@@ -400,7 +400,7 @@ function MockExamQuizContent() {
           </div>
 
           {/* 問題別詳細 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="study-card p-6">
             <h3 className="font-bold text-lg mb-4 text-gray-800">
               📝 問題別結果
             </h3>
@@ -441,7 +441,7 @@ function MockExamQuizContent() {
           </div>
 
           {/* 解説表示 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="study-card p-6">
             <h3 className="font-bold text-lg mb-4 text-gray-800">
               📚 解説・復習
             </h3>
@@ -480,7 +480,7 @@ function MockExamQuizContent() {
                       {question.question}
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4">
+                    <div className="rounded-lg border-l-4 border-study-accent bg-study-accent-soft p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                           <span className="text-white text-xs font-bold">
@@ -526,7 +526,7 @@ function MockExamQuizContent() {
 
           <div className="space-y-3">
             <Link href="/mock-exam">
-              <button className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-red-700 transition-colors !rounded-button">
+              <button className="study-btn">
                 もう一度挑戦する
               </button>
             </Link>
@@ -535,12 +535,12 @@ function MockExamQuizContent() {
                 saveResults();
                 router.push("/dashboard");
               }}
-              className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-purple-700 transition-colors !rounded-button"
+              className="study-btn"
             >
               学習記録を保存してトップページに戻る
             </button>
             <Link href="/dashboard">
-              <button className="w-full bg-gray-600 text-white py-3 px-6 rounded-lg font-bold hover:bg-gray-700 transition-colors !rounded-button">
+              <button className="study-btn-secondary">
                 ホームに戻る
               </button>
             </Link>
@@ -553,23 +553,39 @@ function MockExamQuizContent() {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
+    <div className="study-shell">
       {/* ヘッダー */}
-      <div className="bg-white shadow-sm border-b fixed top-0 w-full z-10">
-        <div className="max-w-md mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              問題 {currentQuestionIndex + 1}/{questions.length}
-            </div>
-            <div className="text-center">
+      <div className="fixed top-0 z-20 w-full border-b border-study-border bg-white/95 backdrop-blur-sm" style={{ paddingTop: "var(--safe-top)" }}>
+        <div className="mx-auto max-w-md px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "模試を中断してホームに戻りますか？\n途中の回答は保存されません。"
+                  )
+                ) {
+                  router.push("/dashboard");
+                }
+              }}
+              className="tap-target inline-flex items-center gap-1 rounded-lg px-2 text-sm font-medium text-study-accent"
+            >
+              <span aria-hidden>←</span>
+              <span>ホーム</span>
+            </button>
+            <div className="min-w-0 text-center">
+              <div className="text-sm font-medium text-study-ink">
+                問題 {currentQuestionIndex + 1}/{questions.length}
+              </div>
               {totalTime > 0 && (
-                <div className={`text-lg font-bold ${getTimeColor()}`}>
+                <div className={`text-xs font-bold ${getTimeColor()}`}>
                   ⏰ {formatTime(timeLeft)}
                 </div>
               )}
             </div>
-            <div className="text-sm text-gray-600">
-              回答済: {getAnsweredCount()}/{questions.length}
+            <div className="min-w-[4.5rem] text-right text-xs text-study-muted">
+              回答済 {getAnsweredCount()}/{questions.length}
             </div>
           </div>
         </div>
@@ -577,10 +593,10 @@ function MockExamQuizContent() {
 
       <div className="max-w-md mx-auto px-4 pt-20 pb-24">
         {/* 問題表示 */}
-        <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <div className="study-card p-6 mb-6">
           {/* 問題情報 */}
           <div className="flex items-center justify-between mb-4 text-xs">
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            <span className="rounded bg-study-accent-soft px-2 py-1 text-study-accent">
               {currentQuestion.category}
             </span>
             <span className="text-gray-500">
@@ -601,21 +617,21 @@ function MockExamQuizContent() {
               <button
                 key={index}
                 onClick={() => handleAnswerSelect(currentQuestionIndex, index)}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all !rounded-button ${
+                className={`study-option !rounded-button ${
                   selectedAnswer === index
-                    ? "border-purple-500 bg-purple-50"
+                    ? "border-study-accent bg-study-accent-soft"
                     : answers[currentQuestionIndex] === index
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-purple-300"
+                    ? "border-study-accent bg-study-accent-soft"
+                    : "border-study-border hover:border-study-accent"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
                       selectedAnswer === index
-                        ? "border-purple-500 bg-purple-500 text-white"
+                        ? "border-study-accent bg-study-accent text-white"
                         : answers[currentQuestionIndex] === index
-                        ? "border-blue-500 bg-blue-500 text-white"
+                        ? "border-study-accent bg-study-accent text-white"
                         : "border-gray-300"
                     }`}
                   >
@@ -629,7 +645,7 @@ function MockExamQuizContent() {
         </div>
 
         {/* 問題一覧 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
+        <div className="study-card mb-6 p-4">
           <h3 className="font-bold text-sm mb-3 text-gray-800">問題一覧</h3>
           <div className="grid grid-cols-10 gap-1">
             {questions.map((_, index) => (
@@ -638,9 +654,9 @@ function MockExamQuizContent() {
                 onClick={() => handleQuestionJump(index)}
                 className={`w-8 h-8 rounded text-xs font-bold transition-all !rounded-button ${
                   index === currentQuestionIndex
-                    ? "bg-purple-600 text-white"
+                    ? "bg-study-accent text-white"
                     : answers[index] !== null
-                    ? "bg-blue-500 text-white"
+                    ? "bg-study-beginner text-white"
                     : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                 }`}
               >
@@ -652,7 +668,7 @@ function MockExamQuizContent() {
       </div>
 
       {/* ボトム操作パネル */}
-      <div className="bg-white border-t fixed bottom-0 w-full">
+      <div className="fixed bottom-0 w-full border-t border-study-border bg-white/95 backdrop-blur-sm" style={{ paddingBottom: "var(--safe-bottom)" }}>
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex gap-2">
             <button
@@ -660,7 +676,7 @@ function MockExamQuizContent() {
                 setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))
               }
               disabled={currentQuestionIndex === 0}
-              className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed !rounded-button"
+              className="study-btn-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
             >
               前の問題
             </button>
@@ -668,7 +684,7 @@ function MockExamQuizContent() {
             {currentQuestionIndex === questions.length - 1 ? (
               <button
                 onClick={handleSubmitExam}
-                className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-medium !rounded-button"
+                className="study-btn flex-1"
               >
                 提出する
               </button>
@@ -679,7 +695,7 @@ function MockExamQuizContent() {
                     Math.min(questions.length - 1, currentQuestionIndex + 1)
                   )
                 }
-                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg font-medium !rounded-button"
+                className="study-btn flex-1"
               >
                 次の問題
               </button>
@@ -695,7 +711,7 @@ export default function MockExamQuiz() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="study-shell flex items-center justify-center">
           <div className="text-2xl font-bold text-gray-600">Loading...</div>
         </div>
       }

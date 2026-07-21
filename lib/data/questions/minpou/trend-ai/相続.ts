@@ -2,7 +2,7 @@ import { Question } from '@/lib/types/quiz';
 
 export const trendAI_相続: Question[] = [
   {
-    "id": 100090,
+    "id": 200040,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aが死亡し、その法定相続人が配偶者Bと子C、Dである場合、法定相続分は配偶者Bが1/2、子CとDがそれぞれ1/4である。",
@@ -22,7 +22,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100091,
+    "id": 200041,
     "question": "相続に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "遺言により、相続財産の一部を特定の相続人に全て分け与えることができる。",
@@ -42,7 +42,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100092,
+    "id": 200042,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aの遺言が自筆証書遺言であった場合、家庭裁判所の検認が不要である。",
@@ -62,7 +62,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100093,
+    "id": 200043,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aが死亡し、相続人として配偶者Bと子Cがいる場合、法定相続分はBが3分の1、Cが3分の2である。",
@@ -82,7 +82,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100094,
+    "id": 200044,
     "question": "相続に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "Aが死亡し、相続人として配偶者Bと子C、Dがいる場合、法定相続分はBが2分の1、CとDがそれぞれ4分の1である。",
@@ -102,7 +102,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100095,
+    "id": 200045,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aが死亡し、法定相続人として配偶者Bと父親Cがいる場合、Bの法定相続分は3分の2である。",
@@ -122,7 +122,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100096,
+    "id": 200046,
     "question": "相続に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "遺言による遺産の分配が法定相続分に従わない場合でも、遺留分を侵害しなければ問題はない。",
@@ -142,7 +142,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100097,
+    "id": 200047,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "遺言は書面で作成されていれば、その形式に関係なく常に有効である。",
@@ -162,7 +162,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100098,
+    "id": 200048,
     "question": "相続に関する次の記述のうち、正しいものはどれか。",
     "options": [
       "Aが死亡し、遺言で全財産を友人Bに譲ると記されていたが、Aの法定相続人である子Cがいる場合、Cは必ず遺留分を請求できる。",
@@ -182,7 +182,7 @@ export const trendAI_相続: Question[] = [
     "frequency": "A"
   },
   {
-    "id": 100099,
+    "id": 200049,
     "question": "相続に関する次の記述のうち、誤っているものはどれか。",
     "options": [
       "Aが死亡した際に、相続財産が債務超過であるため、相続人Bは相続を放棄することができる。",

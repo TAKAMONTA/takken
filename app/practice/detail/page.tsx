@@ -211,7 +211,7 @@ function DetailContent() {
 
   if (!category) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="study-shell flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">カテゴリが見つかりません</p>
           <Link href="/practice">
@@ -223,20 +223,20 @@ function DetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="study-shell">
       {/* シンプルなヘッダー */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
+      <header className="border-b border-study-border bg-white/90 backdrop-blur-sm">
+        <div className="mx-auto max-w-md px-4 py-4">
           <div className="flex items-center space-x-3">
             <Link
               href="/practice"
-              className="text-gray-600 hover:text-gray-900"
+              className="tap-target flex items-center justify-center text-study-muted hover:text-study-ink"
             >
               <i className="ri-arrow-left-line text-xl"></i>
             </Link>
             <div className="flex items-center space-x-2">
               <span className="text-lg">{category.icon}</span>
-              <h1 className="text-lg font-medium text-gray-900">
+              <h1 className="text-lg font-semibold text-study-ink">
                 {category.name}
               </h1>
             </div>
@@ -244,24 +244,24 @@ function DetailContent() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6">
+      <main className="mx-auto max-w-md px-4 py-6 pb-safe">
         {/* レベル選択 */}
         <div className="mb-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-3">
+          <h2 className="mb-3 text-sm font-medium text-study-muted">
             学習レベルを選択
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {/* 初級 */}
             <button
               onClick={() => setSelectedLevel("beginner")}
-              className={`relative rounded-xl p-4 text-left transition-all border-2 ${
+              className={`relative min-h-[44px] rounded-xl border-2 p-4 text-left transition-all ${
                 selectedLevel === "beginner"
-                  ? "border-emerald-500 bg-emerald-50 shadow-sm"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                  ? "border-study-beginner bg-study-beginner-soft shadow-sm"
+                  : "border-study-border bg-white hover:border-study-accent"
               }`}
             >
               {selectedLevel === "beginner" && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-study-beginner">
                   <svg
                     className="w-3 h-3 text-white"
                     fill="none"
@@ -279,15 +279,15 @@ function DetailContent() {
               )}
               <div className="text-2xl mb-1">🌱</div>
               <div
-                className={`font-bold text-sm ${
+                className={`text-sm font-bold ${
                   selectedLevel === "beginner"
-                    ? "text-emerald-700"
-                    : "text-gray-800"
+                    ? "text-study-beginner"
+                    : "text-study-ink"
                 }`}
               >
                 初級
               </div>
-              <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+              <div className="mt-1 text-xs leading-relaxed text-study-muted">
                 各問題の前にミニ授業付き。初めての方におすすめ
               </div>
             </button>
@@ -295,14 +295,14 @@ function DetailContent() {
             {/* 中級 */}
             <button
               onClick={() => setSelectedLevel("intermediate")}
-              className={`relative rounded-xl p-4 text-left transition-all border-2 ${
+              className={`relative min-h-[44px] rounded-xl border-2 p-4 text-left transition-all ${
                 selectedLevel === "intermediate"
-                  ? "border-purple-500 bg-purple-50 shadow-sm"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                  ? "border-study-accent bg-study-accent-soft shadow-sm"
+                  : "border-study-border bg-white hover:border-study-accent"
               }`}
             >
               {selectedLevel === "intermediate" && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-study-accent">
                   <svg
                     className="w-3 h-3 text-white"
                     fill="none"
@@ -320,15 +320,15 @@ function DetailContent() {
               )}
               <div className="text-2xl mb-1">🔥</div>
               <div
-                className={`font-bold text-sm ${
+                className={`text-sm font-bold ${
                   selectedLevel === "intermediate"
-                    ? "text-purple-700"
-                    : "text-gray-800"
+                    ? "text-study-accent"
+                    : "text-study-ink"
                 }`}
               >
                 中級
               </div>
-              <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+              <div className="mt-1 text-xs leading-relaxed text-study-muted">
                 問題に直接挑戦。学習経験のある方向け
               </div>
             </button>
@@ -341,21 +341,21 @@ function DetailContent() {
             <button
               key={subCategory.id}
               onClick={() => handleStartQuiz(subCategory.id)}
-              className="w-full bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors text-left"
+              className="study-card w-full min-h-[44px] p-4 text-left transition-colors hover:bg-study-accent-soft/50"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">{subCategory.icon}</span>
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-study-ink">
                       {subCategory.name}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-study-muted">
                       {subCategory.questions}問
                     </div>
                   </div>
                 </div>
-                <i className="ri-arrow-right-s-line text-gray-400"></i>
+                <i className="ri-arrow-right-s-line text-study-muted"></i>
               </div>
             </button>
           ))}
@@ -369,7 +369,7 @@ export default function PracticeDetail() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="study-shell flex items-center justify-center">
           <div className="text-muted-foreground">読み込み中...</div>
         </div>
       }

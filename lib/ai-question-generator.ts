@@ -387,30 +387,34 @@ JSON形式で返してください：
     `;
   }
 
-  // 問題の品質評価
-  async evaluateQuestionQuality(question: GeneratedQuestion): Promise<{
+  // 問題の品質評価（監査バッチでは failOpen: false を推奨）
+  async evaluateQuestionQuality(
+    question: GeneratedQuestion,
+    options?: { failOpen?: boolean }
+  ): Promise<{
     score: number;
     feedback: string[];
     improvements: string[];
   }> {
+    const failOpen = options?.failOpen !== false;
     const evaluationPrompt = `
-生成された問題を評価してください：
+生成された宅建試験問題を厳格に評価してください：
 
 問題: ${question.question}
 選択肢: ${question.choices.join(', ')}
 正解: ${question.choices[question.correctAnswer - 1]}
 解説: ${question.explanation}
 
-評価基準：
-1. 問題文の明確性 (1-5)
-2. 選択肢の適切性 (1-5)
-3. 解説の詳細度 (1-5)
-4. 学習効果 (1-5)
-5. 実試験との整合性 (1-5)
+評価基準（各1-5、総合は加重平均）:
+1. 法的正確性（条文番号・制度の正誤。架空ルールや条文混同は即減点）
+2. 正解と解説の整合性（正解肢と解説が矛盾しないか）
+3. 選択肢の一意性（正解が1つに定まるか。全肢正しい/誤りの出題破綻は不可）
+4. 解説の構造（【正解】【各選択肢の解説】【ポイント】があるか）
+5. 実試験との整合性（過去問の丸写し禁止、出題形式として自然か）
 
-JSON形式で返してください：
+JSON形式のみで返してください：
 {
-  "score": 総合スコア(1-5),
+  "score": 総合スコア(1-5の数値),
   "feedback": ["良い点1", "良い点2"],
   "improvements": ["改善点1", "改善点2"]
 }
@@ -420,25 +424,39 @@ JSON形式で返してください：
       const response = await aiClient.chat([
         {
           role: 'system',
-          content: '宅建試験問題の品質評価専門家として、客観的で建設的な評価を提供してください。'
+          content:
+            '宅建試験問題の品質評価専門家です。法的誤り・架空制度・出題破綻を最優先で指摘し、甘い採点はしないでください。JSONのみ返します。',
         },
         {
           role: 'user',
-          content: evaluationPrompt
-        }
+          content: evaluationPrompt,
+        },
       ], {
-        temperature: 0.3,
-        maxTokens: 800
+        temperature: 0.2,
+        maxTokens: 900,
       });
 
-      return JSON.parse(response.content);
+      const parsed = JSON.parse(response.content);
+      if (typeof parsed.score !== 'number' || Number.isNaN(parsed.score)) {
+        throw new Error('評価レスポンスに有効な score がありません');
+      }
+      return {
+        score: parsed.score,
+        feedback: Array.isArray(parsed.feedback) ? parsed.feedback : [],
+        improvements: Array.isArray(parsed.improvements)
+          ? parsed.improvements
+          : [],
+      };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('問題品質評価エラー', err, { questionId: question.id });
+      if (!failOpen) {
+        throw err;
+      }
       return {
         score: 3,
         feedback: ['標準的な問題です'],
-        improvements: ['より詳細な分析が必要']
+        improvements: ['より詳細な分析が必要'],
       };
     }
   }
@@ -456,6 +474,12 @@ ${JSON.stringify(question, null, 2)}
 ${improvements.join('\n')}
 
 上記の改善要求に基づいて、問題を改善してください。
+制約:
+- 架空の制度（例: 重要事項説明後の「冷却期間」）を作らない
+- 重要事項説明は宅建業法第35条、契約書面は第37条を混同しない
+- 解説は必ず次の見出しを含める: 【正解】【各選択肢の解説】【ポイント】
+- 正解は choices のうち1つだけが正しくなるようにする
+
 改善された問題をJSON形式で返してください：
 
 {

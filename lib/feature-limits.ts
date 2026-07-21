@@ -56,35 +56,24 @@ export class FeatureLimits {
   }
 
   /**
-   * 過去問アクセス制限をチェック
+   * 問題アクセス制限をチェック（過去問本文は非公開）
    */
   async checkPastQuestionsAccess(userId: string, questionYear: string): Promise<FeatureLimit> {
     try {
       const hasPremium = await subscriptionService.hasPremiumAccess(userId);
       
+      // 過去問本文は非公開。制限は問題数側で行う
       if (hasPremium) {
         return {
           canUse: true,
-          message: 'すべての年度の問題にアクセスできます'
+          message: 'すべてのAI予想問題にアクセスできます'
         };
       }
 
-      // 無料ユーザーは直近2年分のみ
-      const currentYear = new Date().getFullYear();
-      const questionYearNum = parseInt(questionYear.replace(/[^\d]/g, ''));
-      const yearsDiff = currentYear - questionYearNum;
-
-      if (yearsDiff <= 2) {
-        return {
-          canUse: true,
-          message: '直近2年分の問題にアクセスできます'
-        };
-      } else {
-        return {
-          canUse: false,
-          message: 'この年度の問題はプレミアムプランでのみご利用いただけます'
-        };
-      }
+      return {
+        canUse: true,
+        message: '無料プランでもAI予想問題を学習できます（月間問題数に上限あり）'
+      };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error('Failed to check past questions access', err, { userId, questionYear });

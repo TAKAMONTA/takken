@@ -55,6 +55,24 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        study: {
+          bg: "hsl(var(--study-bg))",
+          ink: "hsl(var(--study-ink))",
+          muted: "hsl(var(--study-muted))",
+          accent: "hsl(var(--study-accent))",
+          "accent-soft": "hsl(var(--study-accent-soft))",
+          beginner: "hsl(var(--study-beginner))",
+          "beginner-soft": "hsl(var(--study-beginner-soft))",
+          border: "hsl(var(--study-border))",
+          surface: "hsl(var(--study-surface))",
+        },
+      },
+      minHeight: {
+        tap: "var(--tap-min)",
+      },
+      spacing: {
+        "safe-bottom": "var(--safe-bottom)",
+        "safe-top": "var(--safe-top)",
       },
       borderRadius: {
         lg: "var(--radius)",

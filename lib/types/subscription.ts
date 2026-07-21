@@ -84,9 +84,9 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     description: '基本的な学習機能を利用できます',
     price: 0,
     features: {
-      questionLimit: 300, // 300問まで（全体の約20% - プレミアムの価値を明確化）
-      pastExamYears: 2, // 直近2年分（プレミアムは10年分）
-      aiExplanationLimit: 20, // 月20回まで（プレミアムは無制限）
+      questionLimit: 500, // 公開プール拡大に合わせて引き上げ
+      pastExamYears: 0, // 過去問本文は非公開（AI予想問題）
+      aiExplanationLimit: 20, // 月20回まで
       advancedAnalytics: false,
       successPatternAnalysis: false,
       spacedRepetition: false,
@@ -99,19 +99,19 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
   [SubscriptionPlan.PREMIUM]: {
     id: SubscriptionPlan.PREMIUM,
     name: 'プレミアムプラン',
-    description: '全機能を無制限で利用できます',
+    description: '全問題・AI・模試を制限なく利用できます',
     price: 1000,
     yearlyPrice: 8000,
     popular: true,
     applePriceId: 'com.takamonta.takken.premium.monthly',
     appleYearlyPriceId: 'com.takamonta.takken.premium.yearly',
     features: {
-      questionLimit: -1, // 無制限
-      pastExamYears: -1, // 無制限（実際の年度数ではなく、すべての問題にアクセス可能）
+      questionLimit: -1, // 無制限（AI予想問題）
+      pastExamYears: 0, // 過去問本文は非公開
       aiExplanationLimit: -1, // 無制限
       advancedAnalytics: true,
       successPatternAnalysis: true,
-      spacedRepetition: true,
+      spacedRepetition: false, // 未実装のため売らない
       adFree: true,
       offlineQuestions: true,
       prioritySupport: false,
