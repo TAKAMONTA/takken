@@ -37,6 +37,8 @@ export interface Question {
   year: string;
   exam?: string; // 試験回（例：「10月」「12月」）
   source?: string; // 問題の出典（例：「追加生成」「AI生成」）
+  /** 分類用タグ（例: AI予想問題, fundamental） */
+  tags?: string[];
 
   // 過去問頻度による格付け用のメタデータ（任意）
   // topic: 過去問集計の単位（例: 不動産取得税/固定資産税/登録免許税 など）
