@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "remixicon/fonts/remixicon.css";
 import "./globals.css";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { SubscriptionProvider } from "@/lib/hooks/use-subscription";
@@ -20,10 +21,6 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning={true}>
       <head>
-        <link
-          href="/fonts/remixicon/remixicon.css"
-          rel="stylesheet"
-        />
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
 

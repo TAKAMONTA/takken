@@ -2,6 +2,9 @@
   "name": "takken-rpg",
   "version": "1.6.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "postinstall": "patch-package || true",
     "dev": "next dev",
@@ -9,6 +12,7 @@
     "build:ios": "ts-node scripts/release/build-ios.ts",
     "start": "next start",
     "lint": "eslint app components lib next.config.mjs",
+    "typecheck": "tsc --noEmit --pretty false",
     "test:env": "ts-node -r dotenv/config scripts/test/env.ts",
     "test:server-boundaries": "ts-node scripts/test/server-import-boundaries.ts",
     "test:question-dedupe": "ts-node scripts/test/question-dedupe.ts",
@@ -33,7 +37,7 @@
     "check:questions": "ts-node scripts/check/question-counts.ts",
     "check:app-store": "ts-node scripts/test/app-store-safety.ts",
     "check:subscription-copy": "ts-node scripts/test/subscription-copy-consistency.ts",
-    "verify:release": "npm run lint:strict && npm run check-env && npm run check:questions && npm run duplicate:questions && npm run check:question-quality && npm run check:app-store && npm run check:subscription-copy && npm run build",
+    "verify:release": "npm run lint:strict && npm run typecheck && npm run check-env && npm run check:questions && npm run duplicate:questions && npm run check:question-quality && npm run check:app-store && npm run check:subscription-copy && npm run build",
     "verify:ios": "npm run check:app-store && npm run build:ios",
     "verify:production-env": "ts-node scripts/check/production-env.ts",
     "release:preflight": "npm run verify:release && npm run verify:ios",
