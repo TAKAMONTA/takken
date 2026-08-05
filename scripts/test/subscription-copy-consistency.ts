@@ -16,7 +16,6 @@ function read(relativePath: string): string {
 const pricingPage = read("app/subscription/pricing/page.tsx");
 const subscriptionPage = read("app/subscription/page.tsx");
 const legalPage = read("app/legal/page.tsx");
-const storeKit = JSON.parse(read("ios/App/TakkenIAP.storekit"));
 
 const freeCardDuplicatePattern =
   /AI予想問題（\{freeConfig\.features\.questionLimit[\s\S]*?AI予想問題（\{freeConfig\.features\.questionLimit/;
