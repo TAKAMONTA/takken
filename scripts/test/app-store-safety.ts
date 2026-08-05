@@ -16,6 +16,7 @@ import { join } from "path";
 
 const root = process.cwd();
 const failures: string[] = [];
+const webOnly = process.argv.includes("--web-only");
 
 function read(relativePath: string): string {
   return readFileSync(join(root, relativePath), "utf8");
@@ -67,66 +68,65 @@ expect(
   "Native iOS purchases should route to the success screen instead of assigning window.location.href"
 );
 
-const privacyManifestPath = "ios/App/App/PrivacyInfo.xcprivacy";
-expect(existsSync(join(root, privacyManifestPath)), "PrivacyInfo.xcprivacy is missing from the iOS app target");
-if (existsSync(join(root, privacyManifestPath))) {
-  const privacyManifest = read(privacyManifestPath);
-  [
-    "NSPrivacyTracking",
-    "<false/>",
-    "NSPrivacyAccessedAPICategoryUserDefaults",
-    "CA92.1",
-    "NSPrivacyCollectedDataTypeEmailAddress",
-    "NSPrivacyCollectedDataTypeUserID",
-    "NSPrivacyCollectedDataTypeProductInteraction",
-    "NSPrivacyCollectedDataTypePurchaseHistory",
-  ].forEach((needle) => {
+if (!webOnly) {
+  const privacyManifestPath = "ios/App/App/PrivacyInfo.xcprivacy";
+  expect(existsSync(join(root, privacyManifestPath)), "PrivacyInfo.xcprivacy is missing from the iOS app target");
+  if (existsSync(join(root, privacyManifestPath))) {
+    const privacyManifest = read(privacyManifestPath);
+    [
+      "NSPrivacyTracking",
+      "<false/>",
+      "NSPrivacyAccessedAPICategoryUserDefaults",
+      "CA92.1",
+      "NSPrivacyCollectedDataTypeEmailAddress",
+      "NSPrivacyCollectedDataTypeUserID",
+      "NSPrivacyCollectedDataTypeProductInteraction",
+      "NSPrivacyCollectedDataTypePurchaseHistory",
+    ].forEach((needle) => {
+      expect(
+        privacyManifest.includes(needle),
+        `Privacy manifest must include ${needle}`
+      );
+    });
+  }
+
+  const projectFilePath = "ios/App/App.xcodeproj/project.pbxproj";
+  expect(existsSync(join(root, projectFilePath)), "iOS Xcode project is missing");
+  if (existsSync(join(root, projectFilePath))) {
     expect(
-      privacyManifest.includes(needle),
-      `Privacy manifest must include ${needle}`
+      read(projectFilePath).includes("PrivacyInfo.xcprivacy in Resources"),
+      "PrivacyInfo.xcprivacy must be copied into the iOS app bundle resources"
     );
-  });
-}
+  }
 
-const projectFile = read("ios/App/App.xcodeproj/project.pbxproj");
-expect(
-  projectFile.includes("PrivacyInfo.xcprivacy in Resources"),
-  "PrivacyInfo.xcprivacy must be copied into the iOS app bundle resources"
-);
+  // 5.1.2(i): Info.plist に NSUserTrackingUsageDescription を持たない
+  const infoPlistPath = "ios/App/App/Info.plist";
+  expect(existsSync(join(root, infoPlistPath)), "Info.plist is missing");
+  if (existsSync(join(root, infoPlistPath))) {
+    const infoPlist = read(infoPlistPath);
+    expect(
+      !infoPlist.includes("NSUserTrackingUsageDescription"),
+      "[Guideline 5.1.2(i)] Info.plist must NOT contain NSUserTrackingUsageDescription (App Tracking Transparency)"
+    );
+    expect(
+      !infoPlist.includes("SKAdNetworkItems"),
+      "[Guideline 5.1.2(i)] Info.plist should not list SKAdNetworkItems while ads are disabled on iOS"
+    );
+  }
 
-// ---------------------------------------------------------------------------
-// 5.1.2(i): Info.plist に NSUserTrackingUsageDescription を持たない
-// ---------------------------------------------------------------------------
-
-const infoPlistPath = "ios/App/App/Info.plist";
-expect(existsSync(join(root, infoPlistPath)), "Info.plist is missing");
-if (existsSync(join(root, infoPlistPath))) {
-  const infoPlist = read(infoPlistPath);
+  // 2.3.8: アプリアイコンがプレースホルダーでないこと
+  const appIcon1024Path = "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024x1024@1x.png";
   expect(
-    !infoPlist.includes("NSUserTrackingUsageDescription"),
-    "[Guideline 5.1.2(i)] Info.plist must NOT contain NSUserTrackingUsageDescription (App Tracking Transparency)"
+    existsSync(join(root, appIcon1024Path)),
+    "[Guideline 2.3.8] 1024x1024 app icon is missing"
   );
-  expect(
-    !infoPlist.includes("SKAdNetworkItems"),
-    "[Guideline 5.1.2(i)] Info.plist should not list SKAdNetworkItems while ads are disabled on iOS"
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 2.3.8: アプリアイコンがプレースホルダーでないこと
-// ---------------------------------------------------------------------------
-
-const appIcon1024Path = "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024x1024@1x.png";
-expect(
-  existsSync(join(root, appIcon1024Path)),
-  "[Guideline 2.3.8] 1024x1024 app icon is missing"
-);
-if (existsSync(join(root, appIcon1024Path))) {
-  const size = statSync(join(root, appIcon1024Path)).size;
-  expect(
-    size > 10 * 1024,
-    `[Guideline 2.3.8] 1024x1024 app icon is suspiciously small (${size} bytes) — likely placeholder. Replace with the final asset.`
-  );
+  if (existsSync(join(root, appIcon1024Path))) {
+    const size = statSync(join(root, appIcon1024Path)).size;
+    expect(
+      size > 10 * 1024,
+      `[Guideline 2.3.8] 1024x1024 app icon is suspiciously small (${size} bytes) — likely placeholder. Replace with the final asset.`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
