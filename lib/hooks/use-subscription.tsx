@@ -29,7 +29,7 @@ interface SubscriptionContextType {
   isLoading: boolean;
   error: string | null;
   refreshSubscription: () => Promise<void>;
-  createCheckoutSession: (plan: SubscriptionPlan, yearly?: boolean) => Promise<string | null>;
+  createCheckoutSession: (plan: SubscriptionPlan) => Promise<string | null>;
   restorePurchases: () => Promise<void>;
   hasFeatureAccess: (feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features']) => boolean;
   getFeatureLimit: (feature: keyof typeof PLAN_CONFIGS[SubscriptionPlan.FREE]['features']) => number;
@@ -121,7 +121,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
           if (activeSub) {
             const planConfig = Object.values(PLAN_CONFIGS).find(c =>
-              c.applePriceId === activeSub.productId || c.appleYearlyPriceId === activeSub.productId
+              c.applePriceId === activeSub.productId
             );
 
             if (planConfig) {
@@ -205,11 +205,10 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
    * Checkoutセッションを作成
    */
   const createCheckoutSession = useCallback(async (
-    plan: SubscriptionPlan,
-    yearly = false
+    plan: SubscriptionPlan
   ): Promise<string | null> => {
     try {
-      console.log("[Checkout] セッション作成開始", { plan, yearly });
+      console.log("[Checkout] セッション作成開始", { plan });
 
       const firebaseUser = await getCurrentFirebaseUser();
       const userId = firebaseUser?.uid || null;
@@ -223,7 +222,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       // iOS環境の場合はネイティブ決済を行う
       if (Capacitor.getPlatform() === 'ios') {
         const config = PLAN_CONFIGS[plan];
-        const appleId = yearly ? config.appleYearlyPriceId : config.applePriceId;
+        const appleId = config.applePriceId;
 
         if (!appleId) {
           throw new Error("iOS用の商品IDが設定されていません");
@@ -279,7 +278,6 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
       const requestBody = {
         plan,
-        yearly,
       };
       console.log("[Checkout] APIリクエスト送信", {
         url: "/api/subscription/create-checkout-session",

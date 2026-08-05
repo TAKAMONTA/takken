@@ -31,10 +31,8 @@ export interface PlanConfig {
   name: string;
   description: string;
   price: number; // 月額料金（円）
-  yearlyPrice?: number; // 年額料金（円）
   features: SubscriptionFeatures;
   applePriceId?: string; // iOS In-App Purchase商品ID
-  appleYearlyPriceId?: string; // iOS In-App Purchase年額商品ID
   popular?: boolean;
 }
 
@@ -101,10 +99,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     name: 'プレミアムプラン',
     description: '全問題・AI・模試を制限なく利用できます',
     price: 1000,
-    yearlyPrice: 8000,
     popular: true,
     applePriceId: 'com.takamonta.takken.premium.monthly',
-    appleYearlyPriceId: 'com.takamonta.takken.premium.yearly',
     features: {
       questionLimit: -1, // 無制限（AI予想問題）
       pastExamYears: 0, // 過去問本文は非公開
@@ -156,9 +152,8 @@ export function getPlanDisplayName(plan: SubscriptionPlan): string {
   return PLAN_CONFIGS[plan].name;
 }
 
-export function getPlanPrice(plan: SubscriptionPlan, yearly = false): number {
-  const config = PLAN_CONFIGS[plan];
-  return yearly && config.yearlyPrice ? config.yearlyPrice : config.price;
+export function getPlanPrice(plan: SubscriptionPlan): number {
+  return PLAN_CONFIGS[plan].price;
 }
 
 export function getPlanFeatures(plan: SubscriptionPlan): SubscriptionFeatures {

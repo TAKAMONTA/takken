@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useIsIOSApp } from "@/lib/use-is-ios-app";
 import { getAppPublicBaseUrl } from "@/lib/app-public-base-url";
+import { PLAN_CONFIGS, SubscriptionPlan } from "@/lib/types/subscription";
 
 export default function SubscriptionPage() {
   const isIOSApp = useIsIOSApp();
   const publicBase = getAppPublicBaseUrl();
+  const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
   const termsUrl = `${publicBase}/settings/terms`;
   const privacyUrl = `${publicBase}/settings/privacy`;
   const appleEulaUrl =
@@ -113,17 +115,11 @@ export default function SubscriptionPage() {
               <span className="text-sm text-gray-900">模擬試験機能</span>
             </div>
 
-            <div className="flex items-center space-x-3">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center bg-purple-100">
-                <i className="ri-check-line text-sm text-purple-600"></i>
-              </div>
-              <span className="text-sm text-gray-900">優先サポート</span>
-            </div>
           </div>
 
           <div className="bg-purple-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-purple-900 font-medium mb-1">
-              月額 1,000円（税込）
+              月額 {premiumConfig.price.toLocaleString()}円（税込）
             </p>
             <p className="text-xs text-purple-700 mb-2">
               {isIOSApp ? "Web版・iOSアプリでご利用いただけます" : "Web版・iOS/Androidアプリでご利用いただけます"}
@@ -142,8 +138,8 @@ export default function SubscriptionPage() {
               自動更新サブスクリプション
             </p>
             <ul className="list-disc list-inside space-y-1 text-purple-800">
-              <li>名称: プレミアム（月額 / 年額 ※アプリ内表示）</li>
-              <li>期間: 1か月 / 1年</li>
+              <li>名称: プレミアム（月額 ※アプリ内表示）</li>
+              <li>期間: 1か月</li>
               <li>価格: 登録時に App Store 上で表示される金額（税込）</li>
             </ul>
             <p className="flex flex-wrap gap-x-3 gap-y-1">

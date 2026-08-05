@@ -62,8 +62,7 @@ https://dashboard.stripe.com/webhooks
      {
        "metadata": {
          "userId": "user-1766203482784",
-         "plan": "premium",
-         "yearly": "false"
+         "plan": "premium"
        }
      }
      ```
@@ -206,7 +205,6 @@ const session = await stripe.checkout.sessions.create({
   metadata: {
     userId: userId,
     plan: 'premium',
-    yearly: 'false',
   },
 });
 ```
@@ -261,8 +259,7 @@ stripe trigger checkout.session.completed
          "id": "cs_test_xxx",
          "metadata": {
            "userId": "test-user-123",
-           "plan": "premium",
-           "yearly": "false"
+           "plan": "premium"
          },
          "subscription": "sub_test_xxx"
        }

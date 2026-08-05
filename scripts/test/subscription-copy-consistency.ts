@@ -40,20 +40,6 @@ expect(
   "Legal pricing copy should not hard-code a discount that can drift from plan pricing"
 );
 
-const storeKitYearlyProduct = storeKit.subscriptionGroups
-  ?.flatMap((group: { subscriptions?: Array<{ productID: string; displayPrice: string }> }) => group.subscriptions || [])
-  .find((subscription: { productID: string }) => subscription.productID === "com.takamonta.takken.premium.yearly");
-expect(!!storeKitYearlyProduct, "StoreKit yearly product price is missing");
-
-if (storeKitYearlyProduct) {
-  const storeKitYearlyPrice = Number(storeKitYearlyProduct.displayPrice);
-  const appYearlyPrice = PLAN_CONFIGS[SubscriptionPlan.PREMIUM].yearlyPrice;
-  expect(
-    appYearlyPrice === storeKitYearlyPrice,
-    `App yearly price (${appYearlyPrice}) must match StoreKit yearly price (${storeKitYearlyPrice})`
-  );
-}
-
 if (failures.length > 0) {
   console.error("Subscription copy consistency check failed:");
   failures.forEach((failure) => console.error(`- ${failure}`));

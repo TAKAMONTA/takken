@@ -124,11 +124,6 @@ addCheck(
   startsWith("STRIPE_PRICE_ID_PREMIUM_MONTHLY", "price_"),
   "Monthly Stripe price id must start with price_."
 );
-addCheck(
-  "STRIPE_PRICE_ID_PREMIUM_YEARLY",
-  startsWith("STRIPE_PRICE_ID_PREMIUM_YEARLY", "price_"),
-  "Yearly Stripe price id must start with price_."
-);
 
 const hasAnyAIKey =
   hasValue("OPENAI_API_KEY") ||

@@ -5,7 +5,7 @@ import { logger } from './logger';
 /**
  * iOS In-App Purchase対応のサブスクリプション管理サービス
  * - iOSアプリでのみ利用可能
- * - Stripeは使用しない（2025年10月削除）
+ * - Web版はStripe、iOS版はApple IAPを使用
  */
 export interface SubscriptionPlan {
   id: string;
@@ -33,7 +33,7 @@ export class SubscriptionService {
     {
       id: 'premium_monthly',
       name: 'プレミアムプラン（月額）',
-      price: 500,
+      price: 1000,
       features: [
         '全問題アクセス（AI予想問題）',
         'AI解説・質問の無制限利用',
@@ -44,21 +44,6 @@ export class SubscriptionService {
         'オフライン学習の拡張'
       ],
       productId: 'com.takamonta.takken.premium.monthly'
-    },
-    {
-      id: 'premium_yearly',
-      name: 'プレミアムプラン（年額）',
-      price: 4500,
-      features: [
-        '全問題アクセス（AI予想問題）',
-        'AI解説・質問の無制限利用',
-        '本番配分の模試',
-        '広告非表示',
-        '詳細学習分析・レポート',
-        'プッシュ通知・学習リマインダー',
-        'オフライン学習の拡張'
-      ],
-      productId: 'com.takamonta.takken.premium.yearly'
     }
   ];
 

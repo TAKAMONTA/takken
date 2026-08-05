@@ -13,7 +13,6 @@
 | `STRIPE_SECRET_KEY` | `sk_test_...` または `sk_live_...` | サーバー側でのStripe API呼び出し | `sk_live_xxxxxxxxxxxxx` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Webhook署名の検証 | `whsec_xxxxxxxxxxxxx` |
 | `STRIPE_PRICE_ID_PREMIUM_MONTHLY` | `price_...` | プレミアム月額プランのPrice ID | `price_xxxxxxxxxxxxx` |
-| `STRIPE_PRICE_ID_PREMIUM_YEARLY` | `price_...` | プレミアム年額プランのPrice ID | `price_xxxxxxxxxxxxx` |
 
 ### Firebase関連
 
@@ -133,7 +132,6 @@ https://vercel.com/
 | `STRIPE_SECRET_KEY` | `sk_live_xxxxxxxxxxxxx` | ✅ Production |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_xxxxxxxxxxxxx` | ✅ Production |
 | `STRIPE_PRICE_ID_PREMIUM_MONTHLY` | `price_xxxxxxxxxxxxx` | ✅ Production |
-| `STRIPE_PRICE_ID_PREMIUM_YEARLY` | `price_xxxxxxxxxxxxx` | ✅ Production |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | `{"type":"service_account",...}` | ✅ Production |
 | `NEXT_PUBLIC_APP_URL` | `https://your-production-domain` | ✅ Production |
 
@@ -175,7 +173,6 @@ npm run check:production-env
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 STRIPE_PRICE_ID_PREMIUM_MONTHLY=price_xxxxxxxxxxxxx
-STRIPE_PRICE_ID_PREMIUM_YEARLY=price_xxxxxxxxxxxxx
 
 # Firebase
 NEXT_PUBLIC_FIREBASE_API_KEY=xxxxxxxxxxxxx

@@ -96,11 +96,6 @@ const ENV_CONFIGS: EnvConfig[] = [
     description: 'Stripe プレミアム月額 Price ID',
     required: false,
   },
-  {
-    key: 'STRIPE_PRICE_ID_PREMIUM_YEARLY',
-    description: 'Stripe プレミアム年額 Price ID',
-    required: false,
-  },
 
   // Firebase Admin SDK（API Routes / Stripe Webhookで使用）
   {
@@ -219,7 +214,7 @@ export function validateEnvironment(): void {
       );
     }
 
-    ['STRIPE_PRICE_ID_PREMIUM_MONTHLY', 'STRIPE_PRICE_ID_PREMIUM_YEARLY'].forEach((key) => {
+    ['STRIPE_PRICE_ID_PREMIUM_MONTHLY'].forEach((key) => {
       const value = process.env[key];
       if (value && !value.startsWith('price_')) {
         errors.push('❌ ' + key + ' は price_ で始まる必要があります');

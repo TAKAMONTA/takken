@@ -121,10 +121,7 @@ function parseAppleTimestamp(value: unknown): Date | null {
 
 function mapProductIdToPlan(productId: string): SubscriptionPlan | null {
   for (const config of Object.values(PLAN_CONFIGS)) {
-    if (
-      config.applePriceId === productId ||
-      config.appleYearlyPriceId === productId
-    ) {
+    if (config.applePriceId === productId) {
       return config.id;
     }
   }

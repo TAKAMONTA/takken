@@ -10,11 +10,10 @@ import { getUserFriendlyErrorMessage } from "@/lib/api-error-handler";
 export default function PricingPage() {
   const { subscription, isLoading, error, createCheckoutSession, restorePurchases } = useSubscription();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedYearly, setSelectedYearly] = useState(false);
   const router = useRouter();
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
-    console.log("[Pricing] 登録ボタンクリック", { plan, selectedYearly });
+    console.log("[Pricing] 登録ボタンクリック", { plan });
 
     if (plan === SubscriptionPlan.FREE) {
       console.log("[Pricing] 無料プランはスキップ");
@@ -28,7 +27,7 @@ export default function PricingPage() {
     setIsProcessing(true);
     try {
       console.log("[Pricing] createCheckoutSession呼び出し直前");
-      const checkoutUrl = await createCheckoutSession(plan, selectedYearly);
+      const checkoutUrl = await createCheckoutSession(plan);
       console.log("[Pricing] createCheckoutSession完了", {
         hasUrl: !!checkoutUrl,
         urlType: typeof checkoutUrl,
@@ -109,35 +108,6 @@ export default function PricingPage() {
           <p className="text-xl text-gray-600 mb-8">
             AI機能と高度な分析で、効率的に宅建試験に合格しよう
           </p>
-        </div>
-
-        {/* 月額/年額切り替え */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg p-1 shadow-sm inline-flex">
-            <button
-              onClick={() => setSelectedYearly(false)}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${!selectedYearly
-                  ? "bg-purple-600 text-white"
-                  : "text-gray-600 hover:text-gray-900"
-                }`}
-            >
-              月額
-            </button>
-            <button
-              onClick={() => setSelectedYearly(true)}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${selectedYearly
-                  ? "bg-purple-600 text-white"
-                  : "text-gray-600 hover:text-gray-900"
-                }`}
-            >
-              年額
-              {premiumConfig.yearlyPrice && (
-                <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded">
-                  お得
-                </span>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* プランカード */}
@@ -241,16 +211,11 @@ export default function PricingPage() {
                 {premiumConfig.name}
               </h3>
               <div className="text-4xl font-bold text-gray-900 mb-2">
-                ¥{selectedYearly && premiumConfig.yearlyPrice ? premiumConfig.yearlyPrice.toLocaleString() : premiumConfig.price.toLocaleString()}
+                ¥{premiumConfig.price.toLocaleString()}
               </div>
               <p className="text-gray-600 mb-2">
-                {selectedYearly ? "年額" : "月額"}（税込）
+                月額（税込）
               </p>
-              {selectedYearly && premiumConfig.yearlyPrice && (
-                <p className="text-sm text-green-600 mb-8">
-                  月額換算 ¥{Math.floor(premiumConfig.yearlyPrice / 12).toLocaleString()}（{Math.floor((1 - premiumConfig.yearlyPrice / (premiumConfig.price * 12)) * 100)}% お得）
-                </p>
-              )}
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -342,7 +307,7 @@ export default function PricingPage() {
                 ? "処理中..."
                 : currentPlan === SubscriptionPlan.PREMIUM
                   ? "現在のプラン"
-                  : `${selectedYearly ? "年額" : "月額"}プランに登録`}
+                  : "月額プランに登録"}
             </button>
           </div>
         </div>

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { plan, yearly = false } = body;
+    const { plan } = body;
 
     // バリデーション
     if (!plan || !Object.values(SubscriptionPlan).includes(plan)) {
@@ -73,12 +73,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Price IDの取得
-    const priceId = yearly
-      ? process.env.STRIPE_PRICE_ID_PREMIUM_YEARLY
-      : process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY;
+    const priceId = process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY;
 
     if (!priceId) {
-      logger.error("Price IDが設定されていません", { yearly });
+      logger.error("Price IDが設定されていません");
       return NextResponse.json(
         { error: "価格設定が見つかりません" },
         { status: 500 }
@@ -105,7 +103,6 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: userId,
         plan: plan,
-        yearly: yearly.toString(),
       },
       success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/subscription/cancel`,
@@ -116,7 +113,6 @@ export async function POST(request: NextRequest) {
     logger.info("Stripe Checkoutセッション作成成功", {
       userId,
       plan,
-      yearly,
       sessionId: session.id,
       priceId,
     });
@@ -137,7 +133,6 @@ export async function POST(request: NextRequest) {
       errorStack: err.stack,
       hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
       hasPriceIdMonthly: !!process.env.STRIPE_PRICE_ID_PREMIUM_MONTHLY,
-      hasPriceIdYearly: !!process.env.STRIPE_PRICE_ID_PREMIUM_YEARLY,
       hasFirebaseServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
     });
 

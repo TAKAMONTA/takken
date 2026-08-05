@@ -7,7 +7,6 @@ export default function LegalPage() {
   const freeConfig = PLAN_CONFIGS[SubscriptionPlan.FREE];
   const premiumConfig = PLAN_CONFIGS[SubscriptionPlan.PREMIUM];
   const monthlyPrice = premiumConfig.price.toLocaleString();
-  const yearlyPrice = premiumConfig.yearlyPrice?.toLocaleString();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -167,11 +166,6 @@ export default function LegalPage() {
                 <p>
                   ■ プレミアムプラン（Web版・iOSアプリ版共通）：月額{monthlyPrice}円（税込）
                 </p>
-                {yearlyPrice && (
-                  <p className="text-xs text-gray-600 ml-4">
-                    ■ プレミアムプラン（年額）：{yearlyPrice}円（税込）
-                  </p>
-                )}
                 <p className="text-xs text-gray-600 ml-4">
                   ※Web版はStripe経由で決済、iOSアプリ版はApp Store（iOS）で決済
                 </p>
